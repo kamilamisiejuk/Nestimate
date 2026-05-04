@@ -37,6 +37,13 @@ predictability(object, ...)
 
   Additional arguments (ignored).
 
+- data:
+
+  Optional data frame of the original variables used to estimate the
+  network. Required for `method = "cor"` (multiple-R\\^2\\ regression of
+  each node on its neighbours); ignored for the precision-matrix path
+  used by `glasso`/`pcor`, which has no need of the raw data.
+
 ## Value
 
 For `netobject`: a named numeric vector of R\\^2\\ values (one per node,

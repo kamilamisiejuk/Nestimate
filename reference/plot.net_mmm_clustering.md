@@ -9,9 +9,8 @@ with `cluster_by = "mmm"`). Mirrors the type-driven surface of
 [`plot.net_clustering`](https://mohsaqr.github.io/Nestimate/reference/plot.net_clustering.md)
 but covers only the metrics the EM fit produces – there is no distance
 matrix on an MMM clustering, so `"silhouette"` / `"mds"` / `"heatmap"`
-aren't defined here. The `netobject_group` dispatcher
-(`plot.netobject_group`) raises a clear error if you ask for one of
-those on an MMM result.
+aren't defined here and the dispatcher raises a clear error if you ask
+for one of those on an MMM result.
 
 ## Usage
 

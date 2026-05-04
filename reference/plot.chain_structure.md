@@ -42,6 +42,6 @@ A `ggplot` object.
 Cell colour encodes `P(ever reach j | start at i)`. The diagonal uses
 the return-time convention (`P(return to j in >= 1 steps)`), matching
 [`markovchain::hittingProbabilities`](https://rdrr.io/pkg/markovchain/man/hittingProbabilities.html).
-A non-irreducible chain shows zero off-block entries — visual evidence
+A non-irreducible chain shows zero off-block entries – visual evidence
 of one-way doors between behavioural phases. An absorbing chain shows a
 column of 1's for the absorbing state.

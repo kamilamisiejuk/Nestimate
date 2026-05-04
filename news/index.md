@@ -265,8 +265,9 @@ CRAN release: 2026-04-20
   multilevel VAR.
 - Removed cograph plot wrappers — `plot.netobject()`,
   `plot.net_bootstrap()`, `plot.net_permutation()`, `plot.net_hon()`,
-  `plot.net_hypa()` and `as_cograph()` removed. Users call cograph
-  plotting functions directly on netobjects.
+  `plot.net_hypa()` and
+  [`as_cograph()`](https://sonsoles.me/cograph/reference/as_cograph.html)
+  removed. Users call cograph plotting functions directly on netobjects.
 - Added `attention` estimator for decay-weighted transition networks.
 - Increased test coverage from 84.5% to 96.1% (2780 tests).
 - Passes R CMD check with 0 errors, 0 warnings, 0 notes.

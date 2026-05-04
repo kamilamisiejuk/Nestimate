@@ -16,6 +16,10 @@ plot(x, bins = 60L, ...)
 
   A `net_reliability` object.
 
+- bins:
+
+  Integer. Number of histogram bins per panel (default 60).
+
 - ...:
 
   Additional arguments (ignored).

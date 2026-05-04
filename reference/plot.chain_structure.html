@@ -15,7 +15,7 @@ summarises the chain-level properties (regular, reversible)."><meta property="og
 
     <a class="navbar-brand me-2" href="../index.html">Nestimate</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.9</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -31,6 +31,8 @@ summarises the chain-level properties (regular, reversible)."><meta property="og
     <li><a class="dropdown-item" href="../articles/sequence-plots.html">Sequence Plots: heatmap, index, and distribution</a></li>
     <li><a class="dropdown-item" href="../articles/clustering.html">Sequence Clustering</a></li>
     <li><a class="dropdown-item" href="../articles/markov-stability.html">Markov Stability Analysis</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="../articles/index.html">More articles...</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
@@ -93,7 +95,7 @@ probability inside each cell. Set <code>FALSE</code> for large state spaces
     <p>Cell colour encodes <code>P(ever reach j | start at i)</code>. The diagonal
 uses the return-time convention (<code>P(return to j in &gt;= 1 steps)</code>),
 matching <code><a href="https://rdrr.io/pkg/markovchain/man/hittingProbabilities.html" class="external-link">markovchain::hittingProbabilities</a></code>. A non-irreducible chain
-shows zero off-block entries — visual evidence of one-way doors
+shows zero off-block entries – visual evidence of one-way doors
 between behavioural phases. An absorbing chain shows a column of 1's
 for the absorbing state.</p>
     </div>

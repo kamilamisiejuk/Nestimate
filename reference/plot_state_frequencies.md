@@ -7,38 +7,23 @@ Nestimate object that carries sequence data: a single `netobject`, a
 ## Usage
 
 ``` r
-plot_state_frequencies(
-  x,
-  style = c("marimekko", "bars", "mosaic"),
-  metric = c("prop", "freq"),
-  label = c("prop", "freq", "both", "state", "all", "none"),
-  legend = c("bottom", "right", "top", "left", "none", "per_facet"),
-  legend_dir = c("auto", "horizontal", "vertical"),
-  legend_frame = c("none", "border"),
-  sort_states = c("frequency", "alpha", "none"),
-  colors = NULL,
-  label_size = 3,
-  include_macro = FALSE,
-  combine = TRUE,
-  ncol = NULL,
-  node_groups = NULL,
-  ...
-)
+plot_state_frequencies(x, ...)
 
 # S3 method for class 'netobject'
 plot_state_frequencies(
   x,
-  style = c("marimekko", "bars", "mosaic"),
-  metric = c("prop", "freq"),
-  label = c("prop", "freq", "both", "state", "all", "none"),
-  legend = c("bottom", "right", "top", "left", "none", "per_facet"),
-  legend_dir = c("auto", "horizontal", "vertical"),
-  legend_frame = c("none", "border"),
-  sort_states = c("frequency", "alpha", "none"),
+  style = "marimekko",
+  metric = "prop",
+  label = "prop",
+  legend = "auto",
+  legend_dir = "auto",
+  legend_frame = "none",
+  sort_states = "frequency",
   colors = NULL,
-  label_size = 3,
+  label_size = 3.5,
+  abbreviate = FALSE,
   include_macro = FALSE,
-  combine = TRUE,
+  combine = "auto",
   ncol = NULL,
   node_groups = NULL,
   ...
@@ -47,17 +32,18 @@ plot_state_frequencies(
 # S3 method for class 'htna'
 plot_state_frequencies(
   x,
-  style = c("marimekko", "bars", "mosaic"),
-  metric = c("prop", "freq"),
-  label = c("prop", "freq", "both", "state", "all", "none"),
-  legend = c("per_facet", "bottom", "right", "top", "left", "none"),
-  legend_dir = c("auto", "horizontal", "vertical"),
-  legend_frame = c("border", "none"),
-  sort_states = c("frequency", "alpha", "none"),
+  style = "marimekko",
+  metric = "prop",
+  label = "prop",
+  legend = "auto",
+  legend_dir = "auto",
+  legend_frame = "none",
+  sort_states = "frequency",
   colors = NULL,
-  label_size = 3,
+  label_size = 3.5,
+  abbreviate = FALSE,
   include_macro = FALSE,
-  combine = TRUE,
+  combine = "auto",
   ncol = NULL,
   node_groups = NULL,
   ...
@@ -66,17 +52,18 @@ plot_state_frequencies(
 # S3 method for class 'mcml'
 plot_state_frequencies(
   x,
-  style = c("marimekko", "bars", "mosaic"),
-  metric = c("prop", "freq"),
-  label = c("prop", "freq", "both", "state", "all", "none"),
-  legend = c("per_facet", "bottom", "right", "top", "left", "none"),
-  legend_dir = c("auto", "horizontal", "vertical"),
-  legend_frame = c("none", "border"),
-  sort_states = c("frequency", "alpha", "none"),
+  style = "marimekko",
+  metric = "prop",
+  label = "prop",
+  legend = "auto",
+  legend_dir = "auto",
+  legend_frame = "none",
+  sort_states = "frequency",
   colors = NULL,
-  label_size = 3,
+  label_size = 3.5,
+  abbreviate = FALSE,
   include_macro = FALSE,
-  combine = TRUE,
+  combine = "auto",
   ncol = NULL,
   node_groups = NULL,
   ...
@@ -85,35 +72,25 @@ plot_state_frequencies(
 # S3 method for class 'netobject_group'
 plot_state_frequencies(
   x,
-  style = c("marimekko", "bars", "mosaic"),
-  metric = c("prop", "freq"),
-  label = c("prop", "freq", "both", "state", "all", "none"),
-  legend = c("bottom", "right", "top", "left", "none", "per_facet"),
-  legend_dir = c("auto", "horizontal", "vertical"),
-  legend_frame = c("none", "border"),
-  sort_states = c("frequency", "alpha", "none"),
+  style = "marimekko",
+  metric = "prop",
+  label = "prop",
+  legend = "auto",
+  legend_dir = "auto",
+  legend_frame = "none",
+  sort_states = "frequency",
   colors = NULL,
-  label_size = 3,
+  label_size = 3.5,
+  abbreviate = FALSE,
   include_macro = FALSE,
-  combine = TRUE,
+  combine = "auto",
   ncol = NULL,
   node_groups = NULL,
   ...
 )
 
 # Default S3 method
-plot_state_frequencies(
-  x,
-  style = c("marimekko", "bars", "mosaic"),
-  metric = c("prop", "freq"),
-  label = c("prop", "freq", "both", "state", "all", "none"),
-  legend = c("bottom", "right", "top", "left", "none"),
-  sort_states = c("frequency", "alpha", "none"),
-  colors = NULL,
-  label_size = 3,
-  include_macro = FALSE,
-  ...
-)
+plot_state_frequencies(x, ...)
 ```
 
 ## Arguments
@@ -122,9 +99,23 @@ plot_state_frequencies(
 
   A `netobject`, `netobject_group`, `mcml`, or `htna` object.
 
+- ...:
+
+  Reserved for future use.
+
 - style:
 
-  Either `"marimekko"` (default) or `"bars"`.
+  One of:
+
+  - `"marimekko"` (default) – per-group treemap panels with
+    cumulative-width geometry; tile area = within-group state share.
+
+  - `"bars"` – horizontal bars sorted by frequency, faceted per group.
+
+  For chi-square mosaics of a (group x state) contingency table, use
+  [`mosaic_plot`](https://mohsaqr.github.io/Nestimate/reference/mosaic_plot.md)
+  directly – it is kept as a separate function with its own dispatch
+  surface.
 
 - metric:
 
@@ -150,13 +141,15 @@ plot_state_frequencies(
 
 - legend:
 
-  Legend position. `"bottom"` (default), `"top"`, `"right"`, `"left"`,
-  `"none"` (hide; pair with `label = "state"` or `"all"` so state names
-  show on tiles), or `"per_facet"` – each group renders as its own panel
-  with an isolated legend showing only the states present in that panel.
-  For `htna` this gives each actor (AI, Human) its own legend; for
-  `mcml` each cluster gets its own. Requires the gridExtra package and
-  returns a `gtable`.
+  Legend position. `"auto"` (default) resolves per style: `"none"` for
+  `style = "bars"` (the y-axis already names every state, so a colour
+  legend is redundant); `"per_facet"` for `htna`/`mcml` treemaps (state
+  vocabularies differ per panel, so each gets its own legend);
+  `"bottom"` for single-network and `netobject_group` treemaps (shared
+  state vocabulary, one shared legend). Override with any of `"bottom"`,
+  `"top"`, `"right"`, `"left"`, `"none"`, or `"per_facet"`. The
+  `"per_facet"` option requires the gridExtra package and returns a
+  `gtable`.
 
 - legend_dir:
 
@@ -181,7 +174,18 @@ plot_state_frequencies(
 
 - label_size:
 
-  Numeric size of inline labels.
+  Numeric size of inline labels (max size when ggfittext is installed –
+  text auto-shrinks per tile).
+
+- abbreviate:
+
+  Abbreviate state names. `FALSE` (default) shows full names; `TRUE`
+  truncates to the first 3 characters via
+  [`base::abbreviate()`](https://rdrr.io/r/base/abbreviate.html) (which
+  extends the truncation as needed to keep names unique after
+  collision); a positive integer sets the target minimum length
+  explicitly (e.g. `abbreviate = 4`). Affects tile labels, legend, and
+  the returned `$table`.
 
 - include_macro:
 
@@ -190,10 +194,12 @@ plot_state_frequencies(
 
 - combine:
 
-  For `legend = "per_facet"` only. When `TRUE` (default), per-panel
-  ggplots are arranged into a single gtable via gridExtra. When `FALSE`,
-  returns a list of ggplots that are printed one-per-figure by knitr (so
-  each panel uses the full chunk `fig.width` / `fig.height`).
+  For `legend = "per_facet"` only. `"auto"` (default) returns a single
+  combined gtable for 1-3 panels and a list of ggplots (one per panel)
+  for 4+ panels – many-cluster `mcml` layouts read better as separate
+  figures than as a tile grid. `TRUE` forces a combined gtable via
+  gridExtra; `FALSE` forces a list (knitr renders each at the chunk's
+  full `fig.width` / `fig.height`).
 
 - ncol:
 
@@ -201,13 +207,24 @@ plot_state_frequencies(
   the grid arrangement. `NULL` (default) picks 1, 2, or 3 columns based
   on the number of panels.
 
-- ...:
+- node_groups:
 
-  Reserved for future use.
+  Optional named character vector mapping node labels to semantic
+  groups. When supplied, panels (or bars) are coloured / annotated by
+  group rather than by individual state, so state-level palettes can
+  collapse onto a smaller categorical legend.
 
 ## Value
 
-A `ggplot` object.
+A `state_freq` object: a list with the rendered `$plot` (a `ggplot` or
+`gtable`), the tidy `$table` (a `data.frame` with columns `group`,
+`state`, `count`, `proportion`), and the call's `$style`, `$metric`,
+`$source_class`. The class supports
+[`print()`](https://rdrr.io/r/base/print.html) (shows the tidy table in
+the console), [`plot()`](https://rdrr.io/r/graphics/plot.default.html)
+(renders the chart), and
+[`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html) (returns
+the table).
 
 ## Details
 
@@ -237,9 +254,57 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
                       method = "relative", format = "long",
                       actor = "Actor", action = "Action",
                       order = "Time", group = "Course")
-  plot_state_frequencies(nw)
-  plot_state_frequencies(nw, style = "bars")
+  res <- plot_state_frequencies(nw)
+  print(res)            # tidy frequency table in the console
+  plot(res)             # ggplot chart
+  head(as.data.frame(res))
 }
+#> State frequencies (style = marimekko, source = netobject_group)
+#>   Total events: 27,533  |  Groups: 3  |  States: 9
+#> 
+#> Per-group totals
+#>     group  events  share
+#>     A      12,390  45.0%
+#>     B       9,626  35.0%
+#>     C       5,517  20.0% 
+#> 
+#> Per-state proportions (within group)
+#>     group  state       count  share
+#>     A      consensus   3,298  26.6%
+#>     A      plan        2,805  22.6%
+#>     A      discuss     1,960  15.8%
+#>     A      emotion     1,517  12.2%
+#>     A      cohesion      923  7.4%
+#>     A      coregulate    855  6.9%
+#>     A      monitor       602  4.9%
+#>     A      synthesis     290  2.3%
+#>     A      adapt         140  1.1%
+#>     B      plan        2,445  25.4%
+#>     B      consensus   2,226  23.1%
+#>     B      discuss     1,453  15.1%
+#>     B      emotion       995  10.3%
+#>     B      coregulate    817  8.5%
+#>     B      cohesion      590  6.1%
+#>     B      monitor       565  5.9%
+#>     B      synthesis     274  2.8%
+#>     B      adapt         261  2.7%
+#>     C      plan        1,373  24.9%
+#>     C      consensus   1,273  23.1%
+#>     C      discuss       854  15.5%
+#>     C      emotion       563  10.2%
+#>     C      coregulate    461  8.4%
+#>     C      monitor       349  6.3%
+#>     C      cohesion      326  5.9%
+#>     C      synthesis     165  3.0%
+#>     C      adapt         153  2.8% 
 
+
+#>   group      state count proportion
+#> 1     A  consensus  3298 0.26618241
+#> 2     A       plan  2805 0.22639225
+#> 3     A    discuss  1960 0.15819209
+#> 4     A    emotion  1517 0.12243745
+#> 5     A   cohesion   923 0.07449556
+#> 6     A coregulate   855 0.06900726
 # }
 ```

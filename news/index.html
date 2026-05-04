@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">Nestimate</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.9</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -23,6 +23,8 @@
     <li><a class="dropdown-item" href="../articles/sequence-plots.html">Sequence Plots: heatmap, index, and distribution</a></li>
     <li><a class="dropdown-item" href="../articles/clustering.html">Sequence Clustering</a></li>
     <li><a class="dropdown-item" href="../articles/markov-stability.html">Markov Stability Analysis</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="../articles/index.html">More articles...</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
@@ -189,7 +191,7 @@
 <li>Removed tna from Imports — moved to Suggests (only used for input class detection).</li>
 <li>Implemented <code>graphical_var()</code> from scratch using coordinate descent lasso + graphical lasso with EBIC model selection, eliminating the graphicalVAR dependency.</li>
 <li>Dropped <code>ml_graphical_var()</code> — users should use <code>mlvar()</code> for multilevel VAR.</li>
-<li>Removed cograph plot wrappers — <code>plot.netobject()</code>, <code>plot.net_bootstrap()</code>, <code>plot.net_permutation()</code>, <code>plot.net_hon()</code>, <code>plot.net_hypa()</code> and <code>as_cograph()</code> removed. Users call cograph plotting functions directly on netobjects.</li>
+<li>Removed cograph plot wrappers — <code>plot.netobject()</code>, <code>plot.net_bootstrap()</code>, <code>plot.net_permutation()</code>, <code>plot.net_hon()</code>, <code>plot.net_hypa()</code> and <code><a href="https://sonsoles.me/cograph/reference/as_cograph.html" class="external-link">as_cograph()</a></code> removed. Users call cograph plotting functions directly on netobjects.</li>
 <li>Added <code>attention</code> estimator for decay-weighted transition networks.</li>
 <li>Increased test coverage from 84.5% to 96.1% (2780 tests).</li>
 <li>Passes R CMD check with 0 errors, 0 warnings, 0 notes.</li>

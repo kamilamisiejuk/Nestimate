@@ -31,14 +31,6 @@ transition_entropy(x, base = 2, normalize = TRUE)
   Logical. If `TRUE` (default), rows that do not sum to 1 are normalised
   automatically (with a warning).
 
-- object:
-
-  A `net_transition_entropy` object (for `summary`).
-
-- ...:
-
-  Ignored.
-
 ## Value
 
 An object of class `"net_transition_entropy"` with:

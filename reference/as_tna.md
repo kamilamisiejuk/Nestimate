@@ -23,11 +23,9 @@ as_tna(x)
 
   A `cluster_summary` object created by
   [`cluster_summary`](https://mohsaqr.github.io/Nestimate/reference/cluster_summary.md).
-  The cluster_summary should typically be created with `type = "tna"` to
-  ensure row-normalized transition probabilities. If created with
-  `type = "raw"`, the raw counts will be passed to
-  [`tna::tna()`](http://sonsoles.me/tna/reference/build_model.md) which
-  will normalize them.
+  The aggregated weights are passed to
+  [`tna::tna()`](http://sonsoles.me/tna/reference/build_model.md), which
+  row-normalises them as needed.
 
 ## Value
 
@@ -69,7 +67,7 @@ an error with installation instructions.
     # Full MCML workflow
     net <- build_network(data, method = "relative")
     net$nodes$clusters <- group_assignments
-    cs <- cluster_summary(net, type = "tna")
+    cs <- cluster_summary(net)
     tna_models <- as_tna(cs)
 
     # Now use tna package functions
@@ -107,12 +105,19 @@ underlying tna constructor
 mat <- matrix(runif(36), 6, 6)
 rownames(mat) <- colnames(mat) <- LETTERS[1:6]
 clusters <- list(G1 = c("A", "B"), G2 = c("C", "D"), G3 = c("E", "F"))
-cs <- cluster_summary(mat, clusters, type = "tna")
-#> Error in cluster_summary(mat, clusters, type = "tna"): unused argument (type = "tna")
+cs <- cluster_summary(mat, clusters)
 tna_models <- as_tna(cs)
-#> Error: object 'cs' not found
 tna_models
-#> Error: object 'tna_models' not found
+#> Group Networks (4 groups)
+#> 
+#>   Group  Nodes  Edges  Weights
+#>   macro  3      9      [1.259, 3.086]
+#>   G1     2      4      [0.196, 0.678]
+#>   G2     2      4      [0.432, 0.696]
+#>   G3     2      4      [0.389, 0.971]
 tna_models$macro$weights
-#> Error: object 'tna_models' not found
+#>          G1       G2       G3
+#> G1 1.566271 1.518955 1.258863
+#> G2 1.398476 2.295576 2.939396
+#> G3 3.086310 1.911803 2.661667
 ```

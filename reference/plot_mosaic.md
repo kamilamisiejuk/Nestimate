@@ -16,7 +16,7 @@ plot_mosaic(
   fill = "y",
   colors = NULL,
   show_labels = TRUE,
-  label_size = 3,
+  label_size = 3.5,
   x_label = NULL,
   y_label = NULL
 )

@@ -11,7 +11,7 @@ a netobject_group, an mcml model, or an htna network."><meta property="og:image"
 
     <a class="navbar-brand me-2" href="../index.html">Nestimate</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.9</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -27,6 +27,8 @@ a netobject_group, an mcml model, or an htna network."><meta property="og:image"
     <li><a class="dropdown-item" href="../articles/sequence-plots.html">Sequence Plots: heatmap, index, and distribution</a></li>
     <li><a class="dropdown-item" href="../articles/clustering.html">Sequence Clustering</a></li>
     <li><a class="dropdown-item" href="../articles/markov-stability.html">Markov Stability Analysis</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="../articles/index.html">More articles...</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
@@ -52,38 +54,23 @@ a <code>netobject_group</code>, an <code>mcml</code> model, or an <code>htna</co
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">plot_state_frequencies</span><span class="op">(</span></span>
-<span>  <span class="va">x</span>,</span>
-<span>  style <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"marimekko"</span>, <span class="st">"bars"</span>, <span class="st">"mosaic"</span><span class="op">)</span>,</span>
-<span>  metric <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"prop"</span>, <span class="st">"freq"</span><span class="op">)</span>,</span>
-<span>  label <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"prop"</span>, <span class="st">"freq"</span>, <span class="st">"both"</span>, <span class="st">"state"</span>, <span class="st">"all"</span>, <span class="st">"none"</span><span class="op">)</span>,</span>
-<span>  legend <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"bottom"</span>, <span class="st">"right"</span>, <span class="st">"top"</span>, <span class="st">"left"</span>, <span class="st">"none"</span>, <span class="st">"per_facet"</span><span class="op">)</span>,</span>
-<span>  legend_dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"auto"</span>, <span class="st">"horizontal"</span>, <span class="st">"vertical"</span><span class="op">)</span>,</span>
-<span>  legend_frame <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"none"</span>, <span class="st">"border"</span><span class="op">)</span>,</span>
-<span>  sort_states <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"frequency"</span>, <span class="st">"alpha"</span>, <span class="st">"none"</span><span class="op">)</span>,</span>
-<span>  colors <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  label_size <span class="op">=</span> <span class="fl">3</span>,</span>
-<span>  include_macro <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  combine <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  ncol <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  node_groups <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  <span class="va">...</span></span>
-<span><span class="op">)</span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">plot_state_frequencies</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'netobject'</span></span>
 <span><span class="fu">plot_state_frequencies</span><span class="op">(</span></span>
 <span>  <span class="va">x</span>,</span>
-<span>  style <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"marimekko"</span>, <span class="st">"bars"</span>, <span class="st">"mosaic"</span><span class="op">)</span>,</span>
-<span>  metric <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"prop"</span>, <span class="st">"freq"</span><span class="op">)</span>,</span>
-<span>  label <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"prop"</span>, <span class="st">"freq"</span>, <span class="st">"both"</span>, <span class="st">"state"</span>, <span class="st">"all"</span>, <span class="st">"none"</span><span class="op">)</span>,</span>
-<span>  legend <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"bottom"</span>, <span class="st">"right"</span>, <span class="st">"top"</span>, <span class="st">"left"</span>, <span class="st">"none"</span>, <span class="st">"per_facet"</span><span class="op">)</span>,</span>
-<span>  legend_dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"auto"</span>, <span class="st">"horizontal"</span>, <span class="st">"vertical"</span><span class="op">)</span>,</span>
-<span>  legend_frame <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"none"</span>, <span class="st">"border"</span><span class="op">)</span>,</span>
-<span>  sort_states <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"frequency"</span>, <span class="st">"alpha"</span>, <span class="st">"none"</span><span class="op">)</span>,</span>
+<span>  style <span class="op">=</span> <span class="st">"marimekko"</span>,</span>
+<span>  metric <span class="op">=</span> <span class="st">"prop"</span>,</span>
+<span>  label <span class="op">=</span> <span class="st">"prop"</span>,</span>
+<span>  legend <span class="op">=</span> <span class="st">"auto"</span>,</span>
+<span>  legend_dir <span class="op">=</span> <span class="st">"auto"</span>,</span>
+<span>  legend_frame <span class="op">=</span> <span class="st">"none"</span>,</span>
+<span>  sort_states <span class="op">=</span> <span class="st">"frequency"</span>,</span>
 <span>  colors <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  label_size <span class="op">=</span> <span class="fl">3</span>,</span>
+<span>  label_size <span class="op">=</span> <span class="fl">3.5</span>,</span>
+<span>  abbreviate <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  include_macro <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  combine <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  combine <span class="op">=</span> <span class="st">"auto"</span>,</span>
 <span>  ncol <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  node_groups <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
@@ -92,17 +79,18 @@ a <code>netobject_group</code>, an <code>mcml</code> model, or an <code>htna</co
 <span><span class="co"># S3 method for class 'htna'</span></span>
 <span><span class="fu">plot_state_frequencies</span><span class="op">(</span></span>
 <span>  <span class="va">x</span>,</span>
-<span>  style <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"marimekko"</span>, <span class="st">"bars"</span>, <span class="st">"mosaic"</span><span class="op">)</span>,</span>
-<span>  metric <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"prop"</span>, <span class="st">"freq"</span><span class="op">)</span>,</span>
-<span>  label <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"prop"</span>, <span class="st">"freq"</span>, <span class="st">"both"</span>, <span class="st">"state"</span>, <span class="st">"all"</span>, <span class="st">"none"</span><span class="op">)</span>,</span>
-<span>  legend <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"per_facet"</span>, <span class="st">"bottom"</span>, <span class="st">"right"</span>, <span class="st">"top"</span>, <span class="st">"left"</span>, <span class="st">"none"</span><span class="op">)</span>,</span>
-<span>  legend_dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"auto"</span>, <span class="st">"horizontal"</span>, <span class="st">"vertical"</span><span class="op">)</span>,</span>
-<span>  legend_frame <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"border"</span>, <span class="st">"none"</span><span class="op">)</span>,</span>
-<span>  sort_states <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"frequency"</span>, <span class="st">"alpha"</span>, <span class="st">"none"</span><span class="op">)</span>,</span>
+<span>  style <span class="op">=</span> <span class="st">"marimekko"</span>,</span>
+<span>  metric <span class="op">=</span> <span class="st">"prop"</span>,</span>
+<span>  label <span class="op">=</span> <span class="st">"prop"</span>,</span>
+<span>  legend <span class="op">=</span> <span class="st">"auto"</span>,</span>
+<span>  legend_dir <span class="op">=</span> <span class="st">"auto"</span>,</span>
+<span>  legend_frame <span class="op">=</span> <span class="st">"none"</span>,</span>
+<span>  sort_states <span class="op">=</span> <span class="st">"frequency"</span>,</span>
 <span>  colors <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  label_size <span class="op">=</span> <span class="fl">3</span>,</span>
+<span>  label_size <span class="op">=</span> <span class="fl">3.5</span>,</span>
+<span>  abbreviate <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  include_macro <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  combine <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  combine <span class="op">=</span> <span class="st">"auto"</span>,</span>
 <span>  ncol <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  node_groups <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
@@ -111,17 +99,18 @@ a <code>netobject_group</code>, an <code>mcml</code> model, or an <code>htna</co
 <span><span class="co"># S3 method for class 'mcml'</span></span>
 <span><span class="fu">plot_state_frequencies</span><span class="op">(</span></span>
 <span>  <span class="va">x</span>,</span>
-<span>  style <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"marimekko"</span>, <span class="st">"bars"</span>, <span class="st">"mosaic"</span><span class="op">)</span>,</span>
-<span>  metric <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"prop"</span>, <span class="st">"freq"</span><span class="op">)</span>,</span>
-<span>  label <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"prop"</span>, <span class="st">"freq"</span>, <span class="st">"both"</span>, <span class="st">"state"</span>, <span class="st">"all"</span>, <span class="st">"none"</span><span class="op">)</span>,</span>
-<span>  legend <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"per_facet"</span>, <span class="st">"bottom"</span>, <span class="st">"right"</span>, <span class="st">"top"</span>, <span class="st">"left"</span>, <span class="st">"none"</span><span class="op">)</span>,</span>
-<span>  legend_dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"auto"</span>, <span class="st">"horizontal"</span>, <span class="st">"vertical"</span><span class="op">)</span>,</span>
-<span>  legend_frame <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"none"</span>, <span class="st">"border"</span><span class="op">)</span>,</span>
-<span>  sort_states <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"frequency"</span>, <span class="st">"alpha"</span>, <span class="st">"none"</span><span class="op">)</span>,</span>
+<span>  style <span class="op">=</span> <span class="st">"marimekko"</span>,</span>
+<span>  metric <span class="op">=</span> <span class="st">"prop"</span>,</span>
+<span>  label <span class="op">=</span> <span class="st">"prop"</span>,</span>
+<span>  legend <span class="op">=</span> <span class="st">"auto"</span>,</span>
+<span>  legend_dir <span class="op">=</span> <span class="st">"auto"</span>,</span>
+<span>  legend_frame <span class="op">=</span> <span class="st">"none"</span>,</span>
+<span>  sort_states <span class="op">=</span> <span class="st">"frequency"</span>,</span>
 <span>  colors <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  label_size <span class="op">=</span> <span class="fl">3</span>,</span>
+<span>  label_size <span class="op">=</span> <span class="fl">3.5</span>,</span>
+<span>  abbreviate <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  include_macro <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  combine <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  combine <span class="op">=</span> <span class="st">"auto"</span>,</span>
 <span>  ncol <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  node_groups <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
@@ -130,35 +119,25 @@ a <code>netobject_group</code>, an <code>mcml</code> model, or an <code>htna</co
 <span><span class="co"># S3 method for class 'netobject_group'</span></span>
 <span><span class="fu">plot_state_frequencies</span><span class="op">(</span></span>
 <span>  <span class="va">x</span>,</span>
-<span>  style <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"marimekko"</span>, <span class="st">"bars"</span>, <span class="st">"mosaic"</span><span class="op">)</span>,</span>
-<span>  metric <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"prop"</span>, <span class="st">"freq"</span><span class="op">)</span>,</span>
-<span>  label <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"prop"</span>, <span class="st">"freq"</span>, <span class="st">"both"</span>, <span class="st">"state"</span>, <span class="st">"all"</span>, <span class="st">"none"</span><span class="op">)</span>,</span>
-<span>  legend <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"bottom"</span>, <span class="st">"right"</span>, <span class="st">"top"</span>, <span class="st">"left"</span>, <span class="st">"none"</span>, <span class="st">"per_facet"</span><span class="op">)</span>,</span>
-<span>  legend_dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"auto"</span>, <span class="st">"horizontal"</span>, <span class="st">"vertical"</span><span class="op">)</span>,</span>
-<span>  legend_frame <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"none"</span>, <span class="st">"border"</span><span class="op">)</span>,</span>
-<span>  sort_states <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"frequency"</span>, <span class="st">"alpha"</span>, <span class="st">"none"</span><span class="op">)</span>,</span>
+<span>  style <span class="op">=</span> <span class="st">"marimekko"</span>,</span>
+<span>  metric <span class="op">=</span> <span class="st">"prop"</span>,</span>
+<span>  label <span class="op">=</span> <span class="st">"prop"</span>,</span>
+<span>  legend <span class="op">=</span> <span class="st">"auto"</span>,</span>
+<span>  legend_dir <span class="op">=</span> <span class="st">"auto"</span>,</span>
+<span>  legend_frame <span class="op">=</span> <span class="st">"none"</span>,</span>
+<span>  sort_states <span class="op">=</span> <span class="st">"frequency"</span>,</span>
 <span>  colors <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  label_size <span class="op">=</span> <span class="fl">3</span>,</span>
+<span>  label_size <span class="op">=</span> <span class="fl">3.5</span>,</span>
+<span>  abbreviate <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  include_macro <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  combine <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  combine <span class="op">=</span> <span class="st">"auto"</span>,</span>
 <span>  ncol <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  node_groups <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Default S3 method</span></span>
-<span><span class="fu">plot_state_frequencies</span><span class="op">(</span></span>
-<span>  <span class="va">x</span>,</span>
-<span>  style <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"marimekko"</span>, <span class="st">"bars"</span>, <span class="st">"mosaic"</span><span class="op">)</span>,</span>
-<span>  metric <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"prop"</span>, <span class="st">"freq"</span><span class="op">)</span>,</span>
-<span>  label <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"prop"</span>, <span class="st">"freq"</span>, <span class="st">"both"</span>, <span class="st">"state"</span>, <span class="st">"all"</span>, <span class="st">"none"</span><span class="op">)</span>,</span>
-<span>  legend <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"bottom"</span>, <span class="st">"right"</span>, <span class="st">"top"</span>, <span class="st">"left"</span>, <span class="st">"none"</span><span class="op">)</span>,</span>
-<span>  sort_states <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"frequency"</span>, <span class="st">"alpha"</span>, <span class="st">"none"</span><span class="op">)</span>,</span>
-<span>  colors <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  label_size <span class="op">=</span> <span class="fl">3</span>,</span>
-<span>  include_macro <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  <span class="va">...</span></span>
-<span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">plot_state_frequencies</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -170,8 +149,18 @@ a <code>netobject_group</code>, an <code>mcml</code> model, or an <code>htna</co
 <code>htna</code> object.</p></dd>
 
 
+<dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
+<dd><p>Reserved for future use.</p></dd>
+
+
 <dt id="arg-style">style<a class="anchor" aria-label="anchor" href="#arg-style"></a></dt>
-<dd><p>Either <code>"marimekko"</code> (default) or <code>"bars"</code>.</p></dd>
+<dd><p>One of:</p><ul><li><p><code>"marimekko"</code> (default) – per-group treemap panels with
+cumulative-width geometry; tile area = within-group state share.</p></li>
+<li><p><code>"bars"</code> – horizontal bars sorted by frequency, faceted
+per group.</p></li>
+</ul><p>For chi-square mosaics of a (group x state) contingency table, use
+<code><a href="mosaic_plot.html">mosaic_plot</a></code> directly – it is kept as a separate
+function with its own dispatch surface.</p></dd>
 
 
 <dt id="arg-metric">metric<a class="anchor" aria-label="anchor" href="#arg-metric"></a></dt>
@@ -192,14 +181,17 @@ single line.</p><ul><li><p><code>"prop"</code> (default) – proportion only, e.
 
 
 <dt id="arg-legend">legend<a class="anchor" aria-label="anchor" href="#arg-legend"></a></dt>
-<dd><p>Legend position. <code>"bottom"</code> (default), <code>"top"</code>,
-<code>"right"</code>, <code>"left"</code>, <code>"none"</code> (hide; pair with
-<code>label = "state"</code> or <code>"all"</code> so state names show on tiles),
-or <code>"per_facet"</code> – each group renders as its own panel with
-an isolated legend showing only the states present in that panel.
-For <code>htna</code> this gives each actor (AI, Human) its own legend;
-for <code>mcml</code> each cluster gets its own. Requires the
-<span class="pkg">gridExtra</span> package and returns a <code>gtable</code>.</p></dd>
+<dd><p>Legend position. <code>"auto"</code> (default) resolves per
+style: <code>"none"</code> for <code>style = "bars"</code> (the y-axis already
+names every state, so a colour legend is redundant);
+<code>"per_facet"</code> for <code>htna</code>/<code>mcml</code> treemaps (state
+vocabularies differ per panel, so each gets its own legend);
+<code>"bottom"</code> for single-network and <code>netobject_group</code>
+treemaps (shared state vocabulary, one shared legend).
+Override with any of <code>"bottom"</code>, <code>"top"</code>, <code>"right"</code>,
+<code>"left"</code>, <code>"none"</code>, or <code>"per_facet"</code>. The
+<code>"per_facet"</code> option requires the <span class="pkg">gridExtra</span> package and
+returns a <code>gtable</code>.</p></dd>
 
 
 <dt id="arg-legend-dir">legend_dir<a class="anchor" aria-label="anchor" href="#arg-legend-dir"></a></dt>
@@ -226,7 +218,17 @@ states.</p></dd>
 
 
 <dt id="arg-label-size">label_size<a class="anchor" aria-label="anchor" href="#arg-label-size"></a></dt>
-<dd><p>Numeric size of inline labels.</p></dd>
+<dd><p>Numeric size of inline labels (max size when
+<span class="pkg">ggfittext</span> is installed – text auto-shrinks per tile).</p></dd>
+
+
+<dt id="arg-abbreviate">abbreviate<a class="anchor" aria-label="anchor" href="#arg-abbreviate"></a></dt>
+<dd><p>Abbreviate state names. <code>FALSE</code> (default) shows
+full names; <code>TRUE</code> truncates to the first 3 characters via
+<code><a href="https://rdrr.io/r/base/abbreviate.html" class="external-link">base::abbreviate()</a></code> (which extends the truncation as needed to
+keep names unique after collision); a positive integer sets the
+target minimum length explicitly (e.g. <code>abbreviate = 4</code>).
+Affects tile labels, legend, and the returned <code>$table</code>.</p></dd>
 
 
 <dt id="arg-include-macro">include_macro<a class="anchor" aria-label="anchor" href="#arg-include-macro"></a></dt>
@@ -236,11 +238,13 @@ clusters. Default <code>FALSE</code>.</p></dd>
 
 
 <dt id="arg-combine">combine<a class="anchor" aria-label="anchor" href="#arg-combine"></a></dt>
-<dd><p>For <code>legend = "per_facet"</code> only. When
-<code>TRUE</code> (default), per-panel ggplots are arranged into a single
-gtable via <span class="pkg">gridExtra</span>. When <code>FALSE</code>, returns a list of
-ggplots that are printed one-per-figure by knitr (so each panel
-uses the full chunk <code>fig.width</code> / <code>fig.height</code>).</p></dd>
+<dd><p>For <code>legend = "per_facet"</code> only. <code>"auto"</code>
+(default) returns a single combined gtable for 1-3 panels and a
+list of ggplots (one per panel) for 4+ panels – many-cluster
+<code>mcml</code> layouts read better as separate figures than as a tile
+grid. <code>TRUE</code> forces a combined gtable via <span class="pkg">gridExtra</span>;
+<code>FALSE</code> forces a list (knitr renders each at the chunk's full
+<code>fig.width</code> / <code>fig.height</code>).</p></dd>
 
 
 <dt id="arg-ncol">ncol<a class="anchor" aria-label="anchor" href="#arg-ncol"></a></dt>
@@ -249,13 +253,22 @@ number of columns in the grid arrangement. <code>NULL</code> (default)
 picks 1, 2, or 3 columns based on the number of panels.</p></dd>
 
 
-<dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Reserved for future use.</p></dd>
+<dt id="arg-node-groups">node_groups<a class="anchor" aria-label="anchor" href="#arg-node-groups"></a></dt>
+<dd><p>Optional named character vector mapping node labels to
+semantic groups. When supplied, panels (or bars) are coloured / annotated
+by group rather than by individual state, so state-level palettes can
+collapse onto a smaller categorical legend.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A <code>ggplot</code> object.</p>
+    <p>A <code>state_freq</code> object: a list with the rendered <code>$plot</code>
+(a <code>ggplot</code> or <code>gtable</code>), the tidy <code>$table</code> (a
+<code>data.frame</code> with columns <code>group</code>, <code>state</code>, <code>count</code>,
+<code>proportion</code>), and the call's <code>$style</code>, <code>$metric</code>,
+<code>$source_class</code>. The class supports <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> (shows the
+tidy table in the console), <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> (renders the chart), and
+<code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code> (returns the table).</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -281,10 +294,58 @@ group when groups exist. All variants use the Okabe-Ito palette.</p>
 <span class="r-in"><span>                      method <span class="op">=</span> <span class="st">"relative"</span>, format <span class="op">=</span> <span class="st">"long"</span>,</span></span>
 <span class="r-in"><span>                      actor <span class="op">=</span> <span class="st">"Actor"</span>, action <span class="op">=</span> <span class="st">"Action"</span>,</span></span>
 <span class="r-in"><span>                      order <span class="op">=</span> <span class="st">"Time"</span>, group <span class="op">=</span> <span class="st">"Course"</span><span class="op">)</span></span></span>
-<span class="r-in"><span>  <span class="fu">plot_state_frequencies</span><span class="op">(</span><span class="va">nw</span><span class="op">)</span></span></span>
-<span class="r-in"><span>  <span class="fu">plot_state_frequencies</span><span class="op">(</span><span class="va">nw</span>, style <span class="op">=</span> <span class="st">"bars"</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="va">res</span> <span class="op">&lt;-</span> <span class="fu">plot_state_frequencies</span><span class="op">(</span><span class="va">nw</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span>            <span class="co"># tidy frequency table in the console</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span>             <span class="co"># ggplot chart</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> State frequencies (style = marimekko, source = netobject_group)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Total events: 27,533  |  Groups: 3  |  States: 9</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Per-group totals</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     group  events  share</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     A      12,390  45.0%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     B       9,626  35.0%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     C       5,517  20.0% </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Per-state proportions (within group)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     group  state       count  share</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     A      consensus   3,298  26.6%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     A      plan        2,805  22.6%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     A      discuss     1,960  15.8%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     A      emotion     1,517  12.2%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     A      cohesion      923  7.4%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     A      coregulate    855  6.9%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     A      monitor       602  4.9%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     A      synthesis     290  2.3%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     A      adapt         140  1.1%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     B      plan        2,445  25.4%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     B      consensus   2,226  23.1%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     B      discuss     1,453  15.1%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     B      emotion       995  10.3%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     B      coregulate    817  8.5%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     B      cohesion      590  6.1%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     B      monitor       565  5.9%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     B      synthesis     274  2.8%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     B      adapt         261  2.7%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     C      plan        1,373  24.9%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     C      consensus   1,273  23.1%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     C      discuss       854  15.5%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     C      emotion       563  10.2%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     C      coregulate    461  8.4%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     C      monitor       349  6.3%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     C      cohesion      326  5.9%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     C      synthesis     165  3.0%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     C      adapt         153  2.8% </span>
 <span class="r-plt img"><img src="plot_state_frequencies-1.png" alt="" width="700" height="433"></span>
+<span class="r-plt img"><img src="plot_state_frequencies-2.png" alt="" width="700" height="433"></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   group      state count proportion</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1     A  consensus  3298 0.26618241</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2     A       plan  2805 0.22639225</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3     A    discuss  1960 0.15819209</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4     A    emotion  1517 0.12243745</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5     A   cohesion   923 0.07449556</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6     A coregulate   855 0.06900726</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

@@ -5,6 +5,9 @@
 <url><loc>https://mohsaqr.github.io/Nestimate/HANDOFF.html</loc></url>
 <url><loc>https://mohsaqr.github.io/Nestimate/LICENSE-text.html</loc></url>
 <url><loc>https://mohsaqr.github.io/Nestimate/articles/clustering.html</loc></url>
+<url><loc>https://mohsaqr.github.io/Nestimate/articles/cograph-tutorial-mcml.html</loc></url>
+<url><loc>https://mohsaqr.github.io/Nestimate/articles/cograph-tutorial-nestimate.html</loc></url>
+<url><loc>https://mohsaqr.github.io/Nestimate/articles/cograph-tutorial-simplicial.html</loc></url>
 <url><loc>https://mohsaqr.github.io/Nestimate/articles/index.html</loc></url>
 <url><loc>https://mohsaqr.github.io/Nestimate/articles/markov-stability.html</loc></url>
 <url><loc>https://mohsaqr.github.io/Nestimate/articles/sequence-comparison.html</loc></url>
@@ -89,6 +92,7 @@
 <url><loc>https://mohsaqr.github.io/Nestimate/reference/markov_order_test.html</loc></url>
 <url><loc>https://mohsaqr.github.io/Nestimate/reference/markov_stability.html</loc></url>
 <url><loc>https://mohsaqr.github.io/Nestimate/reference/mogen_transitions.html</loc></url>
+<url><loc>https://mohsaqr.github.io/Nestimate/reference/mosaic_plot.html</loc></url>
 <url><loc>https://mohsaqr.github.io/Nestimate/reference/nct.html</loc></url>
 <url><loc>https://mohsaqr.github.io/Nestimate/reference/net_aggregate_weights.html</loc></url>
 <url><loc>https://mohsaqr.github.io/Nestimate/reference/net_centrality.html</loc></url>
@@ -184,6 +188,8 @@
 <url><loc>https://mohsaqr.github.io/Nestimate/reference/sequence_plot.html</loc></url>
 <url><loc>https://mohsaqr.github.io/Nestimate/reference/simplicial_degree.html</loc></url>
 <url><loc>https://mohsaqr.github.io/Nestimate/reference/srl_strategies.html</loc></url>
+<url><loc>https://mohsaqr.github.io/Nestimate/reference/state_distribution.html</loc></url>
+<url><loc>https://mohsaqr.github.io/Nestimate/reference/state_freq.html</loc></url>
 <url><loc>https://mohsaqr.github.io/Nestimate/reference/state_frequencies.html</loc></url>
 <url><loc>https://mohsaqr.github.io/Nestimate/reference/summary.boot_glasso.html</loc></url>
 <url><loc>https://mohsaqr.github.io/Nestimate/reference/summary.chain_structure.html</loc></url>

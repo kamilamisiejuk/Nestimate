@@ -71,6 +71,13 @@ bootstrap_network(
 
   Integer or NULL. RNG seed for reproducibility.
 
+- boundary:
+
+  Character. Comparison rule when computing the consistency-range
+  p-value. `"inclusive"` (default, tna-compatible) counts iterations
+  that meet the bound (\\\le\\ / \\\ge\\); `"strict"` counts only
+  iterations strictly outside (\\\<\\ / \\\>\\).
+
 ## Value
 
 An object of class `"net_bootstrap"` containing:

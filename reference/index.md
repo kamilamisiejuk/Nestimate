@@ -211,8 +211,12 @@ Sequence visualization, pattern comparison, and association mining
   : State Distribution Plot Over Time
 - [`plot_state_frequencies()`](https://mohsaqr.github.io/Nestimate/reference/plot_state_frequencies.md)
   : Plot State Frequency Distributions
+- [`state_distribution()`](https://mohsaqr.github.io/Nestimate/reference/state_distribution.md)
+  : Per-Class State Distribution as a Tidy Data Frame
 - [`plot_mosaic()`](https://mohsaqr.github.io/Nestimate/reference/plot_mosaic.md)
   : Draw a Marimekko / Mosaic Plot from a Tidy Data Frame
+- [`mosaic_plot()`](https://mohsaqr.github.io/Nestimate/reference/mosaic_plot.md)
+  : Mosaic Plot of a Network's Transition or Co-occurrence Counts
 - [`sequence_compare()`](https://mohsaqr.github.io/Nestimate/reference/sequence_compare.md)
   : Compare Subsequence Patterns Between Groups
 - [`association_rules()`](https://mohsaqr.github.io/Nestimate/reference/association_rules.md)
@@ -430,6 +434,11 @@ Print, summary, and plot methods for package classes
 
 - [`print(`*`<wtna_mixed>`*`)`](https://mohsaqr.github.io/Nestimate/reference/print.wtna_mixed.md)
   : Print Method for wtna_mixed
+
+- [`print(`*`<state_freq>`*`)`](https://mohsaqr.github.io/Nestimate/reference/state_freq.md)
+  [`plot(`*`<state_freq>`*`)`](https://mohsaqr.github.io/Nestimate/reference/state_freq.md)
+  [`as.data.frame(`*`<state_freq>`*`)`](https://mohsaqr.github.io/Nestimate/reference/state_freq.md)
+  : Print, Plot, and Convert a state_freq Object
 
 - [`passage_time()`](https://mohsaqr.github.io/Nestimate/reference/passage_time.md)
   [`summary(`*`<net_mpt>`*`)`](https://mohsaqr.github.io/Nestimate/reference/passage_time.md)

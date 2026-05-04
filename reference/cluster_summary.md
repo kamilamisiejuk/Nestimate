@@ -141,7 +141,7 @@ A `cluster_summary` object (S3 class) containing:
       of clusters. Row i, column j contains the elementwise aggregation
       (per `method`) of all edges from nodes in cluster i to nodes in
       cluster j. Diagonal contains within-cluster totals. Pure
-      arithmetic — no row normalization.
+      arithmetic – no row normalization.
 
   inits
 
@@ -337,9 +337,9 @@ cs$clusters$Alpha       # Within Alpha cluster
 #>   C 0.706 0.134 0.145 
 #> 
 #>   Initial probabilities:
-#>   A               0.446  ████████████████████████████████████████
-#>   C               0.309  ████████████████████████████
-#>   B               0.245  ██████████████████████
+#>   A               0.446  ########################################
+#>   C               0.309  ############################
+#>   B               0.245  ######################
 
 # -----------------------------------------------------
 # Auto-detect clusters from netobject
