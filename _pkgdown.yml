@@ -126,7 +126,9 @@ reference:
       - sequence_plot
       - distribution_plot
       - plot_state_frequencies
+      - state_distribution
       - plot_mosaic
+      - mosaic_plot
       - sequence_compare
       - association_rules
 
