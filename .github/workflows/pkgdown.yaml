@@ -36,7 +36,12 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::pkgdown, local::.
+          # `any::quarto` installs the R-side quarto package; the
+          # quarto-dev/quarto-actions/setup step above gives us the CLI.
+          # pkgdown::package_vignettes() loads the R quarto namespace when
+          # walking *.qmd files in vignettes/articles, so without it the
+          # whole site build fails before any article renders.
+          extra-packages: any::pkgdown, any::quarto, local::.
           needs: website
 
       - name: Build site

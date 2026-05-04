@@ -4,9 +4,11 @@
 \alias{mosaic_plot}
 \alias{mosaic_plot.default}
 \alias{mosaic_plot.netobject}
+\alias{mosaic_plot.htna}
+\alias{mosaic_plot.mcml}
+\alias{mosaic_plot.netobject_group}
 \alias{mosaic_plot.table}
 \alias{mosaic_plot.matrix}
-\alias{mosaic_plot.netobject_group}
 \title{Mosaic Plot of a Network's Transition or Co-occurrence Counts}
 \usage{
 mosaic_plot(x, ...)
@@ -15,14 +17,56 @@ mosaic_plot(x, ...)
 
 \method{mosaic_plot}{netobject}(
   x,
-  xlab = "Incoming edges",
-  ylab = "Outgoing edges",
+  xlab = NULL,
+  ylab = NULL,
   range = NULL,
-  top_angle = NULL,
-  left_angle = NULL,
+  top_angle = 90,
+  left_angle = 0,
   residuals = c("permutation", "asymptotic"),
   n_perm = 500L,
   seed = NULL,
+  ...
+)
+
+\method{mosaic_plot}{htna}(
+  x,
+  xlab = NULL,
+  ylab = NULL,
+  range = NULL,
+  top_angle = 90,
+  left_angle = 0,
+  residuals = c("permutation", "asymptotic"),
+  n_perm = 500L,
+  seed = NULL,
+  ...
+)
+
+\method{mosaic_plot}{mcml}(
+  x,
+  level = c("macro", "clusters"),
+  xlab = NULL,
+  ylab = NULL,
+  range = NULL,
+  top_angle = 90,
+  left_angle = 0,
+  residuals = c("permutation", "asymptotic"),
+  n_perm = 500L,
+  seed = NULL,
+  ncol = 2L,
+  ...
+)
+
+\method{mosaic_plot}{netobject_group}(
+  x,
+  xlab = NULL,
+  ylab = NULL,
+  range = NULL,
+  top_angle = 90,
+  left_angle = 0,
+  residuals = c("permutation", "asymptotic"),
+  n_perm = 500L,
+  seed = NULL,
+  ncol = 2L,
   ...
 )
 
@@ -40,29 +84,21 @@ mosaic_plot(x, ...)
 )
 
 \method{mosaic_plot}{matrix}(x, ...)
-
-\method{mosaic_plot}{netobject_group}(
-  x,
-  xlab = "Incoming edges",
-  ylab = "Outgoing edges",
-  range = NULL,
-  top_angle = NULL,
-  left_angle = NULL,
-  residuals = c("permutation", "asymptotic"),
-  n_perm = 500L,
-  seed = NULL,
-  ncol = 2L,
-  ...
-)
 }
 \arguments{
-\item{x}{A \code{netobject} (single network) or \code{netobject_group} (one
-mosaic per group, arranged with \code{gridExtra::grid.arrange}).}
+\item{x}{One of the four data-bearing Nestimate classes:
+\code{netobject} (single mosaic of \code{$weights}),
+\code{netobject_group} (one panel per group),
+\code{mcml} (between-cluster mosaic by default; per-cluster panels with
+\code{level = "within"}), or
+\code{htna} (single mosaic of \code{$weights}; htna inherits netobject
+so the geometry matches). Also accepts a contingency \code{table} or
+plain numeric \code{matrix} for ad-hoc plotting.}
 
 \item{...}{Ignored.}
 
-\item{xlab, ylab}{Axis labels. Defaults match tna's wording for transition
-matrices: \code{"Incoming edges"} on x, \code{"Outgoing edges"} on y.}
+\item{xlab, ylab}{Axis labels. \code{NULL} (default) draws no axis title.
+Pass any string to add one.}
 
 \item{range}{Numeric of length 2 giving the lower and upper colour-scale
 limits for the standardized residual. \code{NULL} (default) auto-fits
@@ -90,6 +126,11 @@ Default 500; use \code{>= 1000} for stable tail estimates.}
 
 \item{seed}{Optional integer seed for the permutation RNG. Use for
 reproducible plots; ignored when \code{residuals = "asymptotic"}.}
+
+\item{level}{For \code{mcml} only. \code{"macro"} (default) draws a
+single mosaic of \code{x$macro$weights} (the cluster-by-cluster
+aggregate); \code{"clusters"} draws one mosaic per cluster from
+\code{x$clusters[[k]]$weights}, faceted into one combined ggplot.}
 
 \item{ncol}{For \code{netobject_group}: number of columns in the small-
 multiples layout. Default 2.}

@@ -129,3 +129,139 @@
   stopifnot(is.character(user_colors), length(user_colors) >= n_states)
   user_colors[seq_len(n_states)]
 }
+
+
+# ==============================================================================
+# Plot-family classification.
+#
+# The "data-bearing" classes are the four kinds of object the Nestimate plot
+# family operates on: netobject, netobject_group, mcml, htna. Every plot-family
+# verb (plot_state_frequencies, mosaic_plot, state_distribution, ...) must
+# either accept one of these and dispatch through the shared *_impl worker, or
+# error with a default method that names this set.
+#
+# .is_data_bearing(x) -> single logical
+# .data_bearing_class(x) -> one of "netobject" / "netobject_group" / "mcml" /
+#   "htna", or NA_character_ when not data-bearing. The order matters: htna
+#   inherits from netobject, so check htna first.
+# ==============================================================================
+
+.data_bearing_classes <- c("htna", "mcml", "netobject_group", "netobject")
+
+.is_data_bearing <- function(x) {
+  any(.data_bearing_classes %in% class(x))
+}
+
+.data_bearing_class <- function(x) {
+  cls <- class(x)
+  hit <- .data_bearing_classes[.data_bearing_classes %in% cls]
+  if (length(hit) == 0L) return(NA_character_)
+  hit[[1L]]
+}
+
+
+# ==============================================================================
+# Shared layout helpers used across plot-family verbs (plot_state_frequencies,
+# mosaic_plot, ...). All operate on tidy ggplot inputs; none assume a specific
+# data-bearing source class.
+# ==============================================================================
+
+# Fit-aware tile labels. Uses ggfittext::geom_fit_text() when available so each
+# tile's text auto-shrinks (and reflows onto multiple lines) to fit its
+# rectangle, with min.size dropping the label when nothing legible fits. When
+# ggfittext is not installed, falls back to ggplot2::geom_text() at midpoint.
+# Caller is expected to have already nulled out labels for tiles too small for
+# legible rendering.
+.geom_fit_label <- function(rects, label_size, color = "grey15") {
+  if (is.null(rects$angle)) {
+    rects$angle <- ifelse((rects$ymax - rects$ymin) >
+                            (rects$xmax - rects$xmin), 90, 0)
+  }
+  if (requireNamespace("ggfittext", quietly = TRUE)) {
+    return(ggfittext::geom_fit_text(
+      data = rects,
+      ggplot2::aes(xmin = .data$xmin, xmax = .data$xmax,
+                   ymin = .data$ymin, ymax = .data$ymax,
+                   label = .data$lab,
+                   angle = .data$angle),
+      inherit.aes = FALSE,
+      reflow      = TRUE,
+      min.size    = 1,
+      grow        = FALSE,
+      padding.x   = grid::unit(0.6, "mm"),
+      padding.y   = grid::unit(0.6, "mm"),
+      colour      = color,
+      size        = label_size * 3.2
+    ))
+  }
+  ggplot2::geom_text(
+    data = rects,
+    ggplot2::aes(x = .data$x_mid, y = .data$y_mid, label = .data$lab,
+                 angle = .data$angle),
+    inherit.aes = FALSE, size = label_size, color = color
+  )
+}
+
+
+# TRUE when every group in freq_df shares the same state set (any order).
+# Used by per-facet legend logic to demote per_facet -> bottom when repeating
+# the same legend in every panel would be pure redundancy.
+.vocab_is_shared <- function(freq_df) {
+  groups <- as.character(freq_df$group)
+  if (length(unique(groups)) < 2L) return(FALSE)
+  vocabs <- split(as.character(freq_df$state), groups)
+  vocabs <- lapply(vocabs, function(v) sort(unique(v)))
+  all(vapply(vocabs[-1L], identical, logical(1L), vocabs[[1L]]))
+}
+
+
+# Build the guide_legend layer for a given (position, direction) pair.
+# legend_dir = "auto" derives from position (bottom/top -> horizontal, else
+# vertical). "horizontal" / "vertical" force the layout.
+.legend_layer <- function(legend, n_states, legend_dir = "auto") {
+  if (identical(legend, "none")) {
+    return(ggplot2::guides(fill = "none"))
+  }
+  effective_dir <- if (legend_dir == "auto") {
+    if (legend %in% c("bottom", "top")) "horizontal" else "vertical"
+  } else legend_dir
+
+  if (effective_dir == "horizontal") {
+    ncol_legend <- min(n_states, 5L)
+    ggplot2::guides(fill = ggplot2::guide_legend(
+      direction = "horizontal", ncol = ncol_legend, byrow = TRUE
+    ))
+  } else {
+    ggplot2::guides(fill = ggplot2::guide_legend(
+      direction = "vertical", ncol = 1L
+    ))
+  }
+}
+
+
+# Theme additions controlling legend position, internal layout, and an
+# optional border ("frame") around the legend box.
+.legend_theme <- function(legend, legend_dir = "auto", legend_frame = "none") {
+  if (identical(legend, "none")) {
+    return(ggplot2::theme(legend.position = "none"))
+  }
+  effective_dir <- if (legend_dir == "auto") {
+    if (legend %in% c("bottom", "top")) "horizontal" else "vertical"
+  } else legend_dir
+
+  bg_rect <- if (identical(legend_frame, "border")) {
+    ggplot2::element_rect(color = "grey40", fill = "white", linewidth = 0.4)
+  } else {
+    ggplot2::element_blank()
+  }
+
+  ggplot2::theme(
+    legend.position   = legend,
+    legend.box        = effective_dir,
+    legend.title      = ggplot2::element_text(face = "bold"),
+    legend.background = bg_rect,
+    legend.box.background = bg_rect,
+    legend.margin     = if (identical(legend_frame, "border"))
+                          ggplot2::margin(4, 6, 4, 6) else ggplot2::margin()
+  )
+}

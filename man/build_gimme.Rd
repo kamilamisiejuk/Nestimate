@@ -109,18 +109,16 @@ Accepts a single data frame with an ID column (not CSV directories).
 }
 \examples{
 \donttest{
-if (requireNamespace("gimme", quietly = TRUE)) {
-  # Create simple panel data (3 subjects, 4 variables, 50 time points)
-  set.seed(42)
-  n_sub <- 3; n_t <- 50; vars <- paste0("V", 1:4)
-  rows <- lapply(seq_len(n_sub), function(i) {
-    d <- as.data.frame(matrix(rnorm(n_t * 4), ncol = 4))
-    names(d) <- vars; d$id <- i; d
-  })
-  panel <- do.call(rbind, rows)
-  res <- build_gimme(panel, vars = vars, id = "id")
-  print(res)
-}
+# Create simple panel data (3 subjects, 4 variables, 50 time points).
+set.seed(42)
+n_sub <- 3; n_t <- 50; vars <- paste0("V", 1:4)
+rows <- lapply(seq_len(n_sub), function(i) {
+  d <- as.data.frame(matrix(rnorm(n_t * 4), ncol = 4))
+  names(d) <- vars; d$id <- i; d
+})
+panel <- do.call(rbind, rows)
+res <- build_gimme(panel, vars = vars, id = "id")
+print(res)
 }
 
 }

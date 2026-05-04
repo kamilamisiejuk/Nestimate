@@ -319,46 +319,9 @@ plot_mosaic <- function(data,
 `%||%` <- function(a, b) if (is.null(a)) b else a
 
 
-# Fit-aware tile labels. Uses ggfittext::geom_fit_text() when available so
-# each tile's text auto-shrinks (and reflows onto multiple lines) to fit
-# its rectangle, with `min.size` falling back to dropping the label when
-# nothing legible fits. When ggfittext is not installed, returns a regular
-# ggplot2::geom_text() at midpoint with the (unfitted) label_size; the
-# upstream caller is expected to have already nulled out labels for tiles
-# below `tile_area < 0.05`.
-.geom_fit_label <- function(rects, label_size, color = "grey15") {
-  if (is.null(rects$angle)) {
-    rects$angle <- ifelse((rects$ymax - rects$ymin) >
-                            (rects$xmax - rects$xmin), 90, 0)
-  }
-  if (requireNamespace("ggfittext", quietly = TRUE)) {
-    return(ggfittext::geom_fit_text(
-      data = rects,
-      ggplot2::aes(xmin = .data$xmin, xmax = .data$xmax,
-                   ymin = .data$ymin, ymax = .data$ymax,
-                   label = .data$lab,
-                   angle = .data$angle),
-      inherit.aes = FALSE,
-      reflow      = TRUE,
-      min.size    = 1,
-      grow        = FALSE,
-      padding.x   = grid::unit(0.6, "mm"),
-      padding.y   = grid::unit(0.6, "mm"),
-      colour      = color,
-      size        = label_size * 3.2
-    ))
-  }
-  ggplot2::geom_text(
-    data = rects,
-    ggplot2::aes(x = .data$x_mid, y = .data$y_mid, label = .data$lab,
-                 angle = .data$angle),
-    inherit.aes = FALSE, size = label_size, color = color
-  )
-}
-
-
 # ------------------------------------------------------------------------------
 # mosaic_plot: tna-equivalent chi-square mosaic for netobjects
+# (.geom_fit_label moved to R/plot-utils.R alongside other shared helpers)
 # ------------------------------------------------------------------------------
 
 #' Mosaic Plot of a Network's Transition or Co-occurrence Counts
@@ -376,10 +339,20 @@ plot_mosaic <- function(data,
 #' Mosaics only make sense for integer-valued matrices, so this function rejects
 #' relative / glasso / correlation networks.
 #'
-#' @param x A \code{netobject} (single network) or \code{netobject_group} (one
-#'   mosaic per group, arranged with \code{gridExtra::grid.arrange}).
-#' @param xlab,ylab Axis labels. Defaults match tna's wording for transition
-#'   matrices: \code{"Incoming edges"} on x, \code{"Outgoing edges"} on y.
+#' @param x One of the four data-bearing Nestimate classes:
+#'   \code{netobject} (single mosaic of \code{$weights}),
+#'   \code{netobject_group} (one panel per group),
+#'   \code{mcml} (between-cluster mosaic by default; per-cluster panels with
+#'   \code{level = "within"}), or
+#'   \code{htna} (single mosaic of \code{$weights}; htna inherits netobject
+#'   so the geometry matches). Also accepts a contingency \code{table} or
+#'   plain numeric \code{matrix} for ad-hoc plotting.
+#' @param level For \code{mcml} only. \code{"macro"} (default) draws a
+#'   single mosaic of \code{x$macro$weights} (the cluster-by-cluster
+#'   aggregate); \code{"clusters"} draws one mosaic per cluster from
+#'   \code{x$clusters[[k]]$weights}, faceted into one combined ggplot.
+#' @param xlab,ylab Axis labels. \code{NULL} (default) draws no axis title.
+#'   Pass any string to add one.
 #' @param range Numeric of length 2 giving the lower and upper colour-scale
 #'   limits for the standardized residual. \code{NULL} (default) auto-fits
 #'   the limits to the symmetric range \code{c(-M, M)} where
@@ -422,15 +395,17 @@ mosaic_plot <- function(x, ...) UseMethod("mosaic_plot")
 #' @rdname mosaic_plot
 mosaic_plot.default <- function(x, ...) {
   stop("mosaic_plot: no method for class ",
-       paste(class(x), collapse = "/"),
-       ". Use plot_mosaic() for a tidy data.frame.", call. = FALSE)
+       paste(class(x), collapse = "/"), ".\n",
+       "Supported: netobject, netobject_group, mcml, htna, table, matrix.\n",
+       "For a tidy data.frame, use plot_mosaic().",
+       call. = FALSE)
 }
 
 #' @export
 #' @rdname mosaic_plot
 mosaic_plot.netobject <- function(x,
-                                  xlab = "Incoming edges",
-                                  ylab = "Outgoing edges",
+                                  xlab = NULL,
+                                  ylab = NULL,
                                   range = NULL,
                                   top_angle = 90,
                                   left_angle = 0,
@@ -438,24 +413,73 @@ mosaic_plot.netobject <- function(x,
                                   n_perm = 500L,
                                   seed = NULL,
                                   ...) {
-  residuals <- match.arg(residuals)
-  w <- x$weights
-  if (!is.matrix(w) || !is.numeric(w) || !all(is.finite(w))) {
-    stop("mosaic_plot: $weights must be a finite numeric matrix.",
-         call. = FALSE)
-  }
-  if (any(w < 0) || any(abs(w - round(w)) > 1e-8)) {
-    stop("mosaic_plot is only defined for integer-valued weight matrices ",
-         "(method = 'frequency' or 'co_occurrence'). Got method = ",
-         x$method %||% "<unknown>", ".", call. = FALSE)
-  }
-  if (sum(w) <= 0) {
-    stop("mosaic_plot: total weight is zero -- nothing to draw.",
-         call. = FALSE)
-  }
-  .mosaic_plot_tab(as.table(t(w)), xlab = xlab, ylab = ylab, range = range,
-                   top_angle = top_angle, left_angle = left_angle,
-                   residuals = residuals, n_perm = n_perm, seed = seed)
+  .mosaic_plot_impl(x, source_class = "netobject",
+                    xlab = xlab, ylab = ylab, range = range,
+                    top_angle = top_angle, left_angle = left_angle,
+                    residuals = match.arg(residuals),
+                    n_perm = n_perm, seed = seed, ...)
+}
+
+#' @export
+#' @rdname mosaic_plot
+mosaic_plot.htna <- function(x,
+                             xlab = NULL,
+                             ylab = NULL,
+                             range = NULL,
+                             top_angle = 90,
+                             left_angle = 0,
+                             residuals = c("permutation", "asymptotic"),
+                             n_perm = 500L,
+                             seed = NULL,
+                             ...) {
+  .mosaic_plot_impl(x, source_class = "htna",
+                    xlab = xlab, ylab = ylab, range = range,
+                    top_angle = top_angle, left_angle = left_angle,
+                    residuals = match.arg(residuals),
+                    n_perm = n_perm, seed = seed, ...)
+}
+
+#' @export
+#' @rdname mosaic_plot
+mosaic_plot.mcml <- function(x,
+                             level = c("macro", "clusters"),
+                             xlab = NULL,
+                             ylab = NULL,
+                             range = NULL,
+                             top_angle = 90,
+                             left_angle = 0,
+                             residuals = c("permutation", "asymptotic"),
+                             n_perm = 500L,
+                             seed = NULL,
+                             ncol = 2L,
+                             ...) {
+  .mosaic_plot_impl(x, source_class = "mcml",
+                    level = match.arg(level),
+                    xlab = xlab, ylab = ylab, range = range,
+                    top_angle = top_angle, left_angle = left_angle,
+                    residuals = match.arg(residuals),
+                    n_perm = n_perm, seed = seed, ncol = ncol, ...)
+}
+
+#' @export
+#' @rdname mosaic_plot
+mosaic_plot.netobject_group <- function(x,
+                                        xlab = NULL,
+                                        ylab = NULL,
+                                        range = NULL,
+                                        top_angle = 90,
+                                        left_angle = 0,
+                                        residuals = c("permutation",
+                                                      "asymptotic"),
+                                        n_perm = 500L,
+                                        seed = NULL,
+                                        ncol = 2L,
+                                        ...) {
+  .mosaic_plot_impl(x, source_class = "netobject_group",
+                    xlab = xlab, ylab = ylab, range = range,
+                    top_angle = top_angle, left_angle = left_angle,
+                    residuals = match.arg(residuals),
+                    n_perm = n_perm, seed = seed, ncol = ncol, ...)
 }
 
 #' @export
@@ -470,40 +494,59 @@ mosaic_plot.table <- function(x,
                               n_perm = 500L,
                               seed = NULL,
                               ...) {
-  residuals <- match.arg(residuals)
   .mosaic_plot_tab(x, xlab = xlab, ylab = ylab, range = range,
                    top_angle = top_angle, left_angle = left_angle,
-                   residuals = residuals, n_perm = n_perm, seed = seed)
+                   residuals = match.arg(residuals),
+                   n_perm = n_perm, seed = seed)
 }
 
 #' @export
 #' @rdname mosaic_plot
 mosaic_plot.matrix <- function(x, ...) mosaic_plot.table(as.table(x), ...)
 
-#' @export
-#' @rdname mosaic_plot
-mosaic_plot.netobject_group <- function(x,
-                                        xlab = "Incoming edges",
-                                        ylab = "Outgoing edges",
-                                        range = NULL,
-                                        top_angle = 90,
-                                        left_angle = 0,
-                                        residuals = c("permutation",
-                                                      "asymptotic"),
-                                        n_perm = 500L,
-                                        seed = NULL,
-                                        ncol = 2L,
-                                        ...) {
-  residuals <- match.arg(residuals)
-  group_names <- names(x) %||% paste0("Group ", seq_along(x))
-  plots <- lapply(seq_along(x), function(i) {
-    p <- mosaic_plot.netobject(x[[i]], xlab = xlab, ylab = ylab,
-                               range = range, top_angle = top_angle,
-                               left_angle = left_angle,
-                               residuals = residuals, n_perm = n_perm,
-                               seed = seed, ...)
-    p + ggplot2::ggtitle(group_names[i])
+
+# ---- Shared worker for the 4 data-bearing classes ----------------------------
+#
+# Pulls one or more weight matrices out of x according to source_class, runs
+# them through .mosaic_plot_tab(), and combines panels for multi-matrix cases.
+# Single source of truth for the data-bearing flow; the per-class S3 methods
+# are one-line forwarders.
+
+.mosaic_plot_impl <- function(x, source_class,
+                              level = "macro",
+                              xlab = NULL, ylab = NULL,
+                              range = NULL,
+                              top_angle = 90, left_angle = 0,
+                              residuals = "permutation",
+                              n_perm = 500L, seed = NULL,
+                              ncol = 2L, ...) {
+  panels <- .mosaic_panels(x, source_class, level)
+  xlab <- xlab %||% panels$xlab_default
+  ylab <- ylab %||% panels$ylab_default
+
+  # mcml level="clusters" is the only multi-panel case: one mosaic per
+  # cluster, faceted into a single ggplot with one shared fill legend.
+  # netobject_group is rendered as a single (group x state) mosaic, so it
+  # falls through to the single-panel path below.
+  if (length(panels$tabs) > 1L && identical(source_class, "mcml")) {
+    return(.mosaic_facet_plot(panels$tabs, panels$titles,
+                              panel_states = panels$panel_states,
+                              xlab = xlab, ylab = ylab, range = range,
+                              residuals = residuals,
+                              n_perm = n_perm, seed = seed, ncol = ncol))
+  }
+
+  plots <- lapply(seq_along(panels$tabs), function(i) {
+    ag <- if (is.null(panels$axis_groups)) NULL else panels$axis_groups[[i]]
+    p <- .mosaic_plot_tab(panels$tabs[[i]],
+                          xlab = xlab, ylab = ylab, range = range,
+                          top_angle = top_angle, left_angle = left_angle,
+                          residuals = residuals,
+                          n_perm = n_perm, seed = seed,
+                          axis_groups = ag)
+    if (!is.null(panels$titles)) p + ggplot2::ggtitle(panels$titles[[i]]) else p
   })
+
   if (length(plots) == 1L) return(plots[[1L]])
   if (requireNamespace("gridExtra", quietly = TRUE)) {
     return(gridExtra::arrangeGrob(grobs = plots, ncol = ncol))
@@ -511,6 +554,229 @@ mosaic_plot.netobject_group <- function(x,
   warning("Install 'gridExtra' to combine grouped mosaics; returning a list.",
           call. = FALSE)
   plots
+}
+
+
+# Faceted multi-panel mosaic: one ggplot with one strip per panel and a
+# single shared fill legend. Used when the input is an mcml level="within"
+# (k clusters, each its own state-by-state mosaic). Each cluster's state set
+# is different so we cannot use a shared axis scale -- labels are drawn
+# inside the panel via geom_text at the top edge (state names) and via
+# strip text (cluster name).
+.mosaic_facet_plot <- function(tabs, titles, panel_states = NULL,
+                               xlab, ylab, range,
+                               residuals, n_perm, seed, ncol) {
+  panel_dfs <- lapply(seq_along(tabs), function(i) {
+    d <- .mosaic_rect_data(tabs[[i]], residuals = residuals,
+                           n_perm = n_perm, seed = seed)
+    d$panel <- titles[[i]]
+    d
+  })
+  d <- do.call(rbind, panel_dfs)
+  d$panel <- factor(d$panel, levels = unlist(titles))
+
+  # Per-panel label filter: if panel_states is supplied (netobject_group with
+  # harmonised vocabulary), keep only labels for states actually present in
+  # the group; otherwise keep labels for any non-zero-extent column / row.
+  keep_for_panel <- function(labels, ext, states_i) {
+    if (!is.null(states_i)) labels %in% states_i else ext > 1e-6
+  }
+
+  # Per-panel x-axis labels at top (above the mosaic).
+  x_lab_df <- do.call(rbind, lapply(seq_along(tabs), function(i) {
+    d_i <- panel_dfs[[i]]
+    w   <- attr(d_i, "widths")
+    rls <- attr(d_i, "row_labels")
+    keep <- keep_for_panel(rls, diff(w),
+                           if (is.null(panel_states)) NULL else panel_states[[i]])
+    if (!any(keep)) return(NULL)
+    data.frame(x = ((w[-length(w)] + w[-1L]) / 2)[keep],
+               y = 1.04, label = rls[keep], panel = titles[[i]],
+               stringsAsFactors = FALSE)
+  }))
+  x_lab_df$panel <- factor(x_lab_df$panel, levels = unlist(titles))
+
+  # Per-panel y-axis labels at left, aligned to the first non-zero-width
+  # column's stacking (col 1 may be zero-width when harmonised, in which
+  # case its heights are the fallback c(0, 1/m, 2/m, ...) which doesn't
+  # describe anything real).
+  y_lab_df <- do.call(rbind, lapply(seq_along(tabs), function(i) {
+    d_i  <- panel_dfs[[i]]
+    h    <- attr(d_i, "heights")
+    cls  <- attr(d_i, "col_labels")
+    w_widths <- attr(d_i, "widths")
+    m    <- length(cls)
+
+    first_real_col <- which(diff(w_widths) > 1e-6)[1L]
+    if (is.na(first_real_col)) return(NULL)
+    h_col      <- h[, first_real_col]
+    col_offset <- (first_real_col - 1L) * m * 0.0025
+    y_pos      <- (h_col[-length(h_col)] + h_col[-1L]) / 2 + col_offset
+
+    keep <- keep_for_panel(cls, diff(h_col),
+                           if (is.null(panel_states)) NULL else panel_states[[i]])
+    if (!any(keep)) return(NULL)
+    data.frame(x = -0.04,
+               y = y_pos[keep],
+               label = cls[keep],
+               panel = titles[[i]],
+               stringsAsFactors = FALSE)
+  }))
+  y_lab_df$panel <- factor(y_lab_df$panel, levels = unlist(titles))
+
+  ggplot2::ggplot(d,
+    ggplot2::aes(xmin = .data$xmin, xmax = .data$xmax,
+                 ymin = .data$ymin, ymax = .data$ymax,
+                 fill = .data$stdres)) +
+    ggplot2::geom_rect(colour = "black", linewidth = 0.4,
+                       show.legend = TRUE) +
+    ggplot2::scale_fill_gradient2(
+      name   = "Standardized\nresidual",
+      oob    = scales::oob_squish,
+      low    = "#D33F6A",
+      high   = "#4A6FE3",
+      limits = .mosaic_residual_limits(d$stdres, range),
+      breaks = .mosaic_residual_breaks(d$stdres, range)
+    ) +
+    ggplot2::geom_text(data = x_lab_df, inherit.aes = FALSE,
+                       ggplot2::aes(x = .data$x, y = .data$y,
+                                    label = .data$label),
+                       size = 3, angle = 90, hjust = 0, vjust = 0.5) +
+    ggplot2::geom_text(data = y_lab_df, inherit.aes = FALSE,
+                       ggplot2::aes(x = .data$x, y = .data$y,
+                                    label = .data$label),
+                       size = 3, hjust = 1, vjust = 0.5) +
+    ggplot2::facet_wrap(~ panel, ncol = ncol,
+                        strip.position = "bottom") +
+    ggplot2::coord_cartesian(clip = "off") +
+    ggplot2::theme_minimal(base_size = 12) +
+    ggplot2::theme(
+      panel.grid     = ggplot2::element_blank(),
+      axis.text      = ggplot2::element_blank(),
+      axis.ticks     = ggplot2::element_blank(),
+      axis.line      = ggplot2::element_blank(),
+      panel.spacing  = ggplot2::unit(2.5, "lines"),
+      strip.text     = ggplot2::element_text(
+        face = "bold", size = 11,
+        margin = ggplot2::margin(t = 6, b = 4)
+      ),
+      strip.placement = "outside",
+      plot.margin    = ggplot2::margin(t = 36, r = 12, b = 16, l = 36)
+    ) +
+    ggplot2::labs(x = xlab, y = ylab)
+}
+
+
+# Extract the contingency tables (and panel titles) for each data-bearing
+# class. Returns a list with $tabs (list of `table` objects in the orientation
+# expected by .mosaic_plot_tab), $titles (NULL for single-panel cases), and
+# $xlab_default / $ylab_default (so each class can name its axes naturally).
+.mosaic_panels <- function(x, source_class, level = "macro") {
+  if (source_class %in% c("netobject", "htna")) {
+    w <- .mosaic_weights_or_stop(x$weights, x$method)
+    axis_groups <- NULL
+    # htna carries actor membership in $node_groups (data.frame node, group).
+    # Reorder rows/cols so each actor block is contiguous, and pass the
+    # ordered group vector down to the renderer for annotation strips.
+    if (identical(source_class, "htna") &&
+        !is.null(x$node_groups) && nrow(x$node_groups) > 0L) {
+      nodes <- rownames(w)
+      if (!is.null(nodes)) {
+        lookup <- setNames(as.character(x$node_groups$group),
+                           as.character(x$node_groups$node))
+        g <- unname(lookup[nodes])
+        g[is.na(g)] <- "(ungrouped)"
+        ord <- order(g, nodes)
+        w <- w[ord, ord]
+        axis_groups <- setNames(g[ord], nodes[ord])
+      }
+    }
+    return(list(tabs = list(as.table(t(w))),
+                titles = NULL,
+                xlab_default = NULL,
+                ylab_default = NULL,
+                axis_groups = list(axis_groups)))
+  }
+  if (identical(source_class, "netobject_group")) {
+    # Single mosaic of the joint (group x state) contingency. Each group
+    # contributes one row whose cells = column sums of its $weights matrix
+    # (incoming totals per state in that group). Padded to the union of
+    # state names so all groups share columns. Result: one mosaic where
+    # column widths reflect group total flow and within-group stacks
+    # reflect that group's incoming-state distribution.
+    group_names <- names(x) %||% paste0("Group ", seq_along(x))
+    all_states  <- sort(unique(unlist(lapply(x,
+                                              function(g) rownames(g$weights)))))
+    cnts <- vapply(seq_along(x), function(i) {
+      w  <- .mosaic_weights_or_stop(x[[i]]$weights, x[[i]]$method,
+                                    ctx = sprintf("group '%s'",
+                                                  group_names[i]))
+      cs <- colSums(w)
+      full <- setNames(numeric(length(all_states)), all_states)
+      full[names(cs)] <- cs
+      full
+    }, numeric(length(all_states)))
+
+    # vapply returned an (n_states x n_groups) matrix; transpose so rows
+    # are groups and pass through .mosaic_plot_tab unchanged (no extra t()).
+    m <- t(cnts)
+    dimnames(m) <- list(group_names, all_states)
+    return(list(tabs = list(as.table(m)),
+                titles = NULL,
+                xlab_default = NULL,
+                ylab_default = NULL))
+  }
+  if (identical(source_class, "mcml")) {
+    # build_mcml() / cluster_summary() return $macro$weights (cluster x
+    # cluster aggregate) and $clusters[[k]]$weights (per-cluster matrix).
+    if (identical(level, "macro")) {
+      if (is.null(x$macro) || is.null(x$macro$weights)) {
+        stop("mosaic_plot.mcml: x$macro$weights is missing.", call. = FALSE)
+      }
+      w <- .mosaic_weights_or_stop(x$macro$weights, x$meta$type,
+                                   ctx = "macro")
+      return(list(tabs = list(as.table(t(w))),
+                  titles = NULL,
+                  xlab_default = NULL,
+                  ylab_default = NULL))
+    }
+    if (is.null(x$clusters) || length(x$clusters) == 0L) {
+      stop("mosaic_plot.mcml: x$clusters is empty (compute_within = FALSE?).",
+           call. = FALSE)
+    }
+    titles <- names(x$clusters) %||%
+      paste0("Cluster ", seq_along(x$clusters))
+    tabs <- lapply(seq_along(x$clusters), function(i) {
+      w <- .mosaic_weights_or_stop(x$clusters[[i]]$weights, x$meta$type,
+                                   ctx = sprintf("cluster[%s]", titles[i]))
+      as.table(t(w))
+    })
+    return(list(tabs = tabs, titles = titles,
+                xlab_default = NULL,
+                ylab_default = NULL))
+  }
+  stop("mosaic_plot: unknown source_class '", source_class, "'.",
+       call. = FALSE)
+}
+
+
+# Validate that a weight matrix is mosaic-able (finite, non-negative, integer-
+# valued, non-zero total). `ctx` is an optional sub-label used in the error
+# message so multi-panel calls report which group / cluster failed.
+.mosaic_weights_or_stop <- function(w, method, ctx = NULL) {
+  pre <- if (is.null(ctx)) "mosaic_plot: " else paste0("mosaic_plot [", ctx, "]: ")
+  if (!is.matrix(w) || !is.numeric(w) || !all(is.finite(w))) {
+    stop(pre, "$weights must be a finite numeric matrix.", call. = FALSE)
+  }
+  if (any(w < 0) || any(abs(w - round(w)) > 1e-8)) {
+    stop(pre, "only defined for integer-valued weight matrices ",
+         "(method = 'frequency' or 'co_occurrence'). Got method = ",
+         method %||% "<unknown>", ".", call. = FALSE)
+  }
+  if (sum(w) <= 0) {
+    stop(pre, "total weight is zero -- nothing to draw.", call. = FALSE)
+  }
+  w
 }
 
 # Choose symmetric colour-scale limits: explicit `range` if supplied, else
@@ -584,12 +850,9 @@ mosaic_plot.netobject_group <- function(x,
   matrix(z, n, m, dimnames = dimnames(tab))
 }
 
-.mosaic_plot_tab <- function(tab, xlab, ylab, range = NULL,
-                             top_angle = NULL, left_angle = NULL,
-                             residuals = "permutation", n_perm = 500L,
-                             seed = NULL) {
-  n <- nrow(tab)
-  m <- ncol(tab)
+.mosaic_rect_data <- function(tab, residuals = "permutation",
+                              n_perm = 500L, seed = NULL) {
+  n <- nrow(tab); m <- ncol(tab)
   if (n < 1L || m < 1L) {
     stop("mosaic_plot: contingency table must have >= 1 row and column.",
          call. = FALSE)
@@ -601,7 +864,6 @@ mosaic_plot.netobject_group <- function(x,
          call. = FALSE)
   }
   widths <- c(0, cumsum(rs)) / total
-  # heights[, i] = c(0, cumsum(tab[i, ] / rs[i])); zero-row safe.
   heights <- vapply(seq_len(n), function(i) {
     if (rs[i] <= 0) return(c(0, seq_len(m) / m))
     c(0, cumsum(as.numeric(tab[i, ]) / rs[i]))
@@ -637,8 +899,30 @@ mosaic_plot.netobject_group <- function(x,
   )
   d$xcent <- (d$xmin + d$xmax) / 2
   d$ycent <- (d$ymin + d$ymax) / 2
+  attr(d, "widths")     <- widths
+  attr(d, "heights")    <- heights
+  attr(d, "row_labels") <- row_labels
+  attr(d, "col_labels") <- col_labels
+  d
+}
 
-  ggplot2::ggplot(d,
+
+.mosaic_plot_tab <- function(tab, xlab, ylab, range = NULL,
+                             top_angle = NULL, left_angle = NULL,
+                             residuals = "permutation", n_perm = 500L,
+                             seed = NULL, axis_groups = NULL) {
+  d <- .mosaic_rect_data(tab, residuals = residuals,
+                         n_perm = n_perm, seed = seed)
+  widths     <- attr(d, "widths")
+  heights    <- attr(d, "heights")
+  row_labels <- attr(d, "row_labels")
+  col_labels <- attr(d, "col_labels")
+  n <- nrow(tab); m <- ncol(tab)
+
+  top_a  <- top_angle  %||% (if (n > 3) 90 else 0)
+  left_a <- left_angle %||% (if (m > 3) 90 else 0)
+
+  p <- ggplot2::ggplot(d,
     ggplot2::aes(xmin = .data$xmin, xmax = .data$xmax,
                  ymin = .data$ymin, ymax = .data$ymax,
                  fill = .data$stdres)) +
@@ -658,8 +942,7 @@ mosaic_plot.netobject_group <- function(x,
       position = "top",
       expand   = c(0.01, 0)
     ) +
-    .mosaic_y_scale(d, col_labels,
-                    left_angle = left_angle %||% (if (m > 3) 90 else 0)) +
+    .mosaic_y_scale(d, col_labels, left_angle = left_a) +
     ggplot2::theme_minimal(base_size = 12) +
     ggplot2::theme(
       plot.title    = ggplot2::element_text(hjust = 0.5),
@@ -668,17 +951,62 @@ mosaic_plot.netobject_group <- function(x,
       axis.ticks    = ggplot2::element_blank(),
       axis.line     = ggplot2::element_blank(),
       axis.text.x   = ggplot2::element_text(
-        angle = top_angle %||% (if (n > 3) 90 else 0),
-        hjust = if ((top_angle %||% (if (n > 3) 90 else 0)) == 0) 0.5 else 0,
-        vjust = if ((top_angle %||% (if (n > 3) 90 else 0)) == 0) 0   else 0.5
+        angle = top_a,
+        hjust = if (top_a == 0) 0.5 else 0,
+        vjust = if (top_a == 0) 0   else 0.5
       ),
       axis.text.y   = ggplot2::element_text(
-        angle = left_angle %||% (if (m > 3) 90 else 0),
-        hjust = if ((left_angle %||% (if (m > 3) 90 else 0)) == 0) 1   else 0.5,
-        vjust = if ((left_angle %||% (if (m > 3) 90 else 0)) == 0) 0.4 else 0.5
+        angle = left_a,
+        hjust = if (left_a == 0) 1   else 0.5,
+        vjust = if (left_a == 0) 0.4 else 0.5
       )
     ) +
     ggplot2::labs(x = xlab, y = ylab)
+
+  if (!is.null(axis_groups)) {
+    p <- .mosaic_add_group_strips(p, tab, widths, heights,
+                                  axis_groups = axis_groups,
+                                  top_a = top_a, left_a = left_a)
+  }
+  p
+}
+
+
+# Group-aware axis-label colouring for htna (or any class that supplies an
+# axis_groups vector). Each contiguous block of rows / columns gets its own
+# Okabe-Ito hue, applied to both x-axis (top) and y-axis (left) tick labels;
+# bold weight reinforces the demarcation. Nothing else changes -- the panel
+# itself is the unaltered mosaic. Reorder is done upstream in .mosaic_panels()
+# so adjacent ticks of the same group sit next to each other.
+.mosaic_add_group_strips <- function(p, tab, widths, heights,
+                                     axis_groups, top_a, left_a) {
+  n <- nrow(tab); m <- ncol(tab)
+  if (length(axis_groups) != n || length(axis_groups) != m) {
+    return(p)
+  }
+  group_levels <- unique(axis_groups)
+  pal <- .okabe_ito[seq_along(group_levels)]
+  names(pal) <- group_levels
+
+  x_label_cols <- unname(pal[axis_groups[seq_len(n)]])
+  y_label_cols <- unname(pal[axis_groups[seq_len(m)]])
+
+  p + ggplot2::theme(
+    axis.text.x = ggplot2::element_text(
+      colour = x_label_cols,
+      angle  = top_a,
+      hjust  = if (top_a == 0) 0.5 else 0,
+      vjust  = if (top_a == 0) 0   else 0.5,
+      face   = "bold"
+    ),
+    axis.text.y = ggplot2::element_text(
+      colour = y_label_cols,
+      angle  = left_a,
+      hjust  = if (left_a == 0) 1   else 0.5,
+      vjust  = if (left_a == 0) 0.4 else 0.5,
+      face   = "bold"
+    )
+  )
 }
 
 
@@ -817,56 +1145,8 @@ mosaic_plot.netobject_group <- function(x,
 # "both"  -> "1,234 (66%)"
 # "state" -> "Average"
 # "all"   -> "Average (66%)"
-# Build the guide_legend layer for a given (position, direction) pair.
-# legend_dir = "auto" derives from position (bottom/top -> horizontal,
-# left/right -> vertical). "horizontal" / "vertical" force the layout.
-.legend_layer <- function(legend, n_states, legend_dir = "auto") {
-  if (identical(legend, "none")) {
-    return(ggplot2::guides(fill = "none"))
-  }
-  effective_dir <- if (legend_dir == "auto") {
-    if (legend %in% c("bottom", "top")) "horizontal" else "vertical"
-  } else legend_dir
-
-  if (effective_dir == "horizontal") {
-    ncol_legend <- min(n_states, 5L)
-    ggplot2::guides(fill = ggplot2::guide_legend(
-      direction = "horizontal", ncol = ncol_legend, byrow = TRUE
-    ))
-  } else {
-    ggplot2::guides(fill = ggplot2::guide_legend(
-      direction = "vertical", ncol = 1L
-    ))
-  }
-}
-
-
-# Theme additions controlling legend position, internal layout, and an
-# optional border ("frame") around the legend box.
-.legend_theme <- function(legend, legend_dir = "auto", legend_frame = "none") {
-  if (identical(legend, "none")) {
-    return(ggplot2::theme(legend.position = "none"))
-  }
-  effective_dir <- if (legend_dir == "auto") {
-    if (legend %in% c("bottom", "top")) "horizontal" else "vertical"
-  } else legend_dir
-
-  bg_rect <- if (identical(legend_frame, "border")) {
-    ggplot2::element_rect(color = "grey40", fill = "white", linewidth = 0.4)
-  } else {
-    ggplot2::element_blank()
-  }
-
-  ggplot2::theme(
-    legend.position   = legend,
-    legend.box        = effective_dir,
-    legend.title      = ggplot2::element_text(face = "bold"),
-    legend.background = bg_rect,
-    legend.box.background = bg_rect,
-    legend.margin     = if (identical(legend_frame, "border"))
-                          ggplot2::margin(4, 6, 4, 6) else ggplot2::margin()
-  )
-}
+# .legend_layer / .legend_theme moved to R/plot-utils.R alongside the other
+# shared layout helpers.
 
 
 .format_value_label <- function(state, count, proportion, label) {
@@ -1300,30 +1580,110 @@ plot_state_frequencies <- function(x, ...) {
 
 #' @export
 #' @rdname plot_state_frequencies
-plot_state_frequencies.netobject <- function(x, legend = "auto", ...) {
-  .plot_state_frequencies_impl(x, source_class = "netobject",
-                               hierarchical = FALSE, legend = legend, ...)
+plot_state_frequencies.netobject <- function(x,
+                                              style = "marimekko",
+                                              metric = "prop",
+                                              label = "prop",
+                                              legend = "auto",
+                                              legend_dir = "auto",
+                                              legend_frame = "none",
+                                              sort_states = "frequency",
+                                              colors = NULL,
+                                              label_size = 3.5,
+                                              abbreviate = FALSE,
+                                              include_macro = FALSE,
+                                              combine = "auto",
+                                              ncol = NULL,
+                                              node_groups = NULL,
+                                              ...) {
+  .plot_state_frequencies_impl(
+    x, source_class = "netobject", hierarchical = FALSE,
+    style = style, metric = metric, label = label, legend = legend,
+    legend_dir = legend_dir, legend_frame = legend_frame,
+    sort_states = sort_states, colors = colors, label_size = label_size,
+    abbreviate = abbreviate, include_macro = include_macro,
+    combine = combine, ncol = ncol, node_groups = node_groups, ...)
 }
 
 #' @export
 #' @rdname plot_state_frequencies
-plot_state_frequencies.htna <- function(x, legend = "auto", ...) {
-  .plot_state_frequencies_impl(x, source_class = "htna",
-                               hierarchical = FALSE, legend = legend, ...)
+plot_state_frequencies.htna <- function(x,
+                                         style = "marimekko",
+                                         metric = "prop",
+                                         label = "prop",
+                                         legend = "auto",
+                                         legend_dir = "auto",
+                                         legend_frame = "none",
+                                         sort_states = "frequency",
+                                         colors = NULL,
+                                         label_size = 3.5,
+                                         abbreviate = FALSE,
+                                         include_macro = FALSE,
+                                         combine = "auto",
+                                         ncol = NULL,
+                                         node_groups = NULL,
+                                         ...) {
+  .plot_state_frequencies_impl(
+    x, source_class = "htna", hierarchical = FALSE,
+    style = style, metric = metric, label = label, legend = legend,
+    legend_dir = legend_dir, legend_frame = legend_frame,
+    sort_states = sort_states, colors = colors, label_size = label_size,
+    abbreviate = abbreviate, include_macro = include_macro,
+    combine = combine, ncol = ncol, node_groups = node_groups, ...)
 }
 
 #' @export
 #' @rdname plot_state_frequencies
-plot_state_frequencies.mcml <- function(x, legend = "auto", ...) {
-  .plot_state_frequencies_impl(x, source_class = "mcml",
-                               hierarchical = TRUE, legend = legend, ...)
+plot_state_frequencies.mcml <- function(x,
+                                         style = "marimekko",
+                                         metric = "prop",
+                                         label = "prop",
+                                         legend = "auto",
+                                         legend_dir = "auto",
+                                         legend_frame = "none",
+                                         sort_states = "frequency",
+                                         colors = NULL,
+                                         label_size = 3.5,
+                                         abbreviate = FALSE,
+                                         include_macro = FALSE,
+                                         combine = "auto",
+                                         ncol = NULL,
+                                         node_groups = NULL,
+                                         ...) {
+  .plot_state_frequencies_impl(
+    x, source_class = "mcml", hierarchical = TRUE,
+    style = style, metric = metric, label = label, legend = legend,
+    legend_dir = legend_dir, legend_frame = legend_frame,
+    sort_states = sort_states, colors = colors, label_size = label_size,
+    abbreviate = abbreviate, include_macro = include_macro,
+    combine = combine, ncol = ncol, node_groups = node_groups, ...)
 }
 
 #' @export
 #' @rdname plot_state_frequencies
-plot_state_frequencies.netobject_group <- function(x, legend = "auto", ...) {
-  .plot_state_frequencies_impl(x, source_class = "netobject_group",
-                               hierarchical = FALSE, legend = legend, ...)
+plot_state_frequencies.netobject_group <- function(x,
+                                                    style = "marimekko",
+                                                    metric = "prop",
+                                                    label = "prop",
+                                                    legend = "auto",
+                                                    legend_dir = "auto",
+                                                    legend_frame = "none",
+                                                    sort_states = "frequency",
+                                                    colors = NULL,
+                                                    label_size = 3.5,
+                                                    abbreviate = FALSE,
+                                                    include_macro = FALSE,
+                                                    combine = "auto",
+                                                    ncol = NULL,
+                                                    node_groups = NULL,
+                                                    ...) {
+  .plot_state_frequencies_impl(
+    x, source_class = "netobject_group", hierarchical = FALSE,
+    style = style, metric = metric, label = label, legend = legend,
+    legend_dir = legend_dir, legend_frame = legend_frame,
+    sort_states = sort_states, colors = colors, label_size = label_size,
+    abbreviate = abbreviate, include_macro = include_macro,
+    combine = combine, ncol = ncol, node_groups = node_groups, ...)
 }
 
 #' @export
@@ -1414,13 +1774,7 @@ plot_state_frequencies.default <- function(x, ...) {
 # Returns TRUE when every group in freq_df contains the same set of
 # states (any order). Used to detect per_facet calls that would render
 # the same legend k times.
-.vocab_is_shared <- function(freq_df) {
-  groups <- as.character(freq_df$group)
-  if (length(unique(groups)) < 2L) return(FALSE)
-  vocabs <- split(as.character(freq_df$state), groups)
-  vocabs <- lapply(vocabs, function(v) sort(unique(v)))
-  all(vapply(vocabs[-1L], identical, logical(1L), vocabs[[1L]]))
-}
+# .vocab_is_shared moved to R/plot-utils.R.
 
 
 # Abbreviate state names with base R `abbreviate()` so duplicates after

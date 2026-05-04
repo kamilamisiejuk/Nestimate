@@ -1190,9 +1190,8 @@ print.net_mmm_clustering <- function(x, digits = 3L, ...) {
 #' \code{\link{plot.net_clustering}} but covers only the metrics the EM
 #' fit produces -- there is no distance matrix on an MMM clustering, so
 #' \code{"silhouette"} / \code{"mds"} / \code{"heatmap"} aren't defined
-#' here. The \code{netobject_group} dispatcher
-#' (\code{\link{plot.netobject_group}}) raises a clear error if you ask
-#' for one of those on an MMM result.
+#' here and the dispatcher raises a clear error if you ask for one of
+#' those on an MMM result.
 #'
 #' @param x A \code{net_mmm_clustering} object.
 #' @param type Character. One of \code{"posterior"} (default; histogram of

@@ -34,17 +34,76 @@ test_that("mosaic_plot rejects non-integer-weighted networks", {
   expect_error(mosaic_plot(net_rel), "integer-valued")
 })
 
-test_that("mosaic_plot.netobject_group returns one plot per group", {
+test_that("mosaic_plot.netobject_group returns one (group x state) mosaic", {
   net <- .tiny_freq_net()
   grp <- list(A = net, B = net)
   class(grp) <- "netobject_group"
-  out <- mosaic_plot(grp)
-  if (requireNamespace("gridExtra", quietly = TRUE)) {
-    expect_s3_class(out, "gtable")
-  } else {
-    expect_type(out, "list")
-    expect_length(out, 2L)
-  }
+  out <- mosaic_plot(grp, seed = 1L)
+  expect_s3_class(out, "ggplot")
+  # Single panel containing both groups -- not faceted.
+  ld <- ggplot2::layer_data(out, 1L)
+  expect_setequal(as.character(unique(ld$PANEL)), "1")
+  # 2 groups x 3 states = 6 rectangles in the (group x state) contingency.
+  expect_equal(nrow(ld), 6L)
+  # Two distinct x-extents (one column per group, group totals identical).
+  x_widths <- unique(round(ld$xmax - ld$xmin, 4))
+  expect_length(x_widths, 1L)
+})
+
+test_that("mosaic_plot.htna defers to the netobject path", {
+  # htna inherits from netobject; mosaic of $weights should match exactly
+  # what mosaic_plot.netobject would draw on the same matrix.
+  net <- .tiny_freq_net()
+  ht  <- net
+  class(ht) <- c("htna", class(net))
+  # Same seed so the permutation residuals match cell-for-cell.
+  p_ht  <- mosaic_plot(ht,  seed = 1L)
+  p_net <- mosaic_plot(net, seed = 1L)
+  expect_s3_class(p_ht, "ggplot")
+  expect_equal(ggplot2::layer_data(p_ht), ggplot2::layer_data(p_net))
+})
+
+# Fixture: a real mcml from group_regulation_long with a theory-driven
+# 3-way clustering of the SRL action codes. Used by the next three tests.
+.tiny_mcml <- function() {
+  build_mcml(
+    group_regulation_long,
+    clusters = list(
+      Cognition     = c("discuss", "synthesis", "consensus"),
+      Metacognition = c("plan", "monitor", "adapt"),
+      Social        = c("coregulate", "cohesion", "emotion")
+    ),
+    method = "sum", type = "frequency",
+    actor = "Actor", time = "Time", action = "Action"
+  )
+}
+
+test_that("mosaic_plot.mcml level='macro' draws one cluster x cluster panel", {
+  fit <- .tiny_mcml()
+  p <- mosaic_plot(fit, seed = 1L)
+  expect_s3_class(p, "ggplot")
+})
+
+test_that("mosaic_plot.mcml level='clusters' returns a faceted ggplot", {
+  fit <- .tiny_mcml()
+  out <- mosaic_plot(fit, level = "clusters", seed = 1L)
+  expect_s3_class(out, "ggplot")
+  # One facet per cluster.
+  ld <- ggplot2::layer_data(out, 1L)
+  expect_setequal(as.character(unique(ld$PANEL)),
+                  as.character(seq_along(fit$clusters)))
+})
+
+test_that("mosaic_plot.mcml level='clusters' errors when $clusters is empty", {
+  fit <- structure(list(macro = list(weights = diag(3)), clusters = NULL),
+                   class = "mcml")
+  expect_error(mosaic_plot(fit, level = "clusters"),
+               "x\\$clusters is empty")
+})
+
+test_that("mosaic_plot default method names the four data-bearing classes", {
+  expect_error(mosaic_plot(1:5),
+               "netobject, netobject_group, mcml, htna")
 })
 
 test_that("permutation residuals converge to asymptotic stdres on large N", {

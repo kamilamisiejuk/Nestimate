@@ -27,9 +27,8 @@ Mirrors the type-driven surface of
 \code{\link{plot.net_clustering}} but covers only the metrics the EM
 fit produces -- there is no distance matrix on an MMM clustering, so
 \code{"silhouette"} / \code{"mds"} / \code{"heatmap"} aren't defined
-here. The \code{netobject_group} dispatcher
-(\code{\link{plot.netobject_group}}) raises a clear error if you ask
-for one of those on an MMM result.
+here and the dispatcher raises a clear error if you ask for one of
+those on an MMM result.
 }
 \examples{
 \donttest{

@@ -11,13 +11,81 @@
 \usage{
 plot_state_frequencies(x, ...)
 
-\method{plot_state_frequencies}{netobject}(x, legend = "auto", ...)
+\method{plot_state_frequencies}{netobject}(
+  x,
+  style = "marimekko",
+  metric = "prop",
+  label = "prop",
+  legend = "auto",
+  legend_dir = "auto",
+  legend_frame = "none",
+  sort_states = "frequency",
+  colors = NULL,
+  label_size = 3.5,
+  abbreviate = FALSE,
+  include_macro = FALSE,
+  combine = "auto",
+  ncol = NULL,
+  node_groups = NULL,
+  ...
+)
 
-\method{plot_state_frequencies}{htna}(x, legend = "auto", ...)
+\method{plot_state_frequencies}{htna}(
+  x,
+  style = "marimekko",
+  metric = "prop",
+  label = "prop",
+  legend = "auto",
+  legend_dir = "auto",
+  legend_frame = "none",
+  sort_states = "frequency",
+  colors = NULL,
+  label_size = 3.5,
+  abbreviate = FALSE,
+  include_macro = FALSE,
+  combine = "auto",
+  ncol = NULL,
+  node_groups = NULL,
+  ...
+)
 
-\method{plot_state_frequencies}{mcml}(x, legend = "auto", ...)
+\method{plot_state_frequencies}{mcml}(
+  x,
+  style = "marimekko",
+  metric = "prop",
+  label = "prop",
+  legend = "auto",
+  legend_dir = "auto",
+  legend_frame = "none",
+  sort_states = "frequency",
+  colors = NULL,
+  label_size = 3.5,
+  abbreviate = FALSE,
+  include_macro = FALSE,
+  combine = "auto",
+  ncol = NULL,
+  node_groups = NULL,
+  ...
+)
 
-\method{plot_state_frequencies}{netobject_group}(x, legend = "auto", ...)
+\method{plot_state_frequencies}{netobject_group}(
+  x,
+  style = "marimekko",
+  metric = "prop",
+  label = "prop",
+  legend = "auto",
+  legend_dir = "auto",
+  legend_frame = "none",
+  sort_states = "frequency",
+  colors = NULL,
+  label_size = 3.5,
+  abbreviate = FALSE,
+  include_macro = FALSE,
+  combine = "auto",
+  ncol = NULL,
+  node_groups = NULL,
+  ...
+)
 
 \method{plot_state_frequencies}{default}(x, ...)
 }
@@ -26,18 +94,6 @@ plot_state_frequencies(x, ...)
 \code{htna} object.}
 
 \item{...}{Reserved for future use.}
-
-\item{legend}{Legend position. \code{"auto"} (default) resolves per
-style: \code{"none"} for \code{style = "bars"} (the y-axis already
-names every state, so a colour legend is redundant);
-\code{"per_facet"} for \code{htna}/\code{mcml} treemaps (state
-vocabularies differ per panel, so each gets its own legend);
-\code{"bottom"} for single-network and \code{netobject_group}
-treemaps (shared state vocabulary, one shared legend).
-Override with any of \code{"bottom"}, \code{"top"}, \code{"right"},
-\code{"left"}, \code{"none"}, or \code{"per_facet"}. The
-\code{"per_facet"} option requires the \pkg{gridExtra} package and
-returns a \code{gtable}.}
 
 \item{style}{One of:
 \itemize{
@@ -64,6 +120,18 @@ single line.
 \item \code{"all"} -- state + proportion, e.g. \code{"Average (66\%)"}
 \item \code{"none"} -- no inline labels
 }}
+
+\item{legend}{Legend position. \code{"auto"} (default) resolves per
+style: \code{"none"} for \code{style = "bars"} (the y-axis already
+names every state, so a colour legend is redundant);
+\code{"per_facet"} for \code{htna}/\code{mcml} treemaps (state
+vocabularies differ per panel, so each gets its own legend);
+\code{"bottom"} for single-network and \code{netobject_group}
+treemaps (shared state vocabulary, one shared legend).
+Override with any of \code{"bottom"}, \code{"top"}, \code{"right"},
+\code{"left"}, \code{"none"}, or \code{"per_facet"}. The
+\code{"per_facet"} option requires the \pkg{gridExtra} package and
+returns a \code{gtable}.}
 
 \item{legend_dir}{Legend internal layout: \code{"auto"} (default --
 horizontal for top/bottom, vertical for left/right), or force
@@ -102,14 +170,14 @@ grid. \code{TRUE} forces a combined gtable via \pkg{gridExtra};
 \code{FALSE} forces a list (knitr renders each at the chunk's full
 \code{fig.width} / \code{fig.height}).}
 
+\item{ncol}{For \code{legend = "per_facet"} with \code{combine = TRUE}:
+number of columns in the grid arrangement. \code{NULL} (default)
+picks 1, 2, or 3 columns based on the number of panels.}
+
 \item{node_groups}{Optional named character vector mapping node labels to
 semantic groups. When supplied, panels (or bars) are coloured / annotated
 by group rather than by individual state, so state-level palettes can
 collapse onto a smaller categorical legend.}
-
-\item{ncol}{For \code{legend = "per_facet"} with \code{combine = TRUE}:
-number of columns in the grid arrangement. \code{NULL} (default)
-picks 1, 2, or 3 columns based on the number of panels.}
 }
 \value{
 A \code{state_freq} object: a list with the rendered \code{$plot}
