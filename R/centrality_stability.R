@@ -559,7 +559,7 @@ plot.net_stability <- function(x, ...) {
       title = "Centrality Stability",
       color = "Measure", fill = "Measure"
     ) +
-    ggplot2::theme_minimal() +
+    ggplot2::theme_minimal(base_size = 12) +
     ggplot2::theme(legend.position = "bottom")
 
   print(p)

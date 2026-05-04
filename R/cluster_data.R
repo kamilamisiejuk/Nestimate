@@ -1005,7 +1005,7 @@ plot.net_clustering <- function(x, type = c("silhouette", "mds", "heatmap",
       labs(x = "Observation", y = "Silhouette Width",
            title = sprintf("Silhouette Plot (avg = %.3f)", x$silhouette),
            fill = "Cluster") +
-      theme_minimal() +
+      theme_minimal(base_size = 12) +
       geom_hline(yintercept = x$silhouette, linetype = "dashed", alpha = 0.5)
 
   } else if (type == "mds") {
@@ -1022,7 +1022,7 @@ plot.net_clustering <- function(x, type = c("silhouette", "mds", "heatmap",
       labs(x = "MDS Dimension 1", y = "MDS Dimension 2",
            title = sprintf("MDS Projection (k = %d)", x$k),
            colour = "Cluster") +
-      theme_minimal()
+      theme_minimal(base_size = 12)
 
   } else {
     # Heatmap — order by cluster assignment
@@ -1043,7 +1043,7 @@ plot.net_clustering <- function(x, type = c("silhouette", "mds", "heatmap",
       labs(x = "Sequence", y = "Sequence",
            title = "Distance Matrix (ordered by cluster)",
            fill = "Distance") +
-      theme_minimal() +
+      theme_minimal(base_size = 12) +
       theme(axis.text = element_blank(), axis.ticks = element_blank())
   }
 
@@ -1473,7 +1473,7 @@ plot.net_clustering <- function(x, type = c("silhouette", "mds", "heatmap",
     ) +
     scale_x_log10() +
     labs(x = "Odds Ratio (log scale)", y = NULL, title = title) +
-    theme_minimal()
+    theme_minimal(base_size = 12)
 
   print(p)
   invisible(p)

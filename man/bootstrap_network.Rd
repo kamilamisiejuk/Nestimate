@@ -38,6 +38,11 @@ bounds for stability inference (default: \code{c(0.75, 1.25)}).}
 percentile of absolute original edge weights.}
 
 \item{seed}{Integer or NULL. RNG seed for reproducibility.}
+
+\item{boundary}{Character. Comparison rule when computing the consistency-range
+p-value. \code{"inclusive"} (default, tna-compatible) counts iterations
+that meet the bound (\eqn{\le} / \eqn{\ge}); \code{"strict"} counts only
+iterations strictly outside (\eqn{<} / \eqn{>}).}
 }
 \value{
 An object of class \code{"net_bootstrap"} containing:

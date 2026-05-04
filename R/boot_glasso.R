@@ -962,7 +962,7 @@ plot.boot_glasso <- function(x, type = "edges", measure = NULL, ...) {
       x = "Edge Weight",
       y = NULL
     ) +
-    ggplot2::theme_minimal()
+    ggplot2::theme_minimal(base_size = 12)
 }
 
 
@@ -985,7 +985,7 @@ plot.boot_glasso <- function(x, type = "edges", measure = NULL, ...) {
       y = "Mean Correlation with Original",
       color = "Measure"
     ) +
-    ggplot2::theme_minimal()
+    ggplot2::theme_minimal(base_size = 12)
 }
 
 
@@ -1129,7 +1129,7 @@ plot.boot_glasso <- function(x, type = "edges", measure = NULL, ...) {
       x = NULL, y = NULL
     ) +
     ggplot2::coord_fixed() +
-    ggplot2::theme_minimal(base_size = 11) +
+    ggplot2::theme_minimal(base_size = 12) +
     ggplot2::theme(
       panel.grid       = ggplot2::element_blank(),
       axis.text.x      = ggplot2::element_text(
@@ -1253,7 +1253,7 @@ plot.boot_glasso <- function(x, type = "edges", measure = NULL, ...) {
       subtitle = subtitle, x = NULL, y = NULL
     ) +
     ggplot2::coord_fixed() +
-    ggplot2::theme_minimal() +
+    ggplot2::theme_minimal(base_size = 12) +
     ggplot2::theme(
       panel.grid = ggplot2::element_blank(),
       axis.text.x = ggplot2::element_text(angle = 45, hjust = 1),
@@ -1283,7 +1283,7 @@ plot.boot_glasso <- function(x, type = "edges", measure = NULL, ...) {
       x = "Inclusion Probability",
       y = NULL
     ) +
-    ggplot2::theme_minimal()
+    ggplot2::theme_minimal(base_size = 12)
 }
 
 

@@ -19,8 +19,8 @@ A \code{data.frame} with columns \code{group}, \code{state}, \code{classificatio
 }
 \description{
 Produces a single tidy data.frame with one row per (group, state)
-combination, combining classification, persistence, sojourn, and —
-when applicable — stationary or mean-absorption-time columns. Useful
+combination, combining classification, persistence, sojourn, and --
+when applicable -- stationary or mean-absorption-time columns. Useful
 for side-by-side reporting of \code{chain_structure()} across the
 members of a \code{netobject_group}.
 }

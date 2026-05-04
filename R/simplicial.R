@@ -904,7 +904,7 @@ print.q_analysis <- function(x, ...) {
 # Plot methods
 # =========================================================================
 
-.sc_theme <- function(base_size = 13) {
+.sc_theme <- function(base_size = 12) {
   ggplot2::theme_minimal(base_size = base_size) +
     ggplot2::theme(
       plot.title = ggplot2::element_text(face = "bold", size = base_size + 1),

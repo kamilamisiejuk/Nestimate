@@ -42,6 +42,7 @@ Suggests:
     corpcor,
     Matrix,
     cograph,
+    ggfittext,
     knitr,
     rmarkdown,
     pkgdown

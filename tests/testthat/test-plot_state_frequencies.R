@@ -54,10 +54,12 @@ test_that("plot_state_frequencies works on netobject (wide trajectories)", {
   expect_s3_class(nw, "netobject")
 
   p_marimekko <- plot_state_frequencies(nw)
-  expect_s3_class(p_marimekko, "ggplot")
+  expect_s3_class(p_marimekko, "state_freq")
+  expect_s3_class(p_marimekko$plot, "ggplot")
 
   p_bars <- plot_state_frequencies(nw, style = "bars")
-  expect_s3_class(p_bars, "ggplot")
+  expect_s3_class(p_bars, "state_freq")
+  expect_s3_class(p_bars$plot, "ggplot")
 })
 
 
@@ -75,10 +77,12 @@ test_that("plot_state_frequencies works on netobject_group", {
   expect_equal(length(nw_g), 3L)  # 3 courses
 
   p_marimekko <- plot_state_frequencies(nw_g)
-  expect_s3_class(p_marimekko, "ggplot")
+  expect_s3_class(p_marimekko, "state_freq")
+  expect_s3_class(p_marimekko$plot, "ggplot")
 
   p_bars <- plot_state_frequencies(nw_g, style = "bars")
-  expect_s3_class(p_bars, "ggplot")
+  expect_s3_class(p_bars, "state_freq")
+  expect_s3_class(p_bars$plot, "ggplot")
 })
 
 
@@ -99,18 +103,21 @@ test_that("plot_state_frequencies works on mcml", {
   # Default for mcml is legend = "per_facet" -> gtable output.
   skip_if_not_installed("gridExtra")
   p_default <- plot_state_frequencies(mc)
-  expect_true(inherits(p_default, "gtable") || inherits(p_default, "ggplot"))
+  expect_s3_class(p_default, "state_freq")
+  expect_true(inherits(p_default$plot, "gtable") ||
+              inherits(p_default$plot, "ggplot"))
 
   # Explicit single-legend bottom -> ggplot.
   p_single <- plot_state_frequencies(mc, legend = "bottom")
-  expect_s3_class(p_single, "ggplot")
+  expect_s3_class(p_single$plot, "ggplot")
 
   p_macro <- plot_state_frequencies(mc, include_macro = TRUE,
                                     legend = "bottom")
-  expect_s3_class(p_macro, "ggplot")
+  expect_s3_class(p_macro$plot, "ggplot")
+  expect_true("macro" %in% as.character(p_macro$table$group))
 
   p_bars <- plot_state_frequencies(mc, style = "bars")
-  expect_s3_class(p_bars, "ggplot")
+  expect_s3_class(p_bars$plot, "ggplot")
 })
 
 
@@ -129,17 +136,20 @@ test_that("plot_state_frequencies works on htna", {
   expect_s3_class(ht, "htna")
   expect_false(is.null(ht$node_groups))
 
-  # Default for htna is legend = "per_facet" -> gtable output.
+  # Default for htna is now legend = "bottom" -> ggplot. Per-facet still
+  # available via legend = "per_facet".
   skip_if_not_installed("gridExtra")
   p_default <- plot_state_frequencies(ht)
-  expect_true(inherits(p_default, "gtable") || inherits(p_default, "ggplot"))
+  expect_s3_class(p_default, "state_freq")
+  expect_true(inherits(p_default$plot, "gtable") ||
+              inherits(p_default$plot, "ggplot"))
 
   # Explicit single-legend bottom -> ggplot.
   p_single <- plot_state_frequencies(ht, legend = "bottom")
-  expect_s3_class(p_single, "ggplot")
+  expect_s3_class(p_single$plot, "ggplot")
 
   p_bars <- plot_state_frequencies(ht, style = "bars")
-  expect_s3_class(p_bars, "ggplot")
+  expect_s3_class(p_bars$plot, "ggplot")
 })
 
 
@@ -158,7 +168,7 @@ test_that("plot_state_frequencies respects custom colors", {
                       method = "relative", format = "wide")
   custom <- c("#000000", "#FFFFFF", "#FF0000", "#00FF00", "#0000FF")
   p <- plot_state_frequencies(nw, colors = custom)
-  expect_s3_class(p, "ggplot")
+  expect_s3_class(p$plot, "ggplot")
 })
 
 test_that("sort_states ordering changes state factor levels", {
@@ -167,8 +177,54 @@ test_that("sort_states ordering changes state factor levels", {
                       method = "relative", format = "wide")
   p_freq  <- plot_state_frequencies(nw, sort_states = "frequency")
   p_alpha <- plot_state_frequencies(nw, sort_states = "alpha")
-  # Both should return ggplots; we don't compare order strictly here as
-  # underlying counts differ. Just ensure both dispatch cleanly.
-  expect_s3_class(p_freq, "ggplot")
-  expect_s3_class(p_alpha, "ggplot")
+  expect_s3_class(p_freq$plot, "ggplot")
+  expect_s3_class(p_alpha$plot, "ggplot")
+})
+
+
+# ---------------------------------------------------------------------------
+# state_freq class: $table shape, print, plot, as.data.frame round-trip
+# ---------------------------------------------------------------------------
+
+test_that("state_distribution returns the documented column shape", {
+  data(trajectories, package = "Nestimate")
+  nw <- build_network(as.data.frame(trajectories),
+                      method = "relative", format = "wide")
+  d <- state_distribution(nw)
+  expect_s3_class(d, "data.frame")
+  expect_named(d, c("group", "state", "count", "proportion"))
+  expect_type(d$count, "integer")
+  expect_type(d$proportion, "double")
+})
+
+test_that("plot_state_frequencies returns a state_freq with table + plot", {
+  data(trajectories, package = "Nestimate")
+  nw <- build_network(as.data.frame(trajectories),
+                      method = "relative", format = "wide")
+  res <- plot_state_frequencies(nw, style = "bars")
+  expect_named(res, c("plot", "table", "style", "metric", "source_class"))
+  expect_s3_class(res, "state_freq")
+  expect_s3_class(res$plot, "ggplot")
+  expect_s3_class(res$table, "data.frame")
+  expect_identical(res$style, "bars")
+  expect_identical(res$source_class, "netobject")
+})
+
+test_that("as.data.frame.state_freq round-trips to the table", {
+  data(trajectories, package = "Nestimate")
+  nw <- build_network(as.data.frame(trajectories),
+                      method = "relative", format = "wide")
+  res <- plot_state_frequencies(nw)
+  expect_identical(as.data.frame(res), res$table)
+})
+
+test_that("print.state_freq writes the canonical header", {
+  data(trajectories, package = "Nestimate")
+  nw <- build_network(as.data.frame(trajectories),
+                      method = "relative", format = "wide")
+  res <- plot_state_frequencies(nw)
+  out <- capture.output(print(res))
+  expect_true(any(grepl("State frequencies", out, fixed = TRUE)))
+  expect_true(any(grepl("Per-group totals", out, fixed = TRUE)))
+  expect_true(any(grepl("Per-state proportions", out, fixed = TRUE)))
 })

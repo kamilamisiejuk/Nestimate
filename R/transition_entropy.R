@@ -22,12 +22,10 @@
 #'   row-stochastic numeric transition matrix, or a wide sequence data.frame
 #'   (rows = actors, columns = time-steps; a relative transition network is
 #'   built automatically). Group dispatch on \code{netobject_group}.
-#' @param object A \code{net_transition_entropy} object (for \code{summary}).
 #' @param base Numeric. Logarithm base. \code{2} (default) for bits,
 #'   \code{exp(1)} for nats, \code{10} for hartleys.
 #' @param normalize Logical. If \code{TRUE} (default), rows that do not sum
 #'   to 1 are normalised automatically (with a warning).
-#' @param ... Ignored.
 #'
 #' @return An object of class \code{"net_transition_entropy"} with:
 #' \describe{

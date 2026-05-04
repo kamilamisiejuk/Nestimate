@@ -1,35 +1,35 @@
 ## R CMD check results
 
-0 errors | 0 warnings | 0 notes (local macOS `--as-cran --run-donttest`, win-builder devel/release, macOS builder, R-hub linux/windows/macos/macos-arm64).
+0 errors | 0 warnings | 0 notes (local macOS `--as-cran`).
 
 ## Test environments
 
-* local macOS (Darwin 25.3.0), R 4.5.2 — `R CMD check --as-cran --run-donttest`
+* local macOS (Darwin 25.3.0), R 4.5.2 — `R CMD check --as-cran`
 * win-builder R-devel
 * win-builder R-release
 * macOS builder (mac.r-project.org)
 * R-hub: linux, windows, macos, macos-arm64
 
-## Resubmission
+## Changes since 0.4.3
 
-This is a resubmission of 0.4.2 as 0.4.3, addressing the two NOTEs raised by
-the CRAN incoming pre-tests on 0.4.2:
+This is a feature/maintenance release moving 0.4.3 → 0.4.9. Highlights:
 
-* **Vignette index.** The previous tarball was built with
-  `R CMD build --no-build-vignettes`, which shipped pre-built `inst/doc/*.html`
-  but omitted `build/vignette.rds`. 0.4.3 is built with plain `R CMD build`,
-  so the vignette index is included.
-* **Check time.** Windows check time was 11 min on 0.4.2. `tests/testthat/test-gimme.R`
-  (which fits a `lavaan` SEM per subject via the `gimme` package) now calls
-  `skip_on_cran()`. Local `--as-cran` check time dropped from 2m 41s to 2m 0.8s;
-  Windows is projected to be ~8 min.
-
-Earlier (0.4.2) cleanup, retained in 0.4.3:
-
-* Full `--as-cran --run-donttest` audit, 0 errors / 0 warnings / 0 notes.
-* `.Rbuildignore` strengthened with explicit `^Nestimate\.Rcheck$` and
-  `^\.\.Rcheck$` entries.
-* Stale build artifacts purged from the working tree.
+* New higher-order infrastructure: `chain_structure()`, `markov_order_test()`,
+  `markov_stability()`, `passage_time()`, `path_dependence()`, and
+  `transition_entropy()`, each with full `print`/`summary`/`plot` methods and
+  `netobject_group` dispatch.
+* New `build_mlvar()` (multilevel VAR) and `build_mmm()` (mixed Markov models)
+  with byte-equivalence to `mlVAR` and `seqHMM` respectively.
+* `build_mcml()` correctness fixes: model-derived weights, symmetrize,
+  labels-vs-data alignment; `cluster_summary()` matrix path now aggregation-only
+  (`type =` removed — see DESCRIPTION).
+* Bootstrap gains a `boundary` argument for inclusive vs strict consistency-range
+  tests.
+* New `plot_state_frequencies()` generic with marimekko / bars / mosaic styles.
+* Documentation cleanup: ASCII-only R sources; all exported argument lists
+  now match Rd `\usage`; `as_tna` example updated for new `cluster_summary`
+  signature; Suggests trimmed (removed `BiasedUrn`, `HyperG`, `RSpectra`,
+  `pkgdown` — none referenced in installed code, tests, or vignettes).
 
 ## Notes on URL checks
 
@@ -48,7 +48,7 @@ proper names and correct as written.
 
 ## Downstream dependencies
 
-This is a new CRAN submission. The package has no reverse dependencies.
+The package has no reverse dependencies on CRAN.
 
 The companion package `cograph` (visualization) uses Nestimate's
 `cograph_network` class objects but does not formally depend on Nestimate.

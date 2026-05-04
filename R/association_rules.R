@@ -605,7 +605,7 @@ plot.net_association_rules <- function(x, ...) {
     ggplot2::labs(x = "Support", y = "Confidence",
                   title = sprintf("Association Rules (%d rules)", nrow(r)),
                   size = "Lift", color = "Lift") +
-    ggplot2::theme_minimal()
+    ggplot2::theme_minimal(base_size = 12)
 
   print(p)
   invisible(p)

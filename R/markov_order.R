@@ -386,7 +386,7 @@ print.net_markov_order <- function(x, ...) {
 #' @return `x` invisibly.
 #' @export
 print.net_markov_order_group <- function(x, ...) {
-  cat(sprintf("Markov Order Test — %d groups: %s\n\n",
+  cat(sprintf("Markov Order Test -- %d groups: %s\n\n",
               length(x), paste(names(x), collapse = ", ")))
   for (nm in names(x)) {
     cat(sprintf("--- %s ---\n", nm))

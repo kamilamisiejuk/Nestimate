@@ -81,7 +81,7 @@ A \code{cluster_summary} object (S3 class) containing:
 the number of clusters. Row i, column j contains the elementwise
 aggregation (per \code{method}) of all edges from nodes in cluster
 i to nodes in cluster j. Diagonal contains within-cluster totals.
-Pure arithmetic — no row normalization.}
+Pure arithmetic -- no row normalization.}
 \item{inits}{Numeric vector of length k. Initial state distribution
 across clusters, computed from column sums of the original matrix.
 Represents the proportion of incoming edges to each cluster.}

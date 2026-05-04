@@ -60,7 +60,7 @@ print.mcml_layer <- function(x, ...) {
     max_v <- max(init, na.rm = TRUE)
     for (i in ord) {
       bars <- if (is.finite(max_v) && max_v > 0)
-        strrep("█", round(init[i] / max_v * bar_w)) else ""
+        strrep("#", round(init[i] / max_v * bar_w)) else ""
       cat(sprintf("  %-14s  %.3f  %s\n", nm[i], init[i], bars))
     }
   }
@@ -206,7 +206,7 @@ net_aggregate_weights <- function(w, method = "sum", n_possible = NULL) {
 #'           the number of clusters. Row i, column j contains the elementwise
 #'           aggregation (per \code{method}) of all edges from nodes in cluster
 #'           i to nodes in cluster j. Diagonal contains within-cluster totals.
-#'           Pure arithmetic — no row normalization.}
+#'           Pure arithmetic -- no row normalization.}
 #'         \item{inits}{Numeric vector of length k. Initial state distribution
 #'           across clusters, computed from column sums of the original matrix.
 #'           Represents the proportion of incoming edges to each cluster.}
@@ -432,7 +432,7 @@ cluster_summary <- function(x,
     }
   }
 
-  # Matrix path is aggregation only — no post-processing. Caller normalises
+  # Matrix path is aggregation only -- no post-processing. Caller normalises
   # downstream if they need a Markov chain (e.g. via as_tna()).
   between_weights <- between_raw
 
@@ -640,7 +640,7 @@ build_mcml <- function(x,
     return(x)
   }
 
-  # Remember whether the caller passed `type` explicitly — used below to
+  # Remember whether the caller passed `type` explicitly -- used below to
   # warn when type is applied to matrix input, where it has no effect.
   type_explicit <- !missing(type)
 
@@ -890,7 +890,7 @@ build_mcml <- function(x,
   between_raw <- matrix(0, n_clusters, n_clusters,
                         dimnames = list(cluster_names, cluster_names))
 
-  # Include ALL transitions — node-level self-loops (A->A) are valid
+  # Include ALL transitions -- node-level self-loops (A->A) are valid
   # cluster-level self-loops (e.g. discuss->discuss = Social->Social)
   b_from <- from_clusters
   b_to <- to_clusters
@@ -923,7 +923,7 @@ build_mcml <- function(x,
   # Compute initial-state probabilities. When sequence data is available we
   # use the empirical first-state distribution (matches tna::tna()'s inits);
   # otherwise (edgelist or no data) we fall back to the column-sum proxy
-  # documented earlier — there is no first-state to read off an edgelist.
+  # documented earlier -- there is no first-state to read off an edgelist.
   is_seq_for_inits <- is.data.frame(data) && !any(tolower(names(data)) %in%
     c("from", "source", "src", "v1", "node1", "i",
       "to", "target", "tgt", "v2", "node2", "j"))
@@ -991,7 +991,7 @@ build_mcml <- function(x,
   } else if (length(from_nodes) > 0L) {
     # Edgelist branch: every transition -> one 2-row pseudo-sequence.
     # Columns named `from`/`to` so the data is self-describing on inspection.
-    # Tagged with source = "edgelist" so bootstrap_network() can warn —
+    # Tagged with source = "edgelist" so bootstrap_network() can warn --
     # edgelist bootstrap treats transitions as independent, ignoring
     # within-actor correlation, so CIs are anti-conservative.
     between_seq_data <- data.frame(

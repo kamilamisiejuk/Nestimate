@@ -191,7 +191,7 @@ print.net_mpt <- function(x, digits = 1, ...) {
 #' @return `x` invisibly.
 #' @export
 print.net_mpt_group <- function(x, ...) {
-  cat(sprintf("Mean First Passage Times — %d groups: %s\n\n",
+  cat(sprintf("Mean First Passage Times -- %d groups: %s\n\n",
               length(x), paste(names(x), collapse = ", ")))
   for (nm in names(x)) {
     cat(sprintf("--- %s ---\n", nm))
@@ -396,7 +396,7 @@ print.net_markov_stability <- function(x, ...) {
 #' @return `x` invisibly.
 #' @export
 print.net_markov_stability_group <- function(x, ...) {
-  cat(sprintf("Markov Stability — %d groups: %s\n\n",
+  cat(sprintf("Markov Stability -- %d groups: %s\n\n",
               length(x), paste(names(x), collapse = ", ")))
   for (nm in names(x)) {
     cat(sprintf("--- %s ---\n", nm))

@@ -35,6 +35,10 @@
 #'   \code{inference = "threshold"}. If NULL, defaults to the 10th
 #'   percentile of absolute original edge weights.
 #' @param seed Integer or NULL. RNG seed for reproducibility.
+#' @param boundary Character. Comparison rule when computing the consistency-range
+#'   p-value. \code{"inclusive"} (default, tna-compatible) counts iterations
+#'   that meet the bound (\eqn{\le} / \eqn{\ge}); \code{"strict"} counts only
+#'   iterations strictly outside (\eqn{<} / \eqn{>}).
 #'
 #' @return An object of class \code{"net_bootstrap"} containing:
 #' \describe{
@@ -131,7 +135,7 @@ bootstrap_network <- function(x,
   }
 
   # Note: edgelist-derived data has no actor / session grouping, so
-  # row-resampling uses individual transitions as the unit — which may
+  # row-resampling uses individual transitions as the unit -- which may
   # under-represent within-actor correlation. Case-dropping and actor-
   # level sequence reconstruction are both more robust alternatives.
   if (identical(attr(x$data, "source"), "edgelist")) {
@@ -308,7 +312,7 @@ bootstrap_network <- function(x,
   boot_flat <- vapply(seq_len(iter), function(i) {
     idx <- sample.int(n_seq, n_seq, replace = TRUE)
     boot_counts <- colSums(trans_2d[idx, , drop = FALSE])
-    # Inline post-processing (no dimnames — we flatten immediately)
+    # Inline post-processing (no dimnames -- we flatten immediately)
     mat <- matrix(boot_counts, n_states, n_states, byrow = TRUE)
     if (is_relative) {
       rs <- rowSums(mat)
@@ -724,7 +728,7 @@ print.net_bootstrap_group <- function(x, ...) {
     c(total = b$original$n_edges, sig = b$model$n_edges)
   }, numeric(2L))
 
-  # Helper: make edge keys "from→to" from a summary df
+  # Helper: make edge keys "from->to" from a summary df
   .edge_keys <- function(s) {
     if (is.null(s) || nrow(s) == 0L) return(character(0L))
     idx <- which(s$sig)
@@ -743,7 +747,7 @@ print.net_bootstrap_group <- function(x, ...) {
   full_keys <- lapply(grp_names, function(nm) {
     s <- x[[nm]]$summary
     if (is.null(s) || nrow(s) == 0L) character(0L)
-    else paste0(s$from, "→", s$to)
+    else paste0(s$from, "->", s$to)
   })
   has_shared_space <- length(Reduce(intersect, full_keys)) > 0L
 

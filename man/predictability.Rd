@@ -19,6 +19,11 @@ predictability(object, ...)
 \item{object}{A \code{netobject} or \code{netobject_ml} object.}
 
 \item{...}{Additional arguments (ignored).}
+
+\item{data}{Optional data frame of the original variables used to estimate
+the network. Required for \code{method = "cor"} (multiple-R\eqn{^2} regression
+of each node on its neighbours); ignored for the precision-matrix path used
+by \code{glasso}/\code{pcor}, which has no need of the raw data.}
 }
 \value{
 For \code{netobject}: a named numeric vector of R\eqn{^2} values

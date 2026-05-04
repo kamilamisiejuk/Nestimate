@@ -1,220 +1,194 @@
 # Session Handoff — 2026-05-04
 
-This session shipped a clustering refresh (new functions, unified
-prints, two new tutorials), unstuck the pkgdown CI that had been
-failing for 5 weeks, slimmed the dependency surface, and moved
-equivalence-only tests out of the shipping test suite.
-
 ## Completed
 
-### New functions
-- **`cluster_choice()`** (`R/cluster_choice.R`) — distance-clustering
-  k-sweep parallel to `compare_mmm()`. Sweeps any combination of
-  `k`, `dissimilarity`, `method`. Returns a `cluster_choice`
-  data.frame subclass with print / summary / plot S3 methods.
-  - `dissimilarity = "all"` and `method = "all"` sentinels expand to
-    the full canonical lists in `.clustering_metrics` / `.clustering_methods`.
-  - `plot()` accepts an explicit `type =` (`"auto"`, `"lines"`,
-    `"bars"`, `"heatmap"`, `"tradeoff"`, `"facet"`) plus
-    `abbrev = TRUE/FALSE` (display-only short names for dissim/method).
-  - `attr(, "swept")` is a character vector of swept axis names.
-- **`cluster_diagnostics()`** (`R/cluster_diagnostics.R`) — single
-  generic returning a `net_cluster_diagnostics` object that unifies
-  the diagnostic surface across `net_clustering`, `net_mmm`,
-  `net_mmm_clustering`, and `netobject_group`. Has print / plot
-  (delegates to source) / `as.data.frame()` methods.
+### A. Switched local branch from `dev` → `main`
+- `dev` was 0/0 with `origin/dev`; `origin/main` was 26 commits ahead.
+- Stashed 21 dirty files, switched, fast-forwarded `main` to `origin/main`,
+  popped stash. Conflicts in `DESCRIPTION`, `R/mcml.R`, `man/as_tna.Rd`
+  resolved to **upstream side** (the stashed dev edits are still preserved
+  in `git stash list`, not dropped).
 
-### Bug fixes
-- `cluster_network(cluster_by = "mmm", ...)` now forwards
-  `n_starts` / `max_iter` / `tol` / `smooth` / `seed` / `covariates`
-  to `build_mmm()`. Previously they fell into `...` and were
-  silently dropped.
-- `build_network.net_mmm()` now attaches a `net_mmm_clustering`
-  attribute on the returned `netobject_group` (via new private
-  `.attach_mmm_clustering()` helper in `R/mmm.R`). Without it,
-  `sequence_plot()` saw identical `$data` on every cluster and drew
-  the same panel each time.
-- `.extract_seqplot_input()` netobject_group branch now prefers
-  `attr(, "clustering")$data` (full N rows) over `x[[1]]$data`
-  (per-cluster subset). Fixed the data/group length mismatch.
-- `cluster_mmm()` accepts `cluster_by` + `...` for API parity with
-  `cluster_network()`.
-- Two stale roxygen examples for `as_tna()` referenced a removed
-  `type =` arg on `cluster_summary()`. r-universe was failing to
-  install on every platform because of this. Fixed in `R/mcml.R`
-  and `man/as_tna.Rd` re-rendered.
+### B. New chi-square mosaic surface — `mosaic_plot()`
+- New file region in `R/plot_state_frequencies.R:326-700`.
+- S3 generic with methods for `netobject`, `netobject_group`, `table`,
+  `matrix`, `default`. Vectorized port of `tna::plot_mosaic_` with
+  `chisq.test()$stdres` fill, diverging palette, marimekko geometry.
+- Tests in `tests/testthat/test-mosaic_plot.R` (10 tests, including a
+  byte-for-byte ggplot-build comparison vs `tna::plot_mosaic` when
+  `residuals = "asymptotic"` and `range = c(-4, 4)`).
+- Equivalence suite in `local_testing_and_equivalence/test-equiv-mosaic.R`
+  (gated by `NESTIMATE_EQUIV_TESTS=true`): 51 cases, max area delta vs
+  vcd math = 1.67e-16, max coord delta vs tna = exactly 0.
+- Permutation-based residuals are the **default** (`residuals = "permutation"`,
+  `n_perm = 500`). Asymptotic via `residuals = "asymptotic"`. New `range`,
+  `top_angle`, `left_angle`, `seed` args.
 
-### Aliases
-- `cluster_data()` re-added as a deprecated alias for
-  `build_clusters()` (renamed in 0.4.3) so historic links/tutorials
-  still resolve. Emits a one-shot `.Deprecated()` warning.
+### C. Redo of `plot_state_frequencies()` for consistency + tidy output
+- Plan file at `~/.claude/plans/great-now-re-do-the-elegant-turing.md`.
+- Four duplicated dispatch methods collapsed to one-liners forwarding to a
+  shared `.plot_state_frequencies_impl()` worker.
+- New return type: **`state_freq` S3 class** (`$plot`, `$table`, `$style`,
+  `$metric`, `$source_class`). Methods: `print` (tabular console output via
+  `.cluster_table_lines()` + `.fmt_size_pct()`, followed by chart render),
+  `plot` (chart only), `as.data.frame` (table only).
+- New exported generic **`state_distribution(x)`** wraps the four internal
+  `.freq_df_*()` extractors so users can pull the tidy
+  `(group, state, count, proportion)` frame without going through the plot
+  pipeline.
+- `style = "mosaic"` and `style = "residual"` removed from
+  `plot_state_frequencies()` — now strictly `c("marimekko", "bars")`.
+  171 lines of dead `.plot_state_residuals()` deleted. Mosaics live only in
+  `mosaic_plot()` (don't mix).
+- Tests: 49 passing in `tests/testthat/test-plot_state_frequencies.R`,
+  including new ones for `state_freq` shape, `as.data.frame()` round-trip,
+  `print` header, `state_distribution()` column shape.
 
-### Print method refresh (uniform layout)
-- `print.net_clustering` (`R/cluster_data.R`)
-- `print.net_mmm` (`R/mmm.R`) — also fixed a literal `"%%"` bug that
-  was leaking `Mix%%` into the printed table.
-- `print.net_mmm_clustering` (new, `R/mmm.R`)
-- `print.netobject_group` (`R/build_network.R`) — surfaces
-  `attr(, "clustering")` source in the header; per-group table
-  shows nodes, edges, weight range, and N/% when clustering is
-  attached.
-- All four take `(x, digits = 3L, ...)` for parity. `.cluster_table_lines()`
-  in `R/cluster_data.R` does the manual column formatting (no
-  trailing whitespace, consistent 2-space gaps).
+### D. Smart legend behaviour
+- New `legend = "auto"` default that resolves per style + class:
+  - `style = "bars"` → `"none"` (y-axis already lists every state)
+  - `style = "marimekko"` + `htna`/`mcml` → `"per_facet"`
+  - `style = "marimekko"` + `netobject`/`netobject_group` → `"bottom"`
+- New shared-vocabulary detector (`.vocab_is_shared()`): when every group
+  has the same state set, `"per_facet"` auto-demotes to `"bottom"`.
+- Per-panel legend placement inside `.plot_per_facet_grid()`: `"right"` for
+  ≤2 panels (htna AI/Human), `"bottom"` for 3+ panels.
+- Bar-label `expand` bumped 0.18 → 0.28 so inline `26.6%`-style labels do
+  not get truncated on faceted bars.
 
-### Vignette refresh — `vignettes/clustering.Rmd`
-- Replaced the hand-rolled `sapply()` choose-k loop with a
-  one-line `cluster_choice()` call + `plot(ch, type = "lines")`.
-- Added a fixed-k dissimilarity sweep with `plot(type = "bars")`
-  and a `tradeoff` scatter for the silhouette-vs-balance view.
-- Added `cluster_diagnostics()` blocks for both the distance fit
-  and the MMM fit (with `plot(type = "posterior")`).
-- New "Workflow Summary" section at the end with the end-to-end
-  recipe in one block.
-- Hardened the data sub-sample to drop sessions with < 5 turns
-  (works around a pre-existing brittleness in `sequence_plot()`'s
-  LCS row-ordering — see "Open issues" below).
+### E. Combine + ncol heuristic for many-panel layouts
+- `combine = "auto"` default: 1-3 panels combine into one gtable, 4+
+  panels return as a list of ggplots so each renders at the chunk's full
+  `fig.width`/`fig.height`.
+- `ncol` heuristic uses 2 columns for 3+ panels (was 3) when combined.
 
-### CI / pkgdown
-- `_pkgdown.yml`: added 12 missing reference-index topics (the 2
-  new functions + 10 pre-existing orphans). Created a new
-  "Markov Analysis" section.
-- Cograph .qmd tutorials are back at `vignettes/articles/`. Quarto
-  is pinned to `1.6.40` via `quarto-dev/quarto-actions/setup@v2`.
-- `cograph` returned to Suggests with `Remotes: sonsoleslp/cograph`
-  so the runner installs it from GitHub for tutorial rendering.
+### F. Fit-aware tile labels
+- New `.geom_fit_label()` helper routes to `ggfittext::geom_fit_text()`
+  when `ggfittext` (added to Suggests) is available; falls back to
+  `geom_text` at midpoint otherwise.
+- Per-row `angle` aesthetic passed in: tall narrow tiles get text rotated
+  90°, wide flat tiles stay 0°. `min.size = 1`, `padding = 0.6 mm`,
+  `reflow = TRUE`.
+- Percent formatting: `%.0f%%` → `%.1f%%` everywhere.
 
-### Dependency trim
-DESCRIPTION's Suggests went from 27 entries to 14 (and 13 of those
-14 are referenced by R/ or by vignette/CI infrastructure):
+### G. Abbreviation
+- New `abbreviate` arg in the worker. `FALSE` (default) shows full names;
+  `TRUE` uses `base::abbreviate(minlength = 3)` (collision-aware); a
+  positive integer sets the target minlength.
+- Applied at the top of the worker by mutating `freq_df$state` and
+  re-aggregating, so the abbreviated names propagate to tile labels,
+  legend, and the returned `$table`.
 
-  Dropped: `markovchain`, `tna`, `cograph`, `IsingFit`, `gimme`,
-  `reticulate`, `mgm`, `NetworkComparisonTest`, `arules`, `jsonlite`,
-  `BiasedUrn`, `HyperG`, `RSpectra`, `mlVAR`, `bootnet`, `qgraph`.
-  (`cograph` then re-added with a Remotes line, see above.)
+### H. Unified house default sizes
+- `theme_minimal(base_size = 12)` everywhere (was 11/12/13 drift).
+- `label_size = 3.5` default (was 3) in `plot_state_frequencies` +
+  `plot_mosaic`.
+- Tile/rect borders `linewidth = 0.4` (was 0.3/0.5/0.6 drift).
+- `theme_classic()` in `mosaic_plot` switched to `theme_minimal(12)`.
+- Files touched: `R/plot_state_frequencies.R`, `R/chain_structure.R`,
+  `R/boot_glasso.R`, `R/sequence_compare.R`, `R/simplicial.R`,
+  `R/cluster_choice.R`, `R/cluster_data.R`, `R/mmm.R`,
+  `R/centrality_stability.R`, `R/association_rules.R`.
 
-Each drop was audit-driven: real `pkg::function` calls in `R/`
-versus comments / roxygen / error-message strings / gated test
-references. The `qgraph::EBICglasso()` call that had previously
-forced qgraph in was replaced with the package's own EBIC-glasso
-helpers (`.compute_lambda_path` + `.select_ebic` + `.wi2net`) in
-`R/nct.R`.
+### I. Label rotation defaults (mosaic_plot)
+- `mosaic_plot.netobject` and `mosaic_plot.netobject_group` defaults:
+  - `top_angle = 90` (x-axis labels vertical)
+  - `left_angle = 0` (y-axis labels horizontal)
+- 90° on top fits long state names into narrow column widths; 0° on left
+  lets each label sit in its row without colliding with adjacent rows
+  (rotated y-labels of long words exceed thin-row heights and overlap).
+- These defaults churned mid-session (90/90, 180/180) before reverting to
+  the established 90/0 convention.
 
-### Equivalence test relocation
-133 `test_that()` blocks across 23 files in `tests/testthat/` that
-referenced dropped packages were extracted to matching files under
-`local_testing_and_equivalence/`. Plus 8 dedicated `test-equiv-*.R`
-files were moved whole. Result:
+### J. Tutorial rewrite
+- `Tutorial_docs/tutorial_plot_state_frequencies.Rmd` restructured into
+  **Part 1: Defaults** (one chunk per input class, no extra args),
+  **Part 2: Customization** (one knob at a time), **Part 3: `mosaic_plot()`
+  companion** using only netobjects (no contingency reshape). Renders
+  cleanly to ~3 MB HTML.
 
-- `tests/testthat/` no longer references any package outside the
-  trimmed Suggests set.
-- `R CMD check` no longer NOTEs about packages used in tests but
-  not in Suggests.
-- Equivalence tests still exist for local validation; they live
-  next to the 20+ peer files already in
-  `local_testing_and_equivalence/`.
+## Current State
 
-### /simplify cleanup
-- Per-cluster mean within-distance loop was duplicated in 4 places
-  (print.net_clustering, summary.net_clustering, .cluster_choice_row,
-  cluster_diagnostics). Hoisted into `.per_cluster_within_dist()` in
-  `R/cluster_data.R`.
-- `attr(, "swept")` on `cluster_choice` simplified from a
-  list-of-three-logicals to a character vector of axis names; all
-  twelve `isTRUE(swept$X)` reads collapsed to `"X" %in% swept`.
-- `.extract_seqplot_input()` fallback walks the parts list once
-  instead of twice.
+- 49/49 tests passing in `test-plot_state_frequencies.R`.
+- 10/10 tests passing in `test-mosaic_plot.R`.
+- Equivalence tests (gated) all green: byte-for-byte tna match,
+  machine-precision area equality with vcd's mosaic math.
+- `devtools::document()` clean (one unrelated `chain_structure.R` link
+  warning that pre-dates this session).
+- Tutorial HTML rendered fresh on 2026-05-04.
+- Branch: `main`, fast-forwarded to `origin/main`, **uncommitted changes**
+  in the working tree.
 
-## Current state
-- `main` is at `018f297`. **gh-pages last successful push was for
-  `6a7107a` (5fc7d5d on gh-pages)** — that's the version live on
-  saqr.me/Nestimate right now, and it does NOT include the cograph
-  tutorials.
-- The pkgdown deploy chain went green for the first time in 5
-  weeks on `6a7107a` (run 25291685502).
-- Follow-up commits to restore the tutorials are still failing at
-  "Build site":
-  - `436a48b` — restored .qmd tutorials, re-pinned Quarto to
-    `1.6.40`. Failed because `cograph` wasn't in Suggests.
-  - `018f297` — added `cograph` to Suggests with
-    `Remotes: sonsoleslp/cograph`. Still failed at "Build site"
-    (run 25302608610). Without admin auth the actual log line
-    isn't visible from the GitHub API; next step is to either
-    (a) reproduce locally with cograph installed and Quarto >= 1.5
-    or (b) add a verbose error dump to the workflow's Build site
-    step so the failure is captured in the public log.
+## Key Decisions
 
-The tutorials currently render to a 404 on the live site. A safe
-fallback if the next CI iteration also fails is to revert the
-tutorials back to `inst/cograph-tutorials/` (commit `792f186`
-shape) so the rest of the site stays live and the tutorials become
-a separate work item.
+1. **`mosaic_plot()` and `plot_state_frequencies()` stay strictly
+   separate.** No `style = "mosaic"` in `plot_state_frequencies`. No
+   `mosaic_plot.data.frame` that auto-detects the state_distribution
+   shape. The two answer different statistical questions and the user
+   explicitly rejected mixing them.
+2. **`state_freq` is a list class, not a data.frame subclass.** Mirrors
+   `net_cluster_diagnostics`, not `cluster_choice`. Plot and table are
+   peers; `as.data.frame()` is the explicit handoff.
+3. **`print.state_freq` renders both** the tidy table to stdout AND the
+   chart to the active graphics device. Diverges from `print.net_clustering`
+   (numbers only) but matches user intent ("info beside the plot").
+4. **Permutation residuals as the mosaic default.** User asked for
+   robustness on sparse tables. `residuals = "asymptotic"` retained for
+   tna byte-equivalence.
+5. **Suggests trim from upstream main was kept** during conflict
+   resolution. Stashed-side additions (`NetworkComparisonTest`, `arules`,
+   `jsonlite`) discarded per user's "be on main / main is canonical"
+   stance. Stash retrievable via `git stash list`.
+6. **`ggfittext` added to Suggests, not Imports.** Tile-label fit-aware
+   behaviour is a soft enhancement; fallback path keeps plots rendering.
 
-## Open issues / not addressed
-- `sequence_plot(grp, type = "index")` falls over on
-  `netobject_group` inputs that contain very-short sequences — the
-  default LCS row-ordering ends up in `hclust()` with NaN distances.
-  The clustering vignette works around this with a length filter on
-  the sub-sample. Real fix would be in `R/sequence_plot.R`'s
-  `.row_order()` (degrade gracefully or pick a different default
-  sort), which is a separate scope.
-- Cluster-choice distance matrix is recomputed for every k in a
-  sweep over fixed (method, dissimilarity). Acknowledged in the
-  plan; an optimisation would let `build_clusters()` accept a
-  pre-computed `dist`.
-- `R CMD check --as-cran` may emit NOTEs about `Remotes:` in
-  Suggests. That's expected for non-CRAN dependencies; release
-  builds for CRAN would need cograph published or the tutorials
-  excluded.
-- The 5 pre-existing `test-build_clusters.R` failures
-  (`'cluster_data' is not an exported object from 'namespace:tna'`)
-  are gone — those test_that blocks moved out with the equivalence
-  extraction.
+## Open Issues
 
-## Files most touched (this session)
-- New: `R/cluster_choice.R`, `R/cluster_diagnostics.R`,
-  `tests/testthat/test-cluster-choice.R`,
-  `tests/testthat/test-cluster-diagnostics.R`,
-  `tests/testthat/test-print-cluster.R`.
-- Refreshed: `R/cluster_data.R`, `R/mmm.R`, `R/build_network.R`,
-  `R/sequence_plot.R`, `R/distribution_plot.R`, `R/nct.R`,
-  `R/mcml.R`.
-- DESCRIPTION, `_pkgdown.yml`, `.github/workflows/pkgdown.yaml`.
-- `vignettes/clustering.Rmd`.
-- 23 files under `tests/testthat/` had embedded equiv blocks
-  extracted; 28 files now under `local_testing_and_equivalence/`.
+1. **mcml tutorial chunk uses absolute `/Users/.../Downloads` paths** for
+   `Interactions` / `Nodesin`. Not portable.
+2. **Stashed dev edits not yet decided.** `git stash list` retains the
+   pre-switch dev WIP — drop, apply selectively, or commit to side branch.
+3. **`mosaic_plot.netobject_group`** facets via `gridExtra::arrangeGrob`
+   when available; gets cramped at 5+ groups. Could lift the
+   `combine = "auto"` heuristic from `plot_state_frequencies` here too.
+4. **One pre-existing roxygen warning** in `R/chain_structure.R:67`
+   (`@description Could not resolve link to topic "i, i"`).
+5. **Tutorial Rmd uses `devtools::load_all(here::here())`** instead of
+   `library(Nestimate)`. Works in dev; would need switching if shipped as
+   a package vignette.
 
-## How to verify locally
-```r
-devtools::load_all()
+## Next Steps (priority-ordered for revision)
 
-# Smoke test the new public surface
-seqs <- data.frame(matrix(sample(LETTERS[1:3], 200, TRUE), nrow = 40))
-ch <- cluster_choice(seqs, k = 2:5)
-print(ch)
-plot(ch, type = "lines")
+1. **HIGH — Replace mcml tutorial absolute path** with a bundled dataset
+   or `system.file()` example so the rendered tutorial is reproducible.
+2. **HIGH — Decide on the stash.** `git stash list` → drop the dev WIP if
+   superseded, or `git stash branch` if any edits should be revived.
+3. **MEDIUM — Commit this session's changes** in logical chunks:
+   - chore: switch local branch to main, resolve conflicts
+   - feat(mosaic): add `mosaic_plot()` chi-square mosaic + tests
+   - refactor(plot_state_frequencies): collapse dispatch, add `state_freq`
+     class, export `state_distribution()`
+   - feat: legend "auto", abbreviation, fit-aware labels, shared-vocab
+     demote
+   - style: unify house default sizes
+   - docs: rewrite tutorial defaults-first
+4. **MEDIUM — Run `R CMD check --as-cran`** before pushing. New exports,
+   dropped style options, and `state_freq` S3 methods need a clean pass.
+5. **MEDIUM — Extend `mosaic_plot.netobject_group`** with `combine = "auto"`
+   mirroring `plot_state_frequencies`.
+6. **LOW — Add `print.nestimate_facet_list` knit_print wrapper** so each
+   ggplot in the list renders inline at the chunk's `fig.width` /
+   `fig.height` under all knitr versions.
+7. **LOW — Document the unified house defaults** in CLAUDE.md or a
+   constants file so future plot helpers pick them up automatically.
 
-cl <- build_clusters(seqs, k = 3, method = "ward.D2")
-print(cluster_diagnostics(cl))
-plot(cluster_diagnostics(cl), type = "silhouette")
+## Context
 
-# Vignette
-rmarkdown::render("vignettes/clustering.Rmd")
-
-# Test files (all should pass)
-testthat::test_file("tests/testthat/test-cluster-choice.R")
-testthat::test_file("tests/testthat/test-cluster-diagnostics.R")
-testthat::test_file("tests/testthat/test-print-cluster.R")
-
-# pkgdown
-pkgdown::build_site_github_pages(install = FALSE,
-                                  new_process = FALSE,
-                                  clean = TRUE)
-```
-
-## Useful URLs
-- pkgdown site: <https://saqr.me/Nestimate/> (refreshes a few
-  minutes after each successful gh-pages push)
-- r-universe: <https://mohsaqr.r-universe.dev/Nestimate>
-- Latest CI run for `main`:
-  <https://github.com/mohsaqr/Nestimate/actions/workflows/pkgdown.yaml>
+- Working dir: `/Users/mohammedsaqr/Documents/Github/Nestimate`
+- Branch: `main` (synced with `origin/main`)
+- Today: 2026-05-04
+- Stashed work pending review: `git stash list`
+- Tutorial preview: `Tutorial_docs/tutorial_plot_state_frequencies.html`
+- Plan file: `~/.claude/plans/great-now-re-do-the-elegant-turing.md`
+- ggfittext is now in Suggests; install with `install.packages("ggfittext")`
+  for fit-aware tile labels.

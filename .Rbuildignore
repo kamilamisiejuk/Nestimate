@@ -30,6 +30,8 @@
 ^local_testing_and_equivalence$
 ^apps$
 ^AGENT-NOTE-EQUIV-TESTING\.md$
+^AGENT-NOTE-JS-PARITY\.md$
+^Tutorial_docs$
 ^.*\.tar\.gz$
 ^vignettes/Good$
 ^vignettes/Good\.zip$

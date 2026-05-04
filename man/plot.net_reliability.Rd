@@ -9,6 +9,8 @@
 \arguments{
 \item{x}{A \code{net_reliability} object.}
 
+\item{bins}{Integer. Number of histogram bins per panel (default 60).}
+
 \item{...}{Additional arguments (ignored).}
 }
 \value{

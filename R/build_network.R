@@ -895,6 +895,10 @@ print.netobject_ml <- function(x, ...) {
 #' regressing each node on its network neighbors (nodes with non-zero edges).
 #'
 #' @param object A \code{netobject} or \code{netobject_ml} object.
+#' @param data Optional data frame of the original variables used to estimate
+#'   the network. Required for \code{method = "cor"} (multiple-R\eqn{^2} regression
+#'   of each node on its neighbours); ignored for the precision-matrix path used
+#'   by \code{glasso}/\code{pcor}, which has no need of the raw data.
 #' @param ... Additional arguments (ignored).
 #'
 #' @return For \code{netobject}: a named numeric vector of R\eqn{^2} values

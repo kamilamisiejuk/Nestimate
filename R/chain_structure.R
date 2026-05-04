@@ -1,4 +1,4 @@
-# chain_structure() — qualitative analysis of a discrete-time Markov chain.
+# chain_structure() -- qualitative analysis of a discrete-time Markov chain.
 #
 # Computes properties that are independent of any starting distribution:
 # state classification (absorbing / recurrent / transient), communicating
@@ -16,9 +16,9 @@
 
 #' Reachability matrix of a directed adjacency matrix.
 #'
-#' R[i, j] = 1 iff there is a path of any positive length from i to j (note:
-#' a self-loop or a cycle through i marks R[i, i] = 1; a state with no
-#' outgoing edges has R[i, ] all zero except itself which is also zero).
+#' `R[i, j] = 1` iff there is a path of any positive length from i to j (note:
+#' a self-loop or a cycle through i marks `R[i, i] = 1`; a state with no
+#' outgoing edges has `R[i, ]` all zero except itself which is also zero).
 #' Computed via repeated boolean multiplication; O(n^4) but n is small for
 #' Markov chains in this package.
 #' @noRd
@@ -86,15 +86,15 @@
   .cs_gcd(cycle_lengths)
 }
 
-#' Hitting probability matrix H[i, j] = P(T_j < infty | X_0 = i).
+#' Hitting probability matrix `H[i, j] = P(T_j < infty | X_0 = i)`.
 #'
 #' For i != j: T_j = inf{n >= 0 : X_n = j}, so the off-diagonal hitting
 #' probability is the standard "eventually reach j" probability. For i == j:
 #' uses T_j = inf{n >= 1 : X_n = j} (return-time convention, matching
-#' `markovchain::hittingProbabilities`), so H[j, j] = sum_k P[j, k] H[k, j].
+#' `markovchain::hittingProbabilities`), so `H[j, j] = sum_k P[j, k] H[k, j]`.
 #'
 #' For each column j, the off-diagonal system is solved over the states from
-#' which j is reachable; states that cannot reach j get H[i, j] = 0 (the
+#' which j is reachable; states that cannot reach j get `H[i, j] = 0` (the
 #' standard *minimal non-negative solution*; cf. Norris, *Markov Chains*,
 #' Theorem 1.3.2). Without the reachability restriction the system is
 #' rank-deficient whenever a closed class disjoint from j exists.
@@ -368,7 +368,7 @@ print.chain_structure <- function(x, ...) {
 #' Cell colour encodes `P(ever reach j | start at i)`. The diagonal
 #' uses the return-time convention (`P(return to j in >= 1 steps)`),
 #' matching `markovchain::hittingProbabilities`. A non-irreducible chain
-#' shows zero off-block entries — visual evidence of one-way doors
+#' shows zero off-block entries -- visual evidence of one-way doors
 #' between behavioural phases. An absorbing chain shows a column of 1's
 #' for the absorbing state.
 #'
@@ -426,7 +426,7 @@ plot.chain_structure <- function(x, show_values = TRUE, digits = 2L, ...) {
 
   p <- ggplot2::ggplot(df, ggplot2::aes(x = .data$to, y = .data$from,
                                          fill = .data$prob)) +
-    ggplot2::geom_tile(colour = "grey85", linewidth = 0.3) +
+    ggplot2::geom_tile(colour = "grey85", linewidth = 0.4) +
     ggplot2::scale_fill_gradient(low = "white", high = "#08306B",
                                   limits = c(0, 1),
                                   name = "P(reach)",
@@ -439,14 +439,14 @@ plot.chain_structure <- function(x, show_values = TRUE, digits = 2L, ...) {
       x = "to (target state)",
       y = "from (source state)"
     ) +
-    ggplot2::theme_minimal(base_size = 11) +
+    ggplot2::theme_minimal(base_size = 12) +
     ggplot2::theme(
       panel.grid       = ggplot2::element_blank(),
       axis.text.x.top  = ggplot2::element_text(angle = 45, hjust = 0,
                                                 vjust = 0,
                                                 colour = axis_cols),
       axis.text.y      = ggplot2::element_text(colour = rev(axis_cols)),
-      plot.subtitle    = ggplot2::element_text(size = 9, colour = "grey30")
+      plot.subtitle    = ggplot2::element_text(size = 10, colour = "grey30")
     )
 
   if (show_values && nrow(df) <= 400L) {
@@ -546,7 +546,7 @@ summary.chain_structure <- function(object, ...) {
 #' @return `x` invisibly.
 #' @export
 print.chain_structure_group <- function(x, ...) {
-  cat(sprintf("Chain structure — %d groups: %s\n\n",
+  cat(sprintf("Chain structure -- %d groups: %s\n\n",
               length(x), paste(names(x), collapse = ", ")))
   for (nm in names(x)) {
     cat(sprintf("--- %s ---\n", nm))
@@ -559,8 +559,8 @@ print.chain_structure_group <- function(x, ...) {
 #' Cross-group comparison of `chain_structure_group`.
 #'
 #' Produces a single tidy data.frame with one row per (group, state)
-#' combination, combining classification, persistence, sojourn, and —
-#' when applicable — stationary or mean-absorption-time columns. Useful
+#' combination, combining classification, persistence, sojourn, and --
+#' when applicable -- stationary or mean-absorption-time columns. Useful
 #' for side-by-side reporting of `chain_structure()` across the
 #' members of a `netobject_group`.
 #'
@@ -587,7 +587,7 @@ summary.chain_structure_group <- function(object, ...) {
   out <- do.call(rbind, parts)
   out <- out[, c("group", setdiff(all_cols, "group")), drop = FALSE]
   rownames(out) <- NULL
-  # The merged frame is a plain comparison table — drop the
+  # The merged frame is a plain comparison table -- drop the
   # per-chain `summary_chain_structure` class (and its attributes) so
   # `print.data.frame` is dispatched, not the per-chain pretty-printer.
   class(out) <- "data.frame"

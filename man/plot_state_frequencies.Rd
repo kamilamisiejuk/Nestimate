@@ -9,114 +9,46 @@
 \alias{plot_state_frequencies.default}
 \title{Plot State Frequency Distributions}
 \usage{
-plot_state_frequencies(
-  x,
-  style = c("marimekko", "bars", "mosaic"),
-  metric = c("prop", "freq"),
-  label = c("prop", "freq", "both", "state", "all", "none"),
-  legend = c("bottom", "right", "top", "left", "none", "per_facet"),
-  legend_dir = c("auto", "horizontal", "vertical"),
-  legend_frame = c("none", "border"),
-  sort_states = c("frequency", "alpha", "none"),
-  colors = NULL,
-  label_size = 3,
-  include_macro = FALSE,
-  combine = TRUE,
-  ncol = NULL,
-  node_groups = NULL,
-  ...
-)
+plot_state_frequencies(x, ...)
 
-\method{plot_state_frequencies}{netobject}(
-  x,
-  style = c("marimekko", "bars", "mosaic"),
-  metric = c("prop", "freq"),
-  label = c("prop", "freq", "both", "state", "all", "none"),
-  legend = c("bottom", "right", "top", "left", "none", "per_facet"),
-  legend_dir = c("auto", "horizontal", "vertical"),
-  legend_frame = c("none", "border"),
-  sort_states = c("frequency", "alpha", "none"),
-  colors = NULL,
-  label_size = 3,
-  include_macro = FALSE,
-  combine = TRUE,
-  ncol = NULL,
-  node_groups = NULL,
-  ...
-)
+\method{plot_state_frequencies}{netobject}(x, legend = "auto", ...)
 
-\method{plot_state_frequencies}{htna}(
-  x,
-  style = c("marimekko", "bars", "mosaic"),
-  metric = c("prop", "freq"),
-  label = c("prop", "freq", "both", "state", "all", "none"),
-  legend = c("per_facet", "bottom", "right", "top", "left", "none"),
-  legend_dir = c("auto", "horizontal", "vertical"),
-  legend_frame = c("border", "none"),
-  sort_states = c("frequency", "alpha", "none"),
-  colors = NULL,
-  label_size = 3,
-  include_macro = FALSE,
-  combine = TRUE,
-  ncol = NULL,
-  node_groups = NULL,
-  ...
-)
+\method{plot_state_frequencies}{htna}(x, legend = "auto", ...)
 
-\method{plot_state_frequencies}{mcml}(
-  x,
-  style = c("marimekko", "bars", "mosaic"),
-  metric = c("prop", "freq"),
-  label = c("prop", "freq", "both", "state", "all", "none"),
-  legend = c("per_facet", "bottom", "right", "top", "left", "none"),
-  legend_dir = c("auto", "horizontal", "vertical"),
-  legend_frame = c("none", "border"),
-  sort_states = c("frequency", "alpha", "none"),
-  colors = NULL,
-  label_size = 3,
-  include_macro = FALSE,
-  combine = TRUE,
-  ncol = NULL,
-  node_groups = NULL,
-  ...
-)
+\method{plot_state_frequencies}{mcml}(x, legend = "auto", ...)
 
-\method{plot_state_frequencies}{netobject_group}(
-  x,
-  style = c("marimekko", "bars", "mosaic"),
-  metric = c("prop", "freq"),
-  label = c("prop", "freq", "both", "state", "all", "none"),
-  legend = c("bottom", "right", "top", "left", "none", "per_facet"),
-  legend_dir = c("auto", "horizontal", "vertical"),
-  legend_frame = c("none", "border"),
-  sort_states = c("frequency", "alpha", "none"),
-  colors = NULL,
-  label_size = 3,
-  include_macro = FALSE,
-  combine = TRUE,
-  ncol = NULL,
-  node_groups = NULL,
-  ...
-)
+\method{plot_state_frequencies}{netobject_group}(x, legend = "auto", ...)
 
-\method{plot_state_frequencies}{default}(
-  x,
-  style = c("marimekko", "bars", "mosaic"),
-  metric = c("prop", "freq"),
-  label = c("prop", "freq", "both", "state", "all", "none"),
-  legend = c("bottom", "right", "top", "left", "none"),
-  sort_states = c("frequency", "alpha", "none"),
-  colors = NULL,
-  label_size = 3,
-  include_macro = FALSE,
-  ...
-)
+\method{plot_state_frequencies}{default}(x, ...)
 }
 \arguments{
 \item{x}{A \code{netobject}, \code{netobject_group}, \code{mcml}, or
 \code{htna} object.}
 
-\item{style}{Either \code{"marimekko"} (default) or \code{"bars"}.}
+\item{...}{Reserved for future use.}
+
+\item{legend}{Legend position. \code{"auto"} (default) resolves per
+style: \code{"none"} for \code{style = "bars"} (the y-axis already
+names every state, so a colour legend is redundant);
+\code{"per_facet"} for \code{htna}/\code{mcml} treemaps (state
+vocabularies differ per panel, so each gets its own legend);
+\code{"bottom"} for single-network and \code{netobject_group}
+treemaps (shared state vocabulary, one shared legend).
+Override with any of \code{"bottom"}, \code{"top"}, \code{"right"},
+\code{"left"}, \code{"none"}, or \code{"per_facet"}. The
+\code{"per_facet"} option requires the \pkg{gridExtra} package and
+returns a \code{gtable}.}
+
+\item{style}{One of:
+\itemize{
+\item \code{"marimekko"} (default) -- per-group treemap panels with
+cumulative-width geometry; tile area = within-group state share.
+\item \code{"bars"} -- horizontal bars sorted by frequency, faceted
+per group.
+}
+For chi-square mosaics of a (group x state) contingency table, use
+\code{\link{mosaic_plot}} directly -- it is kept as a separate
+function with its own dispatch surface.}
 
 \item{metric}{For \code{style = "bars"}: which value the bar length
 encodes -- \code{"prop"} (default) or \code{"freq"}. Treemap and
@@ -133,15 +65,6 @@ single line.
 \item \code{"none"} -- no inline labels
 }}
 
-\item{legend}{Legend position. \code{"bottom"} (default), \code{"top"},
-\code{"right"}, \code{"left"}, \code{"none"} (hide; pair with
-\code{label = "state"} or \code{"all"} so state names show on tiles),
-or \code{"per_facet"} -- each group renders as its own panel with
-an isolated legend showing only the states present in that panel.
-For \code{htna} this gives each actor (AI, Human) its own legend;
-for \code{mcml} each cluster gets its own. Requires the
-\pkg{gridExtra} package and returns a \code{gtable}.}
-
 \item{legend_dir}{Legend internal layout: \code{"auto"} (default --
 horizontal for top/bottom, vertical for left/right), or force
 \code{"horizontal"} or \code{"vertical"} regardless of position.}
@@ -157,26 +80,45 @@ first), \code{"alpha"}, or \code{"none"}.}
 Okabe-Ito state palette. Length must be at least the number of unique
 states.}
 
-\item{label_size}{Numeric size of inline labels.}
+\item{label_size}{Numeric size of inline labels (max size when
+\pkg{ggfittext} is installed -- text auto-shrinks per tile).}
+
+\item{abbreviate}{Abbreviate state names. \code{FALSE} (default) shows
+full names; \code{TRUE} truncates to the first 3 characters via
+\code{base::abbreviate()} (which extends the truncation as needed to
+keep names unique after collision); a positive integer sets the
+target minimum length explicitly (e.g. \code{abbreviate = 4}).
+Affects tile labels, legend, and the returned \code{$table}.}
 
 \item{include_macro}{For \code{mcml} only: prepend a \code{"macro"}
 reference column showing aggregate state frequencies across all
 clusters. Default \code{FALSE}.}
 
-\item{combine}{For \code{legend = "per_facet"} only. When
-\code{TRUE} (default), per-panel ggplots are arranged into a single
-gtable via \pkg{gridExtra}. When \code{FALSE}, returns a list of
-ggplots that are printed one-per-figure by knitr (so each panel
-uses the full chunk \code{fig.width} / \code{fig.height}).}
+\item{combine}{For \code{legend = "per_facet"} only. \code{"auto"}
+(default) returns a single combined gtable for 1-3 panels and a
+list of ggplots (one per panel) for 4+ panels -- many-cluster
+\code{mcml} layouts read better as separate figures than as a tile
+grid. \code{TRUE} forces a combined gtable via \pkg{gridExtra};
+\code{FALSE} forces a list (knitr renders each at the chunk's full
+\code{fig.width} / \code{fig.height}).}
+
+\item{node_groups}{Optional named character vector mapping node labels to
+semantic groups. When supplied, panels (or bars) are coloured / annotated
+by group rather than by individual state, so state-level palettes can
+collapse onto a smaller categorical legend.}
 
 \item{ncol}{For \code{legend = "per_facet"} with \code{combine = TRUE}:
 number of columns in the grid arrangement. \code{NULL} (default)
 picks 1, 2, or 3 columns based on the number of panels.}
-
-\item{...}{Reserved for future use.}
 }
 \value{
-A \code{ggplot} object.
+A \code{state_freq} object: a list with the rendered \code{$plot}
+(a \code{ggplot} or \code{gtable}), the tidy \code{$table} (a
+\code{data.frame} with columns \code{group}, \code{state}, \code{count},
+\code{proportion}), and the call's \code{$style}, \code{$metric},
+\code{$source_class}. The class supports \code{print()} (shows the
+tidy table in the console), \code{plot()} (renders the chart), and
+\code{as.data.frame()} (returns the table).
 }
 \description{
 Visualise state (node) frequency distributions across groups for any
@@ -208,8 +150,10 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
                       method = "relative", format = "long",
                       actor = "Actor", action = "Action",
                       order = "Time", group = "Course")
-  plot_state_frequencies(nw)
-  plot_state_frequencies(nw, style = "bars")
+  res <- plot_state_frequencies(nw)
+  print(res)            # tidy frequency table in the console
+  plot(res)             # ggplot chart
+  head(as.data.frame(res))
 }
 }
 }

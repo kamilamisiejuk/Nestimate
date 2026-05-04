@@ -428,6 +428,7 @@ summary.net_reliability <- function(object, ...) {
 #' Multi-model comparisons show overlaid densities colored by model.
 #'
 #' @param x A \code{net_reliability} object.
+#' @param bins Integer. Number of histogram bins per panel (default 60).
 #' @param ... Additional arguments (ignored).
 #'
 #' @return A \code{ggplot} object (invisibly).

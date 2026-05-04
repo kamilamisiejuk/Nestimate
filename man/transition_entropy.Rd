@@ -17,10 +17,6 @@ built automatically). Group dispatch on \code{netobject_group}.}
 
 \item{normalize}{Logical. If \code{TRUE} (default), rows that do not sum
 to 1 are normalised automatically (with a warning).}
-
-\item{object}{A \code{net_transition_entropy} object (for \code{summary}).}
-
-\item{...}{Ignored.}
 }
 \value{
 An object of class \code{"net_transition_entropy"} with:

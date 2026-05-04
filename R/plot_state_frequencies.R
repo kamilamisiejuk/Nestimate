@@ -51,6 +51,7 @@
 
 # ------------------------------------------------------------------------------
 # Per-class extractors. Each returns data.frame(group, state, count, proportion).
+# Public generic state_distribution() at the bottom of the file forwards here.
 # ------------------------------------------------------------------------------
 
 .freq_df_netobject <- function(x) {
@@ -200,7 +201,7 @@ plot_mosaic <- function(data,
                         fill        = "y",
                         colors      = NULL,
                         show_labels = TRUE,
-                        label_size  = 3,
+                        label_size  = 3.5,
                         x_label     = NULL,
                         y_label     = NULL) {
   stopifnot(is.data.frame(data),
@@ -306,14 +307,9 @@ plot_mosaic <- function(data,
     rects$pct <- rects$ymax - rects$ymin
     rects$x_mid <- (rects$xmin + rects$xmax) / 2
     rects$y_mid <- (rects$ymin + rects$ymax) / 2
-    rects$lab   <- sprintf("%.0f%%", 100 * rects$pct)
-    # Drop labels for very thin segments to avoid overlap
+    rects$lab   <- sprintf("%.1f%%", 100 * rects$pct)
     rects$lab[rects$pct < 0.04] <- ""
-    p <- p + ggplot2::geom_text(
-      data = rects,
-      ggplot2::aes(x = .data$x_mid, y = .data$y_mid, label = .data$lab),
-      inherit.aes = FALSE, size = label_size, color = "grey15"
-    )
+    p <- p + .geom_fit_label(rects, label_size)
   }
   p
 }
@@ -321,6 +317,369 @@ plot_mosaic <- function(data,
 
 # Tiny null-coalesce helper (avoid rlang dep)
 `%||%` <- function(a, b) if (is.null(a)) b else a
+
+
+# Fit-aware tile labels. Uses ggfittext::geom_fit_text() when available so
+# each tile's text auto-shrinks (and reflows onto multiple lines) to fit
+# its rectangle, with `min.size` falling back to dropping the label when
+# nothing legible fits. When ggfittext is not installed, returns a regular
+# ggplot2::geom_text() at midpoint with the (unfitted) label_size; the
+# upstream caller is expected to have already nulled out labels for tiles
+# below `tile_area < 0.05`.
+.geom_fit_label <- function(rects, label_size, color = "grey15") {
+  if (is.null(rects$angle)) {
+    rects$angle <- ifelse((rects$ymax - rects$ymin) >
+                            (rects$xmax - rects$xmin), 90, 0)
+  }
+  if (requireNamespace("ggfittext", quietly = TRUE)) {
+    return(ggfittext::geom_fit_text(
+      data = rects,
+      ggplot2::aes(xmin = .data$xmin, xmax = .data$xmax,
+                   ymin = .data$ymin, ymax = .data$ymax,
+                   label = .data$lab,
+                   angle = .data$angle),
+      inherit.aes = FALSE,
+      reflow      = TRUE,
+      min.size    = 1,
+      grow        = FALSE,
+      padding.x   = grid::unit(0.6, "mm"),
+      padding.y   = grid::unit(0.6, "mm"),
+      colour      = color,
+      size        = label_size * 3.2
+    ))
+  }
+  ggplot2::geom_text(
+    data = rects,
+    ggplot2::aes(x = .data$x_mid, y = .data$y_mid, label = .data$lab,
+                 angle = .data$angle),
+    inherit.aes = FALSE, size = label_size, color = color
+  )
+}
+
+
+# ------------------------------------------------------------------------------
+# mosaic_plot: tna-equivalent chi-square mosaic for netobjects
+# ------------------------------------------------------------------------------
+
+#' Mosaic Plot of a Network's Transition or Co-occurrence Counts
+#'
+#' Draws a Hartigan-Friendly mosaic (marimekko geometry, chi-square
+#' standardized-residual fill) for an integer-weighted network. Equivalent in
+#' algorithm and appearance to \code{tna::plot_mosaic()}; named differently to
+#' avoid an export clash when both packages are attached.
+#'
+#' Column widths are proportional to row marginals of the weight matrix
+#' (incoming totals when the matrix is transposed, as for transitions). Within
+#' each column, segment heights are proportional to that row's conditional
+#' distribution. Cell fill is the standardized residual from
+#' \code{stats::chisq.test()}, with a diverging palette clipped to \eqn{\pm 4}.
+#' Mosaics only make sense for integer-valued matrices, so this function rejects
+#' relative / glasso / correlation networks.
+#'
+#' @param x A \code{netobject} (single network) or \code{netobject_group} (one
+#'   mosaic per group, arranged with \code{gridExtra::grid.arrange}).
+#' @param xlab,ylab Axis labels. Defaults match tna's wording for transition
+#'   matrices: \code{"Incoming edges"} on x, \code{"Outgoing edges"} on y.
+#' @param range Numeric of length 2 giving the lower and upper colour-scale
+#'   limits for the standardized residual. \code{NULL} (default) auto-fits
+#'   the limits to the symmetric range \code{c(-M, M)} where
+#'   \code{M = max(|stdres|)}, so no signal is squished. Pass an explicit
+#'   range (e.g. \code{c(-4, 4)} for tna-style display, \code{c(-6, 6)} for
+#'   moderate clipping) to clamp the colour scale.
+#' @param top_angle,left_angle Rotation in degrees for the top (x) and left
+#'   (y) tick labels. \code{NULL} (default) uses the auto rule
+#'   \code{90 if n_levels > 3 else 0} on each axis. Pass any numeric to
+#'   override (e.g. \code{top_angle = 45, left_angle = 0}).
+#' @param residuals One of \code{"permutation"} (default) or
+#'   \code{"asymptotic"}. \code{"permutation"} computes empirical-null
+#'   z-scores by shuffling one variable's labels against the other for
+#'   \code{n_perm} draws and reporting
+#'   \code{(O - mean_perm) / sd_perm} per cell. Robust on sparse tables.
+#'   \code{"asymptotic"} returns \code{stats::chisq.test()$stdres} (the
+#'   closed-form \code{(O - E) / sqrt(E*(1 - p_row)*(1 - p_col))} that vcd
+#'   and tna use).
+#' @param n_perm Number of permutations when \code{residuals = "permutation"}.
+#'   Default 500; use \code{>= 1000} for stable tail estimates.
+#' @param seed Optional integer seed for the permutation RNG. Use for
+#'   reproducible plots; ignored when \code{residuals = "asymptotic"}.
+#' @param ncol For \code{netobject_group}: number of columns in the small-
+#'   multiples layout. Default 2.
+#' @param ... Ignored.
+#'
+#' @return A \code{ggplot} object (or a \code{gtable} from
+#'   \code{gridExtra::arrangeGrob} for \code{netobject_group} when
+#'   \pkg{gridExtra} is available).
+#' @seealso \code{\link{plot_mosaic}} for the lower-level data.frame primitive.
+#' @export
+#' @examples
+#' \dontrun{
+#'   net <- build_network(group_regulation, method = "frequency")
+#'   mosaic_plot(net)
+#' }
+mosaic_plot <- function(x, ...) UseMethod("mosaic_plot")
+
+#' @export
+#' @rdname mosaic_plot
+mosaic_plot.default <- function(x, ...) {
+  stop("mosaic_plot: no method for class ",
+       paste(class(x), collapse = "/"),
+       ". Use plot_mosaic() for a tidy data.frame.", call. = FALSE)
+}
+
+#' @export
+#' @rdname mosaic_plot
+mosaic_plot.netobject <- function(x,
+                                  xlab = "Incoming edges",
+                                  ylab = "Outgoing edges",
+                                  range = NULL,
+                                  top_angle = 90,
+                                  left_angle = 0,
+                                  residuals = c("permutation", "asymptotic"),
+                                  n_perm = 500L,
+                                  seed = NULL,
+                                  ...) {
+  residuals <- match.arg(residuals)
+  w <- x$weights
+  if (!is.matrix(w) || !is.numeric(w) || !all(is.finite(w))) {
+    stop("mosaic_plot: $weights must be a finite numeric matrix.",
+         call. = FALSE)
+  }
+  if (any(w < 0) || any(abs(w - round(w)) > 1e-8)) {
+    stop("mosaic_plot is only defined for integer-valued weight matrices ",
+         "(method = 'frequency' or 'co_occurrence'). Got method = ",
+         x$method %||% "<unknown>", ".", call. = FALSE)
+  }
+  if (sum(w) <= 0) {
+    stop("mosaic_plot: total weight is zero -- nothing to draw.",
+         call. = FALSE)
+  }
+  .mosaic_plot_tab(as.table(t(w)), xlab = xlab, ylab = ylab, range = range,
+                   top_angle = top_angle, left_angle = left_angle,
+                   residuals = residuals, n_perm = n_perm, seed = seed)
+}
+
+#' @export
+#' @rdname mosaic_plot
+mosaic_plot.table <- function(x,
+                              xlab = "Row",
+                              ylab = "Column",
+                              range = NULL,
+                              top_angle = NULL,
+                              left_angle = NULL,
+                              residuals = c("permutation", "asymptotic"),
+                              n_perm = 500L,
+                              seed = NULL,
+                              ...) {
+  residuals <- match.arg(residuals)
+  .mosaic_plot_tab(x, xlab = xlab, ylab = ylab, range = range,
+                   top_angle = top_angle, left_angle = left_angle,
+                   residuals = residuals, n_perm = n_perm, seed = seed)
+}
+
+#' @export
+#' @rdname mosaic_plot
+mosaic_plot.matrix <- function(x, ...) mosaic_plot.table(as.table(x), ...)
+
+#' @export
+#' @rdname mosaic_plot
+mosaic_plot.netobject_group <- function(x,
+                                        xlab = "Incoming edges",
+                                        ylab = "Outgoing edges",
+                                        range = NULL,
+                                        top_angle = 90,
+                                        left_angle = 0,
+                                        residuals = c("permutation",
+                                                      "asymptotic"),
+                                        n_perm = 500L,
+                                        seed = NULL,
+                                        ncol = 2L,
+                                        ...) {
+  residuals <- match.arg(residuals)
+  group_names <- names(x) %||% paste0("Group ", seq_along(x))
+  plots <- lapply(seq_along(x), function(i) {
+    p <- mosaic_plot.netobject(x[[i]], xlab = xlab, ylab = ylab,
+                               range = range, top_angle = top_angle,
+                               left_angle = left_angle,
+                               residuals = residuals, n_perm = n_perm,
+                               seed = seed, ...)
+    p + ggplot2::ggtitle(group_names[i])
+  })
+  if (length(plots) == 1L) return(plots[[1L]])
+  if (requireNamespace("gridExtra", quietly = TRUE)) {
+    return(gridExtra::arrangeGrob(grobs = plots, ncol = ncol))
+  }
+  warning("Install 'gridExtra' to combine grouped mosaics; returning a list.",
+          call. = FALSE)
+  plots
+}
+
+# Choose symmetric colour-scale limits: explicit `range` if supplied, else
+# auto-fit to the actual stdres range so no signal is squished. Floors at
+# +/-1 to keep the legend readable on near-independent tables.
+.mosaic_residual_limits <- function(stdres, range) {
+  if (!is.null(range)) {
+    stopifnot(is.numeric(range), length(range) == 2L, range[1L] < range[2L])
+    return(range)
+  }
+  m <- max(abs(stdres), na.rm = TRUE)
+  m <- max(m, 1)
+  c(-m, m)
+}
+
+# Pick at most 5 breaks symmetric around 0, rounded to a tidy step (1, 2, 4,
+# 5, or 10) so the colour bar is scannable at any data scale.
+.mosaic_residual_breaks <- function(stdres, range) {
+  lim <- .mosaic_residual_limits(stdres, range)
+  m <- lim[2L]
+  step <- if      (m <= 4)  1
+          else if (m <= 8)  2
+          else if (m <= 16) 4
+          else if (m <= 25) 5
+          else              10
+  s <- seq(0, m, by = step)
+  unique(c(-rev(s), s))
+}
+
+# Build a y-axis scale for the mosaic. All labels shown at the cell
+# midpoint of the leftmost column.
+.mosaic_y_scale <- function(d, col_labels, ...) {
+  breaks_all <- d$ycent[d$xmin == 0]
+  o <- order(breaks_all)
+  ggplot2::scale_y_continuous(
+    breaks = breaks_all[o],
+    labels = col_labels[o],
+    expand = c(0.01, 0)
+  )
+}
+
+# Internal: vectorized port of tna::plot_mosaic_(). Builds a marimekko data
+# frame from a contingency table and renders it with chi-square stdres fill.
+# `tab` rows are the x-axis categories; columns are the within-column stack.
+# Permutation-based standardized residuals. Shuffles one variable's labels
+# against the other (preserves both marginals under the independence null),
+# tabulates n_perm times, and returns a per-cell empirical z-score
+# (O - mean_perm) / sd_perm. Vectorized: each iteration is a single
+# tabulate() over a column-major linear index, stacked into a (n*m) x B
+# matrix; row means and row sds in closed form.
+.mosaic_perm_stdres <- function(tab, n_perm = 500L, seed = NULL) {
+  stopifnot(n_perm >= 2L)
+  if (!is.null(seed)) set.seed(seed)
+  n <- nrow(tab); m <- ncol(tab)
+  cells <- expand.grid(row_i = seq_len(n), col_j = seq_len(m))
+  freqs <- as.vector(tab)
+  long_row <- rep(cells$row_i, times = freqs)
+  long_col <- rep(cells$col_j, times = freqs)
+
+  perm_counts <- vapply(seq_len(n_perm), function(b) {
+    pc <- sample.int(length(long_col))
+    tabulate(long_row + (long_col[pc] - 1L) * n, nbins = n * m)
+  }, numeric(n * m))
+
+  mean_perm <- rowMeans(perm_counts)
+  sd_perm   <- sqrt(rowMeans((perm_counts - mean_perm)^2) *
+                      n_perm / (n_perm - 1L))
+  obs <- as.vector(tab)
+  z <- (obs - mean_perm) / sd_perm
+  z[!is.finite(z)] <- 0
+  matrix(z, n, m, dimnames = dimnames(tab))
+}
+
+.mosaic_plot_tab <- function(tab, xlab, ylab, range = NULL,
+                             top_angle = NULL, left_angle = NULL,
+                             residuals = "permutation", n_perm = 500L,
+                             seed = NULL) {
+  n <- nrow(tab)
+  m <- ncol(tab)
+  if (n < 1L || m < 1L) {
+    stop("mosaic_plot: contingency table must have >= 1 row and column.",
+         call. = FALSE)
+  }
+  rs <- rowSums(tab)
+  total <- sum(rs)
+  if (total <= 0) {
+    stop("mosaic_plot: total weight is zero -- nothing to draw.",
+         call. = FALSE)
+  }
+  widths <- c(0, cumsum(rs)) / total
+  # heights[, i] = c(0, cumsum(tab[i, ] / rs[i])); zero-row safe.
+  heights <- vapply(seq_len(n), function(i) {
+    if (rs[i] <= 0) return(c(0, seq_len(m) / m))
+    c(0, cumsum(as.numeric(tab[i, ]) / rs[i]))
+  }, numeric(m + 1L))
+
+  i_idx <- rep(seq_len(n), each = m)
+  j_idx <- rep(seq_len(m), times = n)
+  row_offset <- (i_idx - 1L) * n * 0.0025
+  col_offset <- (j_idx - 1L) * m * 0.0025
+
+  row_labels <- rownames(tab) %||% as.character(seq_len(n))
+  col_labels <- colnames(tab) %||% as.character(seq_len(m))
+
+  stdres <- if (identical(residuals, "permutation")) {
+    .mosaic_perm_stdres(tab, n_perm = n_perm, seed = seed)
+  } else {
+    suppressWarnings(stats::chisq.test(tab))$stdres
+  }
+  if (is.null(stdres) || !all(is.finite(stdres))) {
+    stdres <- matrix(0, n, m)
+  }
+
+  d <- data.frame(
+    xmin   = widths[i_idx] + row_offset,
+    xmax   = widths[i_idx + 1L] + row_offset,
+    ymin   = heights[cbind(j_idx, i_idx)] + col_offset,
+    ymax   = heights[cbind(j_idx + 1L, i_idx)] + col_offset,
+    freq   = as.numeric(tab[cbind(i_idx, j_idx)]),
+    row    = row_labels[i_idx],
+    col    = col_labels[j_idx],
+    stdres = as.numeric(stdres[cbind(i_idx, j_idx)]),
+    stringsAsFactors = FALSE
+  )
+  d$xcent <- (d$xmin + d$xmax) / 2
+  d$ycent <- (d$ymin + d$ymax) / 2
+
+  ggplot2::ggplot(d,
+    ggplot2::aes(xmin = .data$xmin, xmax = .data$xmax,
+                 ymin = .data$ymin, ymax = .data$ymax,
+                 fill = .data$stdres)) +
+    ggplot2::geom_rect(color = "black", linewidth = 0.4,
+                       show.legend = TRUE) +
+    ggplot2::scale_fill_gradient2(
+      name   = "Standardized\nresidual",
+      oob    = scales::oob_squish,
+      low    = "#D33F6A",
+      high   = "#4A6FE3",
+      limits = .mosaic_residual_limits(d$stdres, range),
+      breaks = .mosaic_residual_breaks(d$stdres, range)
+    ) +
+    ggplot2::scale_x_continuous(
+      breaks   = unique(d$xcent),
+      labels   = row_labels,
+      position = "top",
+      expand   = c(0.01, 0)
+    ) +
+    .mosaic_y_scale(d, col_labels,
+                    left_angle = left_angle %||% (if (m > 3) 90 else 0)) +
+    ggplot2::theme_minimal(base_size = 12) +
+    ggplot2::theme(
+      plot.title    = ggplot2::element_text(hjust = 0.5),
+      plot.subtitle = ggplot2::element_text(hjust = 0.5),
+      panel.grid    = ggplot2::element_blank(),
+      axis.ticks    = ggplot2::element_blank(),
+      axis.line     = ggplot2::element_blank(),
+      axis.text.x   = ggplot2::element_text(
+        angle = top_angle %||% (if (n > 3) 90 else 0),
+        hjust = if ((top_angle %||% (if (n > 3) 90 else 0)) == 0) 0.5 else 0,
+        vjust = if ((top_angle %||% (if (n > 3) 90 else 0)) == 0) 0   else 0.5
+      ),
+      axis.text.y   = ggplot2::element_text(
+        angle = left_angle %||% (if (m > 3) 90 else 0),
+        hjust = if ((left_angle %||% (if (m > 3) 90 else 0)) == 0) 1   else 0.5,
+        vjust = if ((left_angle %||% (if (m > 3) 90 else 0)) == 0) 0.4 else 0.5
+      )
+    ) +
+    ggplot2::labs(x = xlab, y = ylab)
+}
 
 
 # ------------------------------------------------------------------------------
@@ -405,19 +764,10 @@ plot_mosaic <- function(data,
 
   if (label != "none") {
     rects$lab <- .format_value_label(rects$state, rects$count, rects$proportion, label)
-    rects$lab[rects$tile_height < 0.06] <- ""
     rects$tile_w <- rects$xmax - rects$xmin
     rects$tile_h <- rects$ymax - rects$ymin
-    # Rotate label 90 degrees when the tile is taller than wide so long
-    # text (state names, "Average (66%)") follows the tile orientation
-    # instead of overflowing its sides.
     rects$angle <- ifelse(rects$tile_h > rects$tile_w, 90, 0)
-    p <- p + ggplot2::geom_text(
-      data = rects,
-      ggplot2::aes(x = .data$x_mid, y = .data$y_mid, label = .data$lab,
-                   angle = .data$angle),
-      inherit.aes = FALSE, size = label_size, color = "grey15"
-    )
+    p <- p + .geom_fit_label(rects, label_size)
   }
   p
 }
@@ -524,11 +874,11 @@ plot_mosaic <- function(data,
   freq_str <- format(count, big.mark = ",", trim = TRUE)
   switch(label,
     none  = rep("", length(count)),
-    prop  = sprintf("%.0f%%", 100 * proportion),
+    prop  = sprintf("%.1f%%", 100 * proportion),
     freq  = freq_str,
-    both  = sprintf("%s (%.0f%%)", freq_str, 100 * proportion),
+    both  = sprintf("%s (%.1f%%)", freq_str, 100 * proportion),
     state = state,
-    all   = sprintf("%s (%.0f%%)", state, 100 * proportion))
+    all   = sprintf("%s (%.1f%%)", state, 100 * proportion))
 }
 
 
@@ -538,7 +888,7 @@ plot_mosaic <- function(data,
 # isolated plots that share a `gridExtra::arrangeGrob` layout.
 .single_treemap_plot <- function(sub, pal_named, label, label_size,
                                   legend, legend_dir, legend_frame,
-                                  title = NULL) {
+                                  title = NULL, panel_frame = FALSE) {
   states_here <- as.character(sub$state)
   rects <- .simple_treemap(sub$count)
   rects$state      <- states_here[rects$idx]
@@ -564,24 +914,26 @@ plot_mosaic <- function(data,
     ggplot2::scale_y_continuous(expand = c(0, 0), breaks = NULL) +
     ggplot2::labs(title = title, x = NULL, y = NULL, fill = "State") +
     .legend_layer(legend, length(states_here), legend_dir) +
-    ggplot2::theme_minimal(base_size = 11) +
+    ggplot2::theme_minimal(base_size = 12) +
     .legend_theme(legend, legend_dir, legend_frame) +
     ggplot2::theme(
       panel.grid = ggplot2::element_blank(),
       plot.title = ggplot2::element_text(face = "bold", hjust = 0.5)
     )
 
+  if (isTRUE(panel_frame)) {
+    p <- p + ggplot2::theme(
+      plot.background = ggplot2::element_rect(
+        fill = NA, color = "grey60", linewidth = 0.4),
+      plot.margin = ggplot2::margin(8, 8, 8, 8)
+    )
+  }
+
   if (label != "none") {
     rects$lab <- .format_value_label(rects$state, rects$count,
                                      rects$proportion, label)
-    rects$lab[rects$tile_area < 0.05] <- ""
     rects$angle <- ifelse(rects$tile_h > rects$tile_w, 90, 0)
-    p <- p + ggplot2::geom_text(
-      data = rects,
-      ggplot2::aes(x = .data$x_mid, y = .data$y_mid, label = .data$lab,
-                   angle = .data$angle),
-      inherit.aes = FALSE, size = label_size, color = "grey15"
-    )
+    p <- p + .geom_fit_label(rects, label_size)
   }
   p
 }
@@ -598,15 +950,29 @@ plot_mosaic <- function(data,
                                   legend_frame = "border",
                                   combine = TRUE,
                                   ncol = NULL) {
+  groups <- unique(as.character(freq_df$group))
+  if (length(groups) == 0L) groups <- "all"
+
+  # Per-panel legend placement: right when there are <= 2 panels (each
+  # panel still has plenty of horizontal room, e.g. htna AI + Human);
+  # bottom otherwise (3+ panels in a combined gtable squeeze each panel
+  # too narrow for a right-side legend, which overflows the column).
+  if (legend == "per_facet") {
+    legend <- if (length(groups) <= 2L) "right" else "bottom"
+  }
+
+  # Resolve combine = "auto": when there are 4+ panels, return a list so
+  # each panel renders as its own full-size figure under knitr (the chunk
+  # `fig.width`/`fig.height` per panel is much more readable than cramming
+  # 6+ panels into a 3x2 gtable). 1-3 panels still combine cleanly.
+  if (identical(combine, "auto")) {
+    combine <- length(groups) <= 3L
+  }
   if (isTRUE(combine) && !requireNamespace("gridExtra", quietly = TRUE)) {
     stop("legend = 'per_facet' with combine = TRUE requires the ",
          "'gridExtra' package. Install it, set combine = FALSE, or pick ",
          "a different legend value.", call. = FALSE)
   }
-  if (legend == "per_facet") legend <- "right"
-
-  groups <- unique(as.character(freq_df$group))
-  if (length(groups) == 0L) groups <- "all"
 
   # Per-panel palettes: each group is independent, so colors restart from
   # the first palette entry inside every panel. This is the right choice
@@ -625,7 +991,8 @@ plot_mosaic <- function(data,
 
     .single_treemap_plot(sub, local_pal, label, label_size,
                           legend, legend_dir, legend_frame,
-                          title = if (length(groups) > 1L) g else NULL)
+                          title = if (length(groups) > 1L) g else NULL,
+                          panel_frame = FALSE)
   })
   plots <- Filter(Negate(is.null), plots)
 
@@ -638,10 +1005,10 @@ plot_mosaic <- function(data,
     as.integer(ncol)
   } else if (length(plots) <= 2L) {
     length(plots)
-  } else if (length(plots) <= 4L) {
-    2L
   } else {
-    3L
+    # Per-panel legends are wide, so default to 2 columns for any
+    # 3+ panel layout. User can override with ncol = 3 explicitly.
+    2L
   }
 
   gt <- gridExtra::arrangeGrob(grobs = plots, ncol = ncol_arrange)
@@ -744,196 +1111,15 @@ knit_print.nestimate_facet_list <- function(x, ...) {
 
   if (label != "none") {
     rects$lab <- .format_value_label(rects$state, rects$count, rects$proportion, label)
-    rects$lab[rects$tile_area < 0.05] <- ""
     rects$tile_w <- rects$xmax - rects$xmin
     rects$tile_h <- rects$ymax - rects$ymin
     rects$angle <- ifelse(rects$tile_h > rects$tile_w, 90, 0)
-    p <- p + ggplot2::geom_text(
-      data = rects,
-      ggplot2::aes(x = .data$x_mid, y = .data$y_mid, label = .data$lab,
-                   angle = .data$angle),
-      inherit.aes = FALSE, size = label_size, color = "grey15"
-    )
+    p <- p + .geom_fit_label(rects, label_size)
   }
   p
 }
 
 
-# Standardized-residual mosaic: state on Y (rows), group on X (columns),
-# row heights proportional to state totals across all groups, column
-# widths proportional to group totals. Cells are colored by the
-# Pearson/standardized residual of the state x group contingency table:
-#   r_{ij} = (O - E) / sqrt(E * (1 - row_p) * (1 - col_p))
-# matching the formula used in sequence_compare. Diverging palette
-# centered at zero so under-represented (red) and over-represented
-# (blue) cells read symmetrically.
-.plot_state_residuals <- function(freq_df, sort_states, label, label_size,
-                                   legend = "right",
-                                   legend_dir = "auto",
-                                   legend_frame = "none",
-                                   node_groups = NULL,
-                                   limit = 4) {
-  groups <- unique(as.character(freq_df$group))
-  if (length(groups) < 2L) {
-    stop("style = 'residual' requires at least 2 groups for the ",
-         "contingency table.", call. = FALSE)
-  }
-  state_levels <- .order_states(freq_df$state, freq_df$count, sort_states)
-
-  counts <- tapply(freq_df$count,
-                   list(factor(freq_df$state, levels = state_levels),
-                        factor(freq_df$group, levels = groups)),
-                   FUN = sum, default = 0L)
-  counts[is.na(counts)] <- 0
-  N <- sum(counts)
-  row_totals <- rowSums(counts)
-  col_totals <- colSums(counts)
-  row_props <- row_totals / N
-  col_props <- col_totals / N
-  expected <- outer(row_totals, col_totals) / N
-  denom <- sqrt(expected * outer(1 - row_props, 1 - col_props))
-  resid <- (counts - expected) / denom
-  resid[!is.finite(resid)] <- 0
-
-  # Aligned-column mosaic: row heights from state marginals, column
-  # widths from group marginals (shared across all rows). Columns line
-  # up vertically across the chart so group dividers are continuous.
-  # Cells colored by residual, not by joint area.
-  row_heights <- row_totals / N
-  col_widths  <- col_totals / N
-  y_top  <- c(1, 1 - cumsum(row_heights))
-  x_left <- c(0, cumsum(col_widths))
-
-  cells <- expand.grid(state = state_levels, group = groups,
-                       stringsAsFactors = FALSE, KEEP.OUT.ATTRS = FALSE)
-  cells$count    <- as.numeric(counts[cbind(cells$state, cells$group)])
-  cells$expected <- as.numeric(expected[cbind(cells$state, cells$group)])
-  cells$residual <- as.numeric(resid[cbind(cells$state, cells$group)])
-  ri <- match(cells$state, state_levels)
-  ci <- match(cells$group, groups)
-  cells$xmin <- x_left[ci]
-  cells$xmax <- x_left[ci + 1L]
-  # Inset each cell vertically by a small fraction of its band height
-  # so adjacent rows show a visible white separator.
-  band_h <- y_top[ri] - y_top[ri + 1L]
-  inset <- pmin(band_h * 0.08, 0.012)
-  cells$ymax <- y_top[ri] - inset
-  cells$ymin <- y_top[ri + 1L] + inset
-  cells$x_mid <- (cells$xmin + cells$xmax) / 2
-  cells$y_mid <- (cells$ymin + cells$ymax) / 2
-
-  abs_max <- if (is.null(limit)) max(abs(cells$residual)) else limit
-  if (!is.finite(abs_max) || abs_max == 0) abs_max <- 1
-  # Clamp residuals at the limit so colors saturate instead of going
-  # blank when one cell dominates (the rare extreme cell).
-  cells$residual_clipped <- pmax(pmin(cells$residual, abs_max), -abs_max)
-
-  state_mids <- (y_top[-length(y_top)] + y_top[-1L]) / 2
-  group_mids <- (x_left[-length(x_left)] + x_left[-1L]) / 2
-
-  p <- ggplot2::ggplot(cells,
-                       ggplot2::aes(xmin = .data$xmin, xmax = .data$xmax,
-                                    ymin = .data$ymin, ymax = .data$ymax,
-                                    fill = .data$residual_clipped)) +
-    ggplot2::geom_rect(color = "grey25", linewidth = 0.4) +
-    ggplot2::scale_fill_gradient2(
-      low = "#B2425A", mid = "#FFFFFF", high = "#5B7DB1",
-      midpoint = 0, limits = c(-abs_max, abs_max),
-      name = "Standardized\nresidual"
-    ) +
-    ggplot2::scale_x_continuous(breaks = group_mids, labels = groups,
-                                position = "top", expand = c(0, 0)) +
-    ggplot2::scale_y_continuous(breaks = state_mids, labels = state_levels,
-                                expand = c(0, 0)) +
-    ggplot2::labs(x = NULL, y = NULL) +
-    ggplot2::theme_minimal(base_size = 13) +
-    .legend_theme(legend, legend_dir, legend_frame) +
-    ggplot2::theme(
-      panel.grid    = ggplot2::element_blank(),
-      axis.text.x   = ggplot2::element_text(face = "bold", size = 13),
-      axis.text.y   = ggplot2::element_text(size = 12),
-      axis.ticks    = ggplot2::element_blank(),
-      plot.background  = ggplot2::element_rect(fill = "white", color = NA),
-      panel.background = ggplot2::element_rect(fill = "white", color = NA)
-    )
-
-  if (!identical(label, "none")) {
-    cells$lab <- switch(label,
-      prop = sprintf("%.0f%%", 100 * cells$count / N),
-      freq = format(cells$count, big.mark = ",", trim = TRUE),
-      both = sprintf("%s (%.1f)", format(cells$count, big.mark = ",", trim = TRUE),
-                     cells$residual),
-      state = as.character(cells$state),
-      all  = sprintf("%.1f", cells$residual),
-      "")
-    cells$txt_color <- ifelse(abs(cells$residual_clipped) > abs_max * 0.85,
-                               "white", "grey15")
-    p <- p + ggplot2::geom_text(
-      data = cells,
-      ggplot2::aes(x = .data$x_mid, y = .data$y_mid, label = .data$lab,
-                   color = .data$txt_color),
-      inherit.aes = FALSE, size = label_size
-    ) +
-      ggplot2::scale_color_identity()
-  }
-
-  # Optional bracket annotations on the LEFT grouping consecutive rows
-  # by a node-level grouping (e.g. `htna$node_groups`). Drawn in the
-  # negative-x region using line segments + horizontal text labels.
-  if (!is.null(node_groups)) {
-    ng_map <- if (is.data.frame(node_groups)) {
-      setNames(as.character(node_groups[[2]]), as.character(node_groups[[1]]))
-    } else if (is.list(node_groups)) {
-      unlist(lapply(names(node_groups), function(g)
-        setNames(rep(g, length(node_groups[[g]])), node_groups[[g]])))
-    } else {
-      node_groups  # already named character
-    }
-    grp_per_state <- ng_map[state_levels]
-    if (any(!is.na(grp_per_state))) {
-      grp_levels <- unique(grp_per_state[!is.na(grp_per_state)])
-      brackets <- do.call(rbind, lapply(grp_levels, function(gl) {
-        idx <- which(grp_per_state == gl)
-        data.frame(
-          group = gl,
-          y_top = y_top[min(idx)],
-          y_bot = y_top[max(idx) + 1L],
-          stringsAsFactors = FALSE
-        )
-      }))
-      brackets$y_mid <- (brackets$y_top + brackets$y_bot) / 2
-      bx <- -0.04
-      tick <- 0.01
-      p <- p +
-        ggplot2::geom_segment(
-          data = brackets, inherit.aes = FALSE,
-          ggplot2::aes(x = bx, xend = bx,
-                       y = .data$y_top, yend = .data$y_bot),
-          color = "grey20", linewidth = 0.4
-        ) +
-        ggplot2::geom_segment(
-          data = brackets, inherit.aes = FALSE,
-          ggplot2::aes(x = bx, xend = bx + tick,
-                       y = .data$y_top, yend = .data$y_top),
-          color = "grey20", linewidth = 0.4
-        ) +
-        ggplot2::geom_segment(
-          data = brackets, inherit.aes = FALSE,
-          ggplot2::aes(x = bx, xend = bx + tick,
-                       y = .data$y_bot, yend = .data$y_bot),
-          color = "grey20", linewidth = 0.4
-        ) +
-        ggplot2::geom_text(
-          data = brackets, inherit.aes = FALSE,
-          ggplot2::aes(x = bx - 0.01, y = .data$y_mid, label = .data$group),
-          hjust = 1, size = label_size + 0.2, color = "grey10"
-        ) +
-        ggplot2::coord_cartesian(xlim = c(-0.32, 1), clip = "off") +
-        ggplot2::theme(plot.margin = ggplot2::margin(8, 8, 8, 8))
-    }
-  }
-  p
-}
 
 
 # Horizontal bars: state on Y, count/proportion on X, faceted by group.
@@ -978,7 +1164,7 @@ knit_print.nestimate_facet_list <- function(x, ...) {
     p <- p + ggplot2::geom_text(
       ggplot2::aes(label = .data$lab), hjust = -0.15, size = label_size,
       color = "grey20"
-    ) + ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0, 0.18)))
+    ) + ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0, 0.28)))
   }
   p
 }
@@ -1012,7 +1198,16 @@ knit_print.nestimate_facet_list <- function(x, ...) {
 #'
 #' @param x A \code{netobject}, \code{netobject_group}, \code{mcml}, or
 #'   \code{htna} object.
-#' @param style Either \code{"marimekko"} (default) or \code{"bars"}.
+#' @param style One of:
+#'   \itemize{
+#'     \item \code{"marimekko"} (default) -- per-group treemap panels with
+#'       cumulative-width geometry; tile area = within-group state share.
+#'     \item \code{"bars"} -- horizontal bars sorted by frequency, faceted
+#'       per group.
+#'   }
+#'   For chi-square mosaics of a (group x state) contingency table, use
+#'   \code{\link{mosaic_plot}} directly -- it is kept as a separate
+#'   function with its own dispatch surface.
 #' @param metric For \code{style = "bars"}: which value the bar length
 #'   encodes -- \code{"prop"} (default) or \code{"freq"}. Treemap and
 #'   hierarchical-marimekko areas always encode proportion within group.
@@ -1026,14 +1221,17 @@ knit_print.nestimate_facet_list <- function(x, ...) {
 #'     \item \code{"all"} -- state + proportion, e.g. \code{"Average (66\%)"}
 #'     \item \code{"none"} -- no inline labels
 #'   }
-#' @param legend Legend position. \code{"bottom"} (default), \code{"top"},
-#'   \code{"right"}, \code{"left"}, \code{"none"} (hide; pair with
-#'   \code{label = "state"} or \code{"all"} so state names show on tiles),
-#'   or \code{"per_facet"} -- each group renders as its own panel with
-#'   an isolated legend showing only the states present in that panel.
-#'   For \code{htna} this gives each actor (AI, Human) its own legend;
-#'   for \code{mcml} each cluster gets its own. Requires the
-#'   \pkg{gridExtra} package and returns a \code{gtable}.
+#' @param legend Legend position. \code{"auto"} (default) resolves per
+#'   style: \code{"none"} for \code{style = "bars"} (the y-axis already
+#'   names every state, so a colour legend is redundant);
+#'   \code{"per_facet"} for \code{htna}/\code{mcml} treemaps (state
+#'   vocabularies differ per panel, so each gets its own legend);
+#'   \code{"bottom"} for single-network and \code{netobject_group}
+#'   treemaps (shared state vocabulary, one shared legend).
+#'   Override with any of \code{"bottom"}, \code{"top"}, \code{"right"},
+#'   \code{"left"}, \code{"none"}, or \code{"per_facet"}. The
+#'   \code{"per_facet"} option requires the \pkg{gridExtra} package and
+#'   returns a \code{gtable}.
 #' @param legend_dir Legend internal layout: \code{"auto"} (default --
 #'   horizontal for top/bottom, vertical for left/right), or force
 #'   \code{"horizontal"} or \code{"vertical"} regardless of position.
@@ -1045,21 +1243,40 @@ knit_print.nestimate_facet_list <- function(x, ...) {
 #' @param colors Optional character vector overriding the default
 #'   Okabe-Ito state palette. Length must be at least the number of unique
 #'   states.
-#' @param label_size Numeric size of inline labels.
+#' @param label_size Numeric size of inline labels (max size when
+#'   \pkg{ggfittext} is installed -- text auto-shrinks per tile).
+#' @param abbreviate Abbreviate state names. \code{FALSE} (default) shows
+#'   full names; \code{TRUE} truncates to the first 3 characters via
+#'   \code{base::abbreviate()} (which extends the truncation as needed to
+#'   keep names unique after collision); a positive integer sets the
+#'   target minimum length explicitly (e.g. \code{abbreviate = 4}).
+#'   Affects tile labels, legend, and the returned \code{$table}.
 #' @param include_macro For \code{mcml} only: prepend a \code{"macro"}
 #'   reference column showing aggregate state frequencies across all
 #'   clusters. Default \code{FALSE}.
-#' @param combine For \code{legend = "per_facet"} only. When
-#'   \code{TRUE} (default), per-panel ggplots are arranged into a single
-#'   gtable via \pkg{gridExtra}. When \code{FALSE}, returns a list of
-#'   ggplots that are printed one-per-figure by knitr (so each panel
-#'   uses the full chunk \code{fig.width} / \code{fig.height}).
+#' @param combine For \code{legend = "per_facet"} only. \code{"auto"}
+#'   (default) returns a single combined gtable for 1-3 panels and a
+#'   list of ggplots (one per panel) for 4+ panels -- many-cluster
+#'   \code{mcml} layouts read better as separate figures than as a tile
+#'   grid. \code{TRUE} forces a combined gtable via \pkg{gridExtra};
+#'   \code{FALSE} forces a list (knitr renders each at the chunk's full
+#'   \code{fig.width} / \code{fig.height}).
+#' @param node_groups Optional named character vector mapping node labels to
+#'   semantic groups. When supplied, panels (or bars) are coloured / annotated
+#'   by group rather than by individual state, so state-level palettes can
+#'   collapse onto a smaller categorical legend.
 #' @param ncol For \code{legend = "per_facet"} with \code{combine = TRUE}:
 #'   number of columns in the grid arrangement. \code{NULL} (default)
 #'   picks 1, 2, or 3 columns based on the number of panels.
 #' @param ... Reserved for future use.
 #'
-#' @return A \code{ggplot} object.
+#' @return A \code{state_freq} object: a list with the rendered \code{$plot}
+#'   (a \code{ggplot} or \code{gtable}), the tidy \code{$table} (a
+#'   \code{data.frame} with columns \code{group}, \code{state}, \code{count},
+#'   \code{proportion}), and the call's \code{$style}, \code{$metric},
+#'   \code{$source_class}. The class supports \code{print()} (shows the
+#'   tidy table in the console), \code{plot()} (renders the chart), and
+#'   \code{as.data.frame()} (returns the table).
 #'
 #' @examples
 #' \donttest{
@@ -1069,197 +1286,346 @@ knit_print.nestimate_facet_list <- function(x, ...) {
 #'                       method = "relative", format = "long",
 #'                       actor = "Actor", action = "Action",
 #'                       order = "Time", group = "Course")
-#'   plot_state_frequencies(nw)
-#'   plot_state_frequencies(nw, style = "bars")
+#'   res <- plot_state_frequencies(nw)
+#'   print(res)            # tidy frequency table in the console
+#'   plot(res)             # ggplot chart
+#'   head(as.data.frame(res))
 #' }
 #' }
 #' @export
-plot_state_frequencies <- function(x,
-                                    style       = c("marimekko", "bars", "mosaic"),
-                                    metric      = c("prop", "freq"),
-                                    label       = c("prop", "freq", "both",
-                                                    "state", "all", "none"),
-                                    legend      = c("bottom", "right",
-                                                    "top", "left", "none",
-                                                    "per_facet"),
-                                    legend_dir  = c("auto", "horizontal", "vertical"),
-                                    legend_frame = c("none", "border"),
-                                    sort_states = c("frequency", "alpha", "none"),
-                                    colors      = NULL,
-                                    label_size  = 3,
-                                    include_macro = FALSE,
-                                    combine     = TRUE,
-                                    ncol        = NULL,
-                                    node_groups = NULL,
-                                    ...) {
+plot_state_frequencies <- function(x, ...) {
   UseMethod("plot_state_frequencies")
 }
 
 
 #' @export
 #' @rdname plot_state_frequencies
-plot_state_frequencies.netobject <- function(x,
-                                              style       = c("marimekko", "bars", "mosaic"),
-                                              metric      = c("prop", "freq"),
-                                              label       = c("prop", "freq", "both",
-                                                              "state", "all", "none"),
-                                              legend      = c("bottom", "right",
-                                                              "top", "left", "none",
-                                                              "per_facet"),
-                                              legend_dir  = c("auto", "horizontal", "vertical"),
-                                              legend_frame = c("none", "border"),
-                                              sort_states = c("frequency", "alpha", "none"),
-                                              colors      = NULL,
-                                              label_size  = 3,
-                                              include_macro = FALSE,
-                                              combine     = TRUE,
-                                              ncol        = NULL,
-                                              node_groups = NULL,
-                                              ...) {
-  style        <- match.arg(style)
-  metric       <- match.arg(metric)
-  label        <- match.arg(label)
-  legend       <- match.arg(legend)
-  legend_dir   <- match.arg(legend_dir)
-  legend_frame <- match.arg(legend_frame)
-  sort_states  <- match.arg(sort_states)
-  freq_df <- .freq_df_netobject(x)
-  .render_freq(freq_df, style, hierarchical = FALSE,
-               metric, label, sort_states, colors, label_size,
-               legend, legend_dir, legend_frame,
-               combine = combine, ncol = ncol,
-               node_groups = node_groups)
+plot_state_frequencies.netobject <- function(x, legend = "auto", ...) {
+  .plot_state_frequencies_impl(x, source_class = "netobject",
+                               hierarchical = FALSE, legend = legend, ...)
 }
-
 
 #' @export
 #' @rdname plot_state_frequencies
-plot_state_frequencies.htna <- function(x,
-                                         style       = c("marimekko", "bars", "mosaic"),
-                                         metric      = c("prop", "freq"),
-                                         label       = c("prop", "freq", "both",
-                                                         "state", "all", "none"),
-                                         legend      = c("per_facet", "bottom",
-                                                         "right", "top", "left",
-                                                         "none"),
-                                         legend_dir  = c("auto", "horizontal", "vertical"),
-                                         legend_frame = c("border", "none"),
-                                         sort_states = c("frequency", "alpha", "none"),
-                                         colors      = NULL,
-                                         label_size  = 3,
-                                         include_macro = FALSE,
-                                         combine     = TRUE,
-                                         ncol        = NULL,
-                                         node_groups = NULL,
-                                         ...) {
-  style        <- match.arg(style)
-  metric       <- match.arg(metric)
-  label        <- match.arg(label)
-  legend       <- match.arg(legend)
-  legend_dir   <- match.arg(legend_dir)
-  legend_frame <- match.arg(legend_frame)
-  sort_states  <- match.arg(sort_states)
-  freq_df <- .freq_df_htna(x)
-  .render_freq(freq_df, style, hierarchical = FALSE,
-               metric, label, sort_states, colors, label_size,
-               legend, legend_dir, legend_frame,
-               combine = combine, ncol = ncol,
-               node_groups = node_groups)
+plot_state_frequencies.htna <- function(x, legend = "auto", ...) {
+  .plot_state_frequencies_impl(x, source_class = "htna",
+                               hierarchical = FALSE, legend = legend, ...)
 }
-
 
 #' @export
 #' @rdname plot_state_frequencies
-plot_state_frequencies.mcml <- function(x,
-                                         style       = c("marimekko", "bars", "mosaic"),
-                                         metric      = c("prop", "freq"),
-                                         label       = c("prop", "freq", "both",
-                                                         "state", "all", "none"),
-                                         legend      = c("per_facet", "bottom",
-                                                         "right", "top", "left",
-                                                         "none"),
-                                         legend_dir  = c("auto", "horizontal", "vertical"),
-                                         legend_frame = c("none", "border"),
-                                         sort_states = c("frequency", "alpha", "none"),
-                                         colors      = NULL,
-                                         label_size  = 3,
-                                         include_macro = FALSE,
-                                         combine     = TRUE,
-                                         ncol        = NULL,
-                                         node_groups = NULL,
-                                         ...) {
-  style        <- match.arg(style)
-  metric       <- match.arg(metric)
-  label        <- match.arg(label)
-  legend       <- match.arg(legend)
-  legend_dir   <- match.arg(legend_dir)
-  legend_frame <- match.arg(legend_frame)
-  sort_states  <- match.arg(sort_states)
-  freq_df <- .freq_df_mcml(x, include_macro = include_macro)
-  .render_freq(freq_df, style, hierarchical = TRUE,
-               metric, label, sort_states, colors, label_size,
-               legend, legend_dir, legend_frame,
-               combine = combine, ncol = ncol,
-               node_groups = node_groups)
+plot_state_frequencies.mcml <- function(x, legend = "auto", ...) {
+  .plot_state_frequencies_impl(x, source_class = "mcml",
+                               hierarchical = TRUE, legend = legend, ...)
 }
-
 
 #' @export
 #' @rdname plot_state_frequencies
-plot_state_frequencies.netobject_group <- function(x,
-                                                    style       = c("marimekko", "bars", "mosaic"),
-                                                    metric      = c("prop", "freq"),
-                                                    label       = c("prop", "freq", "both",
-                                                                    "state", "all", "none"),
-                                                    legend      = c("bottom", "right",
-                                                                    "top", "left", "none",
-                                                                    "per_facet"),
-                                                    legend_dir  = c("auto", "horizontal", "vertical"),
-                                                    legend_frame = c("none", "border"),
-                                                    sort_states = c("frequency", "alpha", "none"),
-                                                    colors      = NULL,
-                                                    label_size  = 3,
-                                                    include_macro = FALSE,
-                                                    combine     = TRUE,
-                                                    ncol        = NULL,
-                                                    node_groups = NULL,
-                                                    ...) {
-  style        <- match.arg(style)
-  metric       <- match.arg(metric)
-  label        <- match.arg(label)
-  legend       <- match.arg(legend)
-  legend_dir   <- match.arg(legend_dir)
-  legend_frame <- match.arg(legend_frame)
-  sort_states  <- match.arg(sort_states)
-  freq_df <- .freq_df_netobject_group(x)
-  .render_freq(freq_df, style, hierarchical = FALSE,
-               metric, label, sort_states, colors, label_size,
-               legend, legend_dir, legend_frame,
-               combine = combine, ncol = ncol,
-               node_groups = node_groups)
+plot_state_frequencies.netobject_group <- function(x, legend = "auto", ...) {
+  .plot_state_frequencies_impl(x, source_class = "netobject_group",
+                               hierarchical = FALSE, legend = legend, ...)
 }
-
 
 #' @export
 #' @rdname plot_state_frequencies
-plot_state_frequencies.default <- function(x,
-                                            style       = c("marimekko", "bars", "mosaic"),
-                                            metric      = c("prop", "freq"),
-                                            label       = c("prop", "freq", "both",
-                                                            "state", "all", "none"),
-                                            legend      = c("bottom", "right",
-                                                            "top", "left", "none"),
-                                            sort_states = c("frequency", "alpha", "none"),
-                                            colors      = NULL,
-                                            label_size  = 3,
-                                            include_macro = FALSE,
-                                            ...) {
+plot_state_frequencies.default <- function(x, ...) {
   cls <- paste(class(x), collapse = "/")
   stop("plot_state_frequencies(): no method for class '", cls, "'.\n",
        "Supported: netobject, netobject_group, mcml, htna.\n",
        "For tna objects, use tna::plot_frequencies(x).",
        call. = FALSE)
 }
+
+
+# Single worker for all four dispatch methods. Validates args once, pulls
+# the tidy frame via state_distribution(), runs the existing renderer
+# pipeline, wraps both into a state_freq object.
+.plot_state_frequencies_impl <- function(x, source_class, hierarchical,
+                                          style       = c("marimekko",
+                                                          "bars"),
+                                          metric      = c("prop", "freq"),
+                                          label       = c("prop", "freq",
+                                                          "both", "state",
+                                                          "all", "none"),
+                                          legend      = c("auto", "bottom",
+                                                          "right", "top",
+                                                          "left", "none",
+                                                          "per_facet"),
+                                          legend_dir  = c("auto",
+                                                          "horizontal",
+                                                          "vertical"),
+                                          legend_frame = c("none", "border"),
+                                          sort_states = c("frequency",
+                                                          "alpha", "none"),
+                                          colors      = NULL,
+                                          label_size  = 3.5,
+                                          abbreviate  = FALSE,
+                                          include_macro = FALSE,
+                                          combine     = "auto",
+                                          ncol        = NULL,
+                                          node_groups = NULL,
+                                          ...) {
+  style        <- match.arg(style)
+  metric       <- match.arg(metric)
+  label        <- match.arg(label)
+  legend       <- match.arg(legend)
+  legend_dir   <- match.arg(legend_dir)
+  legend_frame <- match.arg(legend_frame)
+  sort_states  <- match.arg(sort_states)
+
+  if (identical(legend, "auto")) {
+    legend <- if (style == "bars") {
+      "none"
+    } else if (source_class %in% c("htna", "mcml")) {
+      "per_facet"
+    } else {
+      "bottom"
+    }
+  }
+
+  freq_df <- if (identical(source_class, "mcml")) {
+    state_distribution(x, include_macro = include_macro)
+  } else {
+    state_distribution(x)
+  }
+
+  freq_df <- .abbreviate_states(freq_df, abbreviate)
+
+  # Demote per_facet to a shared bottom legend when every group has the
+  # same state vocabulary -- repeating the same legend in every panel is
+  # pure redundancy.
+  if (identical(legend, "per_facet") &&
+      .vocab_is_shared(freq_df)) {
+    legend <- "bottom"
+  }
+
+  p <- .render_freq(freq_df, style, hierarchical = hierarchical,
+                    metric, label, sort_states, colors, label_size,
+                    legend, legend_dir, legend_frame,
+                    combine = combine, ncol = ncol,
+                    node_groups = node_groups)
+
+  .new_state_freq(plot = p, table = freq_df,
+                  style = style, metric = metric,
+                  source_class = source_class)
+}
+
+
+# Returns TRUE when every group in freq_df contains the same set of
+# states (any order). Used to detect per_facet calls that would render
+# the same legend k times.
+.vocab_is_shared <- function(freq_df) {
+  groups <- as.character(freq_df$group)
+  if (length(unique(groups)) < 2L) return(FALSE)
+  vocabs <- split(as.character(freq_df$state), groups)
+  vocabs <- lapply(vocabs, function(v) sort(unique(v)))
+  all(vapply(vocabs[-1L], identical, logical(1L), vocabs[[1L]]))
+}
+
+
+# Abbreviate state names with base R `abbreviate()` so duplicates after
+# truncation get extra letters automatically. `abbreviate = FALSE` (default)
+# is a no-op; `TRUE` uses minlength = 3; a numeric value sets minlength.
+# Aggregates the freq_df after truncation in case different long names
+# collapse to the same short name despite the uniqueness guarantee
+# (rare; happens with single-letter prefixes or after manual relabel).
+.abbreviate_states <- function(freq_df, abbreviate) {
+  if (isFALSE(abbreviate) || is.null(abbreviate)) return(freq_df)
+  minlen <- if (isTRUE(abbreviate)) 3L else as.integer(abbreviate[[1L]])
+  stopifnot(minlen >= 1L)
+  short <- abbreviate(as.character(freq_df$state), minlength = minlen)
+  freq_df$state <- unname(short)
+  agg <- aggregate(count ~ group + state, data = freq_df, FUN = sum)
+  totals <- ave(agg$count, agg$group, FUN = sum)
+  agg$proportion <- agg$count / totals
+  agg[, c("group", "state", "count", "proportion")]
+}
+
+
+# ------------------------------------------------------------------------------
+# state_distribution(): public tidy frequency extractor
+# ------------------------------------------------------------------------------
+
+#' Per-Class State Distribution as a Tidy Data Frame
+#'
+#' Returns a tidy \code{data.frame(group, state, count, proportion)} with one
+#' row per (group, state) cell. Companion to \code{\link{state_frequencies}}
+#' (which counts unique states in raw sequence input);
+#' \code{state_distribution()} pulls the same shape of frame from a fitted
+#' Nestimate object so analyses don't have to reach for the underlying
+#' \code{$data} slot directly.
+#'
+#' Used internally by \code{\link{plot_state_frequencies}} as the data layer
+#' behind every chart, and surfaced as the \code{$table} slot of the
+#' returned \code{state_freq} object.
+#'
+#' @param x A \code{netobject}, \code{netobject_group}, \code{mcml}, or
+#'   \code{htna} object.
+#' @param include_macro For \code{mcml}: when \code{TRUE}, prepend a
+#'   \code{group = "macro"} block aggregating across clusters. Ignored for
+#'   the other classes.
+#' @param ... Currently unused.
+#'
+#' @return A \code{data.frame} with columns \code{group} (character),
+#'   \code{state} (character), \code{count} (integer), and
+#'   \code{proportion} (numeric, within-group share).
+#' @export
+#' @examples
+#' \dontrun{
+#'   data(ai_long)
+#'   net <- build_network(ai_long, method = "frequency",
+#'                        id_col = "session_id",
+#'                        time_col = "order_in_session", action = "code")
+#'   state_distribution(net)
+#' }
+state_distribution <- function(x, ...) UseMethod("state_distribution")
+
+#' @export
+#' @rdname state_distribution
+state_distribution.netobject <- function(x, ...) .freq_df_netobject(x)
+
+#' @export
+#' @rdname state_distribution
+state_distribution.htna <- function(x, ...) .freq_df_htna(x)
+
+#' @export
+#' @rdname state_distribution
+state_distribution.mcml <- function(x, include_macro = FALSE, ...) {
+  .freq_df_mcml(x, include_macro = include_macro)
+}
+
+#' @export
+#' @rdname state_distribution
+state_distribution.netobject_group <- function(x, ...) {
+  .freq_df_netobject_group(x)
+}
+
+#' @export
+#' @rdname state_distribution
+state_distribution.default <- function(x, ...) {
+  cls <- paste(class(x), collapse = "/")
+  stop("state_distribution(): no method for class '", cls, "'.\n",
+       "Supported: netobject, netobject_group, mcml, htna.",
+       call. = FALSE)
+}
+
+
+# ------------------------------------------------------------------------------
+# state_freq S3 class: holds plot + tidy table together
+# ------------------------------------------------------------------------------
+
+.new_state_freq <- function(plot, table, style, metric, source_class) {
+  out <- list(
+    plot         = plot,
+    table        = table,
+    style        = style,
+    metric       = metric,
+    source_class = source_class
+  )
+  class(out) <- "state_freq"
+  out
+}
+
+#' Print, Plot, and Convert a state_freq Object
+#'
+#' \code{plot_state_frequencies()} returns a \code{state_freq} object holding
+#' both the rendered chart and the tidy frequency table. \code{print()} shows
+#' the table in the console, \code{plot()} renders the chart, and
+#' \code{as.data.frame()} returns the tidy table for downstream piping.
+#'
+#' @param x A \code{state_freq} object.
+#' @param digits Number of decimal places for proportion / share columns.
+#' @param max_states Cap on rows shown per group in the per-state table.
+#'   The full table remains available via \code{x$table}.
+#' @param ... Unused.
+#' @return \code{print()} returns \code{invisible(x)}; \code{plot()} returns
+#'   \code{invisible(NULL)} after drawing; \code{as.data.frame()} returns
+#'   \code{x$table}.
+#' @name state_freq
+NULL
+
+#' @export
+#' @rdname state_freq
+print.state_freq <- function(x, digits = 1, max_states = 20L, ...) {
+  tbl <- x$table
+  groups <- unique(as.character(tbl$group))
+  total_events <- sum(tbl$count)
+  n_states <- length(unique(tbl$state))
+  pct <- function(p) sprintf(paste0("%.", digits, "f%%"), 100 * p)
+
+  cat(sprintf(
+    "State frequencies (style = %s, source = %s)\n",
+    x$style, x$source_class
+  ))
+  cat(sprintf(
+    "  Total events: %s  |  Groups: %d  |  States: %d\n\n",
+    format(total_events, big.mark = ","), length(groups), n_states
+  ))
+
+  group_totals <- tapply(tbl$count, tbl$group, sum)
+  group_totals <- group_totals[groups]
+  totals_lines <- .cluster_table_lines(list(
+    group  = groups,
+    events = format(as.integer(group_totals), big.mark = ","),
+    share  = pct(as.numeric(group_totals) / total_events)
+  ))
+  cat("Per-group totals\n")
+  cat(paste(paste0("  ", totals_lines), collapse = "\n"), "\n\n")
+
+  cat("Per-state proportions (within group)\n")
+  parts <- lapply(groups, function(g) {
+    sub <- tbl[as.character(tbl$group) == g, , drop = FALSE]
+    sub <- sub[order(-sub$count), , drop = FALSE]
+    if (nrow(sub) > max_states) {
+      kept <- sub[seq_len(max_states), , drop = FALSE]
+      kept$state <- as.character(kept$state)
+      kept <- rbind(kept, data.frame(
+        group = g, state = sprintf("(+%d more)", nrow(sub) - max_states),
+        count = sum(sub$count[-seq_len(max_states)]),
+        proportion = sum(sub$proportion[-seq_len(max_states)]),
+        stringsAsFactors = FALSE
+      ))
+      sub <- kept
+    }
+    sub
+  })
+  combined <- do.call(rbind, parts)
+  body_lines <- .cluster_table_lines(list(
+    group = as.character(combined$group),
+    state = as.character(combined$state),
+    count = format(as.integer(combined$count), big.mark = ","),
+    share = pct(combined$proportion)
+  ))
+  cat(paste(paste0("  ", body_lines), collapse = "\n"), "\n")
+
+  # Render the chart to the active graphics device so the table + plot
+  # appear together (console: opens a window; knitr: embeds inline).
+  if (inherits(x$plot, "ggplot")) {
+    print(x$plot)
+  } else if (inherits(x$plot, "gtable")) {
+    grid::grid.newpage()
+    grid::grid.draw(x$plot)
+  }
+  invisible(x)
+}
+
+#' @export
+#' @rdname state_freq
+plot.state_freq <- function(x, ...) {
+  if (inherits(x$plot, "ggplot")) {
+    print(x$plot)
+  } else if (inherits(x$plot, "gtable")) {
+    grid::grid.newpage()
+    grid::grid.draw(x$plot)
+  } else {
+    print(x$plot)
+  }
+  invisible(NULL)
+}
+
+#' @export
+#' @rdname state_freq
+as.data.frame.state_freq <- function(x, ...) x$table
 
 
 # Shared dispatcher.
@@ -1297,12 +1663,6 @@ plot_state_frequencies.default <- function(x,
     return(.plot_state_bars(freq_df, sort_states, colors,
                             label, label_size, metric,
                             legend, legend_dir, legend_frame))
-  }
-
-  if (style == "mosaic") {
-    return(.plot_state_residuals(freq_df, sort_states, label, label_size,
-                                  legend, legend_dir, legend_frame,
-                                  node_groups = node_groups))
   }
 
   if (isTRUE(hierarchical)) {

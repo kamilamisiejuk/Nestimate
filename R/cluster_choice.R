@@ -396,7 +396,7 @@ plot.cluster_choice <- function(x,
         ggplot2::scale_x_continuous(breaks = unique(df$k)) +
         ggplot2::labs(title = "Cluster Choice", x = "k", y = NULL,
                       colour = NULL) +
-        ggplot2::theme_minimal() +
+        ggplot2::theme_minimal(base_size = 12) +
         ggplot2::theme(legend.position = "bottom")
     )
   }
@@ -419,7 +419,7 @@ plot.cluster_choice <- function(x,
     ggplot2::scale_colour_viridis_d(option = "D", end = 0.85) +
     ggplot2::labs(title = "Cluster Choice", x = "k", y = "silhouette",
                   colour = colour_axis) +
-    ggplot2::theme_minimal() +
+    ggplot2::theme_minimal(base_size = 12) +
     ggplot2::theme(legend.position = "bottom")
 }
 
@@ -455,7 +455,7 @@ plot.cluster_choice <- function(x,
     ggplot2::labs(title = "Cluster Choice",
                   x = if (axis == ".row") NULL else axis,
                   y = "silhouette") +
-    ggplot2::theme_minimal()
+    ggplot2::theme_minimal(base_size = 12)
 }
 
 #' @noRd
@@ -470,7 +470,7 @@ plot.cluster_choice <- function(x,
     ggplot2::scale_fill_viridis_c(option = "D", end = 0.95) +
     ggplot2::labs(title = "Cluster Choice", x = "dissimilarity",
                   y = "method", fill = "silhouette") +
-    ggplot2::theme_minimal() +
+    ggplot2::theme_minimal(base_size = 12) +
     ggplot2::theme(panel.grid = ggplot2::element_blank())
 }
 
@@ -503,7 +503,7 @@ plot.cluster_choice <- function(x,
     ggplot2::labs(title = "Cluster Choice",
                   x = "size_ratio", y = "silhouette",
                   colour = if (!is.na(colour_axis)) colour_axis else NULL) +
-    ggplot2::theme_minimal()
+    ggplot2::theme_minimal(base_size = 12)
 
   if (!is.na(colour_axis) &&
       colour_axis %in% c("dissimilarity", "method")) {
@@ -525,7 +525,7 @@ plot.cluster_choice <- function(x,
     ggplot2::facet_wrap(~ method) +
     ggplot2::labs(title = "Cluster Choice", x = "k", y = "silhouette",
                   colour = "dissimilarity") +
-    ggplot2::theme_minimal() +
+    ggplot2::theme_minimal(base_size = 12) +
     ggplot2::theme(legend.position = "bottom",
                    strip.text = ggplot2::element_text(face = "bold"))
 }

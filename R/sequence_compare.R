@@ -592,7 +592,7 @@ plot.net_sequence_comparison <- function(x, top_n = 10L,
     labs(x = "Proportion", y = NULL,
          title = "Sequence Pattern Comparison",
          subtitle = paste0(g1, "  \u2190\u2190    \u2192\u2192  ", g2)) +
-    theme_minimal(base_size = 13) +
+    theme_minimal(base_size = 12) +
     theme(
       axis.text.y          = element_text(family = "mono", size = 8),
       axis.ticks.y         = element_blank(),
@@ -637,7 +637,7 @@ plot.net_sequence_comparison <- function(x, top_n = 10L,
                          oob = scales::squish,
                          name = "Standardized\nresidual") +
     labs(x = "Groups", y = NULL, title = "Sequence Pattern Comparison") +
-    theme_minimal(base_size = 11) +
+    theme_minimal(base_size = 12) +
     theme(
       axis.text.y        = element_text(family = "mono", size = 10),
       axis.text.x        = element_text(angle = 0, size = 11,

@@ -13,11 +13,9 @@ as_tna(x)
 \method{as_tna}{default}(x)
 }
 \arguments{
-\item{x}{A \code{cluster_summary} object created by \code{\link{cluster_summary}}.
-The cluster_summary should typically be created with \code{type = "tna"} to
-ensure row-normalized transition probabilities. If created with
-\code{type = "raw"}, the raw counts will be passed to \code{tna::tna()}
-which will normalize them.}
+\item{x}{A \code{cluster_summary} object created by
+\code{\link{cluster_summary}}. The aggregated weights are passed to
+\code{tna::tna()}, which row-normalises them as needed.}
 }
 \value{
 A \code{cluster_tna} object (S3 class) containing:

@@ -31,7 +31,7 @@ summarises the chain-level properties (regular, reversible).
 Cell colour encodes \verb{P(ever reach j | start at i)}. The diagonal
 uses the return-time convention (\verb{P(return to j in >= 1 steps)}),
 matching \code{markovchain::hittingProbabilities}. A non-irreducible chain
-shows zero off-block entries — visual evidence of one-way doors
+shows zero off-block entries -- visual evidence of one-way doors
 between behavioural phases. An absorbing chain shows a column of 1's
 for the absorbing state.
 }

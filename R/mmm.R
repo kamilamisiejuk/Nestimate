@@ -905,7 +905,7 @@ plot.net_mmm <- function(x, type = c("posterior", "covariates"), ...) {
     ggplot2::geom_vline(xintercept = 0.5, linetype = "dashed", color = "grey40") +
     ggplot2::labs(x = "Max Posterior Probability", y = "Count",
                   title = "Classification Certainty", fill = "Cluster") +
-    ggplot2::theme_minimal()
+    ggplot2::theme_minimal(base_size = 12)
 
   print(p)
   invisible(p)
@@ -1010,7 +1010,7 @@ plot.mmm_compare <- function(x, ...) {
     ggplot2::scale_x_continuous(breaks = x$k) +
     ggplot2::labs(x = "k (components)", y = "Information Criterion",
                   title = "MMM Model Selection", color = NULL) +
-    ggplot2::theme_minimal() +
+    ggplot2::theme_minimal(base_size = 12) +
     ggplot2::theme(legend.position = "bottom")
 
   print(p)
