@@ -29,3 +29,7 @@ tests/testthat/_problems/*.tar.gz
 temp_docs/
 vignettes/.quarto/
 Tutorial_docs/
+# Quarto/knitr regenerable artefacts under vignettes/articles
+vignettes/articles/higher-order-networks_files/
+vignettes/articles/higher-order-networks_cache/
+vignettes/articles/*_cache/

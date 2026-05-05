@@ -27,7 +27,7 @@
 ^pkgdown$
 ^doc$
 ^Meta$
-^.*\.csv$
+^[^/]+\.csv$
 ^local_testing_and_equivalence$
 ^apps$
 ^AGENT-NOTE-EQUIV-TESTING\.md$
