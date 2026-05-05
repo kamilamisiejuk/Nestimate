@@ -41,7 +41,6 @@ knitr:
 #| include: false
 library(Nestimate)
 library(cograph)
-library(readxl)
 ```
 
 # Introduction
@@ -70,7 +69,7 @@ We use a dataset of student-AI interactions from a prompt engineering course. St
 #| label: data
 csv_path <- system.file("extdata", "prompting_data.csv",
                         package = "Nestimate")
-prompts <- rio::import(csv_path)
+prompts <- read.csv(csv_path, stringsAsFactors = FALSE)
 ```
 
 We begin with a standard first-order transition network. `build_network()` accepts long-format data directly, handling format conversion, session detection, and matrix computation internally:
