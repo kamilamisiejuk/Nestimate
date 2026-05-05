@@ -29,3 +29,12 @@ Full tutorials
 
 - [Multi-Cluster Multi-Level Visualization with plot_mcml: A Complete
   Guide](https://saqr.me/Nestimate/articles/cograph-tutorial-mcml.md):
+
+- [Tutorial: Model assessment for transition
+  networks](https://saqr.me/Nestimate/articles/tutorial_model_assessment.md):
+
+- [Tutorial: Testing the Markov order of coded
+  sequences](https://saqr.me/Nestimate/articles/tutorial_markov_order.md):
+
+- [Higher-Order Network
+  Analysis](https://saqr.me/Nestimate/articles/higher-order-networks.md):

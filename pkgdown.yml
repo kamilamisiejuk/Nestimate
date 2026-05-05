@@ -6,11 +6,14 @@ articles:
   articles/cograph-tutorial-mcml: cograph-tutorial-mcml.html
   articles/cograph-tutorial-nestimate: cograph-tutorial-nestimate.html
   articles/cograph-tutorial-simplicial: cograph-tutorial-simplicial.html
+  articles/higher-order-networks: higher-order-networks.html
   markov-stability: markov-stability.html
   sequence-comparison: sequence-comparison.html
   sequence-plots: sequence-plots.html
   transition-networks: transition-networks.html
-last_built: 2026-05-05T09:17Z
+  articles/tutorial_markov_order: tutorial_markov_order.html
+  articles/tutorial_model_assessment: tutorial_model_assessment.html
+last_built: 2026-05-05T12:21Z
 urls:
   reference: https://saqr.me/Nestimate/reference
   article: https://saqr.me/Nestimate/articles
