@@ -273,3 +273,59 @@ test_that("HONEM reconstruction residual is tiny for the reference", {
     )
   }))
 })
+
+test_that("HONEM real-data anchor: human_long produces machine-ε SVD agreement", {
+  # Real data has skewed state frequencies and rare transitions, so the HON
+  # transition matrix is far from a uniform-random graph. Validates that the
+  # decay-weighted neighborhood matrix S and its SVD truncation behave
+  # numerically the same on realistic inputs as on the synthetic suite.
+  skip_on_cran()
+  skip_equiv_tests()
+
+  seqs <- bundled_sequences("human_long", max_actors = 80L)
+  seqs <- seqs[lengths(seqs) >= 2L]
+  hon <- build_hon(seqs, max_order = 2L, min_freq = 1L, method = "hon")
+  if (is.null(hon$matrix) || nrow(hon$matrix) < 3L) skip("HON matrix too small")
+
+  effective_dim <- min(8L, nrow(hon$matrix) - 1L)
+  hem <- build_honem(hon, dim = effective_dim, max_power = 5L)
+  ref <- .honem_reference(hon$matrix, effective_dim, 5L)
+
+  sig_delta <- abs(sort(hem$singular_values) - sort(ref$sigma))
+  U_nest <- sweep(hem$embeddings, 2, sqrt(hem$singular_values), `/`)
+  proj_delta <- max(abs(U_nest %*% t(U_nest) - ref$U %*% t(ref$U)))
+
+  expect_true(max(sig_delta) < TOL,
+              label = sprintf("real human_long sigma delta = %.2e", max(sig_delta)))
+  expect_true(proj_delta < TOL_SUBSPACE,
+              label = sprintf("real human_long subspace delta = %.2e", proj_delta))
+})
+
+test_that("HONEM near-rank-deficient matrix preserves clustered low-energy subspace", {
+  skip_on_cran()
+  skip_equiv_tests()
+
+  n <- 7L
+  base <- matrix(1 / n, n, n)
+  perturb <- diag(seq_len(n), n)
+  perturb <- perturb - rowMeans(perturb)
+  mat <- base + 1e-9 * perturb
+  mat <- mat / rowSums(mat)
+  dimnames(mat) <- list(paste0("n", seq_len(n)), paste0("n", seq_len(n)))
+
+  hem <- build_honem(mat, dim = 4L, max_power = 8L)
+  ref <- .honem_reference(mat, dim = 4L, max_power = 8L)
+  sig_delta <- abs(hem$singular_values - ref$sigma)
+  U_nest <- sweep(hem$embeddings, 2, sqrt(hem$singular_values), `/`)
+  proj_delta <- max(abs(U_nest %*% t(U_nest) - ref$U %*% t(ref$U)))
+
+  expect_true(max(ref$sigma[-1L]) < 1e-7,
+              label = sprintf("clustered tail max sigma = %.2e",
+                              max(ref$sigma[-1L])))
+  expect_true(max(sig_delta) < TOL,
+              label = sprintf("near-rank-deficient sigma delta = %.2e",
+                              max(sig_delta)))
+  expect_true(proj_delta < TOL_SUBSPACE,
+              label = sprintf("near-rank-deficient subspace delta = %.2e",
+                              proj_delta))
+})

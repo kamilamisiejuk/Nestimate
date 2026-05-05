@@ -249,3 +249,72 @@ test_that("HYPA xi matrix matches manual outer-product definition", {
                  label = sprintf("cfg%d xi outer-product", i))
   }))
 })
+
+test_that("HYPA real-data anchor: human_long Wallenius p-values agree at 1e-6", {
+  # Real coded human-AI interaction sequences have many rare transitions where
+  # the configuration-model expected count xi[i,j] is tiny. This stresses the
+  # central-vs-Wallenius approximation regime that the synthetic uniform sampler
+  # never produces.
+  skip_on_cran()
+  skip_equiv_tests()
+  skip_if_pkg_broken("BiasedUrn")
+
+  seqs <- bundled_sequences("human_long", max_actors = 100L)
+  seqs <- seqs[lengths(seqs) >= 2L]
+  hyp <- build_hypa(seqs, k = 2L, min_count = 1L, p_adjust = "none")
+  if (is.null(hyp) || sum(hyp$adjacency) == 0L) skip("HYPA empty")
+
+  adj <- hyp$adjacency; xi <- hyp$xi
+  wall_mat <- .wallenius_hypa_pvalues(adj, xi)
+
+  scores <- hyp$scores
+  HON_SEP <- "\x01"
+  from_nodes <- gsub(" -> ", HON_SEP, scores$from, fixed = TRUE)
+  i_vec <- match(from_nodes, rownames(adj))
+  to_nodes <- vapply(seq_len(nrow(scores)), function(r) {
+    parts <- strsplit(from_nodes[r], HON_SEP, fixed = TRUE)[[1L]]
+    paste(c(parts[-1L], scores$to[r]), collapse = HON_SEP)
+  }, character(1L))
+  j_vec <- match(to_nodes, rownames(adj))
+  ok <- !is.na(i_vec) & !is.na(j_vec)
+
+  delta <- abs(scores$p_value[ok] - wall_mat[cbind(i_vec[ok], j_vec[ok])])
+  delta <- delta[!is.na(delta)]
+  expect_true(
+    max(delta) < TOL_WALLENIUS,
+    label = sprintf("real human_long Wallenius max delta = %.2e", max(delta))
+  )
+})
+
+test_that("HYPA p_adjust paths match stats::p.adjust for under and over tails", {
+  skip_on_cran()
+  skip_equiv_tests()
+
+  cfg <- hypa_configs[[1L]]
+  data <- simulate_sequences(n_actors = cfg$n_actors,
+                             n_states = cfg$n_states,
+                             seq_length = cfg$seq_length,
+                             seed = cfg$seed)
+  seqs <- lapply(seq_len(nrow(data)), function(r) {
+    as.character(unlist(data[r, ], use.names = FALSE))
+  })
+  base_fit <- build_hypa(seqs, k = cfg$k, min_count = 1L,
+                         p_adjust = "none")
+  key <- base_fit$scores$path
+
+  invisible(lapply(c("BH", "bonferroni", "holm"), function(method) {
+    fit <- build_hypa(seqs, k = cfg$k, min_count = 1L, p_adjust = method)
+    idx <- match(key, fit$scores$path)
+    expect_false(anyNA(idx), label = sprintf("%s adjusted path alignment", method))
+    expected_under <- stats::p.adjust(base_fit$scores$p_value, method = method)
+    expected_over <- stats::p.adjust(1 - base_fit$scores$p_value, method = method)
+    under_delta <- max(abs(fit$scores$p_adjusted_under[idx] - expected_under))
+    over_delta <- max(abs(fit$scores$p_adjusted_over[idx] - expected_over))
+    expect_true(under_delta < TOL_EXACT,
+                label = sprintf("%s under-tail p.adjust delta = %.2e",
+                                method, under_delta))
+    expect_true(over_delta < TOL_EXACT,
+                label = sprintf("%s over-tail p.adjust delta = %.2e",
+                                method, over_delta))
+  }))
+})

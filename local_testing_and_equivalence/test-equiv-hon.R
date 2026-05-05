@@ -81,6 +81,14 @@ HON_SEP <- "\x01"
              stringsAsFactors = FALSE)
 }
 
+.independent_kl <- function(p, q) {
+  keys <- union(names(p), names(q))
+  p <- p[keys]; q <- q[keys]
+  p[is.na(p)] <- 0; q[is.na(q)] <- 0
+  if (any(p > 0 & q == 0)) return(Inf)
+  sum(p[p > 0] * log2(p[p > 0] / q[p > 0]))
+}
+
 test_that("HON .hon_build_observations matches .mogen_count_kgrams per order", {
   skip_on_cran()
   skip_equiv_tests()
@@ -274,6 +282,77 @@ test_that("HON output probabilities sum to 1 per source (both methods)", {
   }))
 })
 
+test_that("HON real-data anchor: human_long sequences match mogen counts at every order", {
+  # Synthetic uniform-random sequences hide higher-order structure. This anchor
+  # uses real coded interaction sequences from the bundled human_long dataset
+  # (Specify -> Command -> Refine etc.) to verify that .hon_build_observations
+  # still matches mogen_count_kgrams when state distributions are skewed and
+  # transitions are autocorrelated.
+  skip_on_cran()
+  skip_equiv_tests()
+
+  seqs <- bundled_sequences("human_long", max_actors = 100L)
+  seqs <- seqs[lengths(seqs) >= 2L]
+  count_env <- .hon_build_observations(seqs, max_order = 3L)
+
+  invisible(lapply(seq_len(3L), function(k) {
+    hon_df <- .observations_to_df(count_env, order = k)
+    kg <- .mogen_count_kgrams(seqs, k)
+    mog_df <- .kgrams_to_df(kg, k)
+
+    hon_df$key <- paste(hon_df$src, hon_df$tgt, sep = "||")
+    mog_df$key <- paste(mog_df$src, mog_df$tgt, sep = "||")
+    common <- intersect(hon_df$key, mog_df$key)
+    only_hon <- setdiff(hon_df$key, mog_df$key)
+    only_mog <- setdiff(mog_df$key, hon_df$key)
+
+    expect_equal(length(only_hon), 0L,
+                 label = sprintf("real human_long k=%d hon-only obs", k))
+    expect_equal(length(only_mog), 0L,
+                 label = sprintf("real human_long k=%d mogen-only obs", k))
+    if (length(common) > 0L) {
+      expect_equal(hon_df$count[match(common, hon_df$key)],
+                   mog_df$count[match(common, mog_df$key)],
+                   tolerance = 0,
+                   label = sprintf("real human_long k=%d obs counts", k))
+    }
+  }))
+})
+
+test_that("HON rewiring follows independent KL threshold on separable contexts", {
+  skip_on_cran()
+  skip_equiv_tests()
+
+  seqs <- c(rep(list(c("A", "B", "X")), 30L),
+            rep(list(c("C", "B", "Y")), 30L))
+  count_env <- .hon_build_observations(seqs, max_order = 2L)
+  b_dist <- count_env[[Nestimate:::.hon_encode("B")]]
+  ab_dist <- count_env[[Nestimate:::.hon_encode(c("A", "B"))]]
+  cb_dist <- count_env[[Nestimate:::.hon_encode(c("C", "B"))]]
+  b_prob <- b_dist / sum(b_dist)
+  ab_prob <- ab_dist / sum(ab_dist)
+  cb_prob <- cb_dist / sum(cb_dist)
+
+  ab_kl <- .independent_kl(ab_prob, b_prob)
+  cb_kl <- .independent_kl(cb_prob, b_prob)
+  ab_threshold <- 2 / log2(1 + sum(ab_dist))
+  cb_threshold <- 2 / log2(1 + sum(cb_dist))
+  expect_true(ab_kl > ab_threshold,
+              label = sprintf("AB KL %.2e <= threshold %.2e",
+                              ab_kl, ab_threshold))
+  expect_true(cb_kl > cb_threshold,
+              label = sprintf("CB KL %.2e <= threshold %.2e",
+                              cb_kl, cb_threshold))
+
+  hon <- build_hon(seqs, max_order = 2L, min_freq = 1L, method = "hon")
+  expect_true("A -> B" %in% rownames(hon$matrix))
+  expect_true("C -> B" %in% rownames(hon$matrix))
+  expect_equal(unname(hon$matrix["A", "A -> B"]), 1, tolerance = TOL_PROB)
+  expect_equal(unname(hon$matrix["C", "C -> B"]), 1, tolerance = TOL_PROB)
+  expect_equal(unname(hon$matrix["A", "B"]), 0, tolerance = TOL_PROB)
+  expect_equal(unname(hon$matrix["C", "B"]), 0, tolerance = TOL_PROB)
+})
+
 test_that("HON first-order rule counts conserve trajectory context totals", {
   skip_on_cran()
   skip_equiv_tests()
@@ -319,8 +398,8 @@ test_that("HON first-order rule counts conserve trajectory context totals", {
       # Inequality is allowed only if Nestimate DROPS context-dependent rules
       # due to min_freq — we set min_freq = 1 so no drops; expect equality.
       # However rewiring can CREATE new source contexts (higher-order), which
-      # are COUNTED AGAIN in their own right. So `got` may exceed `expected`.
-      # Valid check: got >= expected, and got / expected <= max_order.
+      # are COUNTED AGAIN in their own right. So `got` may exceed `expected`;
+      # this check only guards against losing first-order source mass.
       expect_true(
         got >= expected,
         label = sprintf("cfg%d state=%s got=%d expected=%d (rewire lost counts)",

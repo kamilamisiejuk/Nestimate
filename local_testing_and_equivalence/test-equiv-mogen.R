@@ -26,6 +26,46 @@ mogen_configs <- lapply(seq_len(N_MOGEN), function(i) {
        seed = sample.int(100000, 1))
 })
 
+.mogen_expected_transition_table <- function(mg, order, min_count = 1L) {
+  HON_SEP <- "\x01"
+  tm <- mg$transition_matrices[[order + 1L]]
+  cm <- mg$count_matrices[[order + 1L]]
+  idx <- which(cm >= min_count, arr.ind = TRUE)
+  if (nrow(idx) == 0L) {
+    return(data.frame(path = character(0L), count = integer(0L),
+                      probability = numeric(0L), from = character(0L),
+                      to = character(0L), stringsAsFactors = FALSE))
+  }
+  from_raw <- rownames(tm)[idx[, 1L]]
+  to_raw <- colnames(tm)[idx[, 2L]]
+  parsed <- lapply(seq_len(nrow(idx)), function(r) {
+    from_parts <- strsplit(from_raw[r], HON_SEP, fixed = TRUE)[[1L]]
+    to_parts <- strsplit(to_raw[r], HON_SEP, fixed = TRUE)[[1L]]
+    next_state <- to_parts[length(to_parts)]
+    list(path = paste(c(from_parts, next_state), collapse = " -> "),
+         from = paste(from_parts, collapse = " -> "),
+         to = next_state)
+  })
+  out <- data.frame(
+    path = vapply(parsed, `[[`, character(1L), "path"),
+    count = as.integer(cm[idx]),
+    probability = round(tm[idx], 4),
+    from = vapply(parsed, `[[`, character(1L), "from"),
+    to = vapply(parsed, `[[`, character(1L), "to"),
+    stringsAsFactors = FALSE
+  )
+  out <- out[order(-out$count), ]
+  rownames(out) <- NULL
+  out
+}
+
+.nonzero_node_count <- function(mat, nodes) {
+  present <- intersect(nodes, rownames(mat))
+  if (length(present) == 0L) return(0L)
+  sub <- mat[present, present, drop = FALSE]
+  sum(rowSums(sub) + colSums(sub) > 0)
+}
+
 test_that("MOGen per-order count matrices match pathpy.HigherOrderNetwork", {
   skip_on_cran()
   skip_equiv_tests()
@@ -98,6 +138,14 @@ test_that("MOGen per-order count matrices match pathpy.HigherOrderNetwork", {
       expect_true(max(delta) < TOL,
                   label = sprintf("cfg%d k=%d max count delta = %.2e",
                                   i, k, max(delta)))
+      expect_equal(.nonzero_node_count(nest_cm, setdiff(rownames(nest_cm), common)),
+                   0L,
+                   label = sprintf("cfg%d k=%d Nestimate-only nonzero nodes",
+                                   i, k))
+      expect_equal(.nonzero_node_count(py_cm, setdiff(rownames(py_cm), common)),
+                   0L,
+                   label = sprintf("cfg%d k=%d pathpy-only nonzero nodes",
+                                   i, k))
     }))
 
     NULL
@@ -193,5 +241,83 @@ test_that("path_counts matches pathpy k-gram enumeration exactly", {
     expect_equal(pc_aligned$count, py_aligned$count,
                  tolerance = 0,
                  label = sprintf("cfg%d path_counts k=2", i))
+  }))
+})
+
+test_that("MOGen real-data anchor: human_long counts and log-lik match pathpy", {
+  # Real human-AI coding sequences have realistic state imbalance and
+  # long-range dependencies that uniform-random sequences never produce.
+  # Validates count_matrices and likelihood at every order on the bundled
+  # human_long dataset.
+  skip_on_cran()
+  skip_equiv_tests()
+  skip_if_no_python_ref("pathpy")
+
+  HON_SEP <- "\x01"
+  seqs <- bundled_sequences("human_long", max_actors = 80L)
+  # pathpy.Paths skips sequences of length < 2 ('if len(s) >= 2'); apply the
+  # same filter so both engines see identical input.
+  seqs <- seqs[lengths(seqs) >= 2L]
+  mg <- build_mogen(seqs, max_order = 3L)
+  paths <- py_paths_from_sequences(seqs)
+
+  invisible(lapply(seq_len(3L), function(k) {
+    nest_cm <- mg$count_matrices[[k + 1L]]
+    py_cm <- py_hon_count_matrix(paths, k)
+    rn <- gsub(HON_SEP, ",", rownames(nest_cm), fixed = TRUE)
+    rownames(nest_cm) <- rn; colnames(nest_cm) <- rn
+
+    common <- intersect(rownames(nest_cm), rownames(py_cm))
+    if (length(common) == 0L) return(NULL)
+    expect_equal(.nonzero_node_count(nest_cm, setdiff(rownames(nest_cm), common)),
+                 0L,
+                 label = sprintf("real human_long Nestimate-only nonzero nodes k=%d", k))
+    expect_equal(.nonzero_node_count(py_cm, setdiff(rownames(py_cm), common)),
+                 0L,
+                 label = sprintf("real human_long pathpy-only nonzero nodes k=%d", k))
+    delta <- abs(nest_cm[common, common, drop = FALSE] -
+                 py_cm[common, common, drop = FALSE])
+    expect_true(max(delta) < TOL,
+                label = sprintf("real human_long counts k=%d max delta = %.2e",
+                                k, max(delta)))
+
+    nest_ll <- as.numeric(mg$log_likelihood[k + 1L])
+    py_ll <- py_mogen_likelihood(paths, k)
+    expect_true(abs(nest_ll - py_ll) < TOL_LIK,
+                label = sprintf("real human_long loglik k=%d delta = %.2e",
+                                k, abs(nest_ll - py_ll)))
+  }))
+})
+
+test_that("mogen_transitions extracts order-specific transition tables exactly", {
+  skip_on_cran()
+  skip_equiv_tests()
+
+  cfg <- mogen_configs[[1L]]
+  data <- simulate_sequences(n_actors = cfg$n_actors,
+                             n_states = cfg$n_states,
+                             seq_length = cfg$seq_length,
+                             seed = cfg$seed)
+  seqs <- lapply(seq_len(nrow(data)), function(r) {
+    as.character(unlist(data[r, ], use.names = FALSE))
+  })
+  mg <- build_mogen(seqs, max_order = cfg$max_order)
+
+  invisible(lapply(seq_len(cfg$max_order), function(k) {
+    got <- mogen_transitions(mg, order = k, min_count = 2L)
+    expected <- .mogen_expected_transition_table(mg, order = k, min_count = 2L)
+    key_got <- paste(got$from, got$to, sep = "||")
+    key_expected <- paste(expected$from, expected$to, sep = "||")
+    expect_equal(sort(key_got), sort(key_expected),
+                 label = sprintf("mogen_transitions keys order %d", k))
+    idx <- match(key_expected, key_got)
+    expect_equal(got$path[idx], expected$path, tolerance = 0,
+                 label = sprintf("mogen_transitions path order %d", k))
+    expect_equal(got$count[idx], expected$count, tolerance = 0,
+                 label = sprintf("mogen_transitions count order %d", k))
+    prob_delta <- max(abs(got$probability[idx] - expected$probability))
+    expect_true(prob_delta < TOL,
+                label = sprintf("mogen_transitions probability order %d delta = %.2e",
+                                k, prob_delta))
   }))
 })

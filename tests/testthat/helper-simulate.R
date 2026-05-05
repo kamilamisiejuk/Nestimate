@@ -123,6 +123,29 @@ simulate_sequences <- function(n_actors = 10, n_states = 5,
   df
 }
 
+#' Real-data sequence anchor for equivalence tests.
+#'
+#' Returns a list of character sequences extracted from a bundled long-format
+#' dataset, ordered within session. Used by higher-order equivalence tests to
+#' anchor synthetic-data validation against realistic state imbalance and
+#' non-trivial higher-order dependencies that random uniform sampling smooths
+#' away.
+#'
+#' @param dataset One of "human_long", "ai_long", "group_regulation_long".
+#' @param max_actors Optional cap on number of sessions returned (NULL = all).
+#' @noRd
+bundled_sequences <- function(dataset = "human_long", max_actors = NULL) {
+  e <- new.env()
+  utils::data(list = dataset, package = "Nestimate", envir = e)
+  d <- e[[dataset]]
+  stopifnot(all(c("session_id", "code", "order_in_session") %in% names(d)))
+  d <- d[order(d$session_id, d$order_in_session), ]
+  d <- d[!duplicated(d[, c("session_id", "order_in_session")]), ]
+  ids <- unique(d$session_id)
+  if (!is.null(max_actors)) ids <- ids[seq_len(min(length(ids), max_actors))]
+  lapply(ids, function(s) as.character(d$code[d$session_id == s]))
+}
+
 #' Generate random continuous data for association method equivalence testing
 #' @noRd
 simulate_continuous <- function(n = 100, p = 5, rho = 0.3, seed = NULL) {
@@ -191,6 +214,16 @@ equiv_report <- function() {
   env <- new.env(parent = emptyenv())
   env$rows <- list()
 
+  find_repo_root <- function(path = getwd()) {
+    path <- normalizePath(path, winslash = "/", mustWork = TRUE)
+    repeat {
+      if (file.exists(file.path(path, "DESCRIPTION"))) return(path)
+      parent <- dirname(path)
+      if (identical(parent, path)) return(getwd())
+      path <- parent
+    }
+  }
+
   env$log <- function(func, config, n_checked, n_failed,
                       max_abs_err, mean_abs_err, median_abs_err,
                       p95_abs_err, reference, notes = "") {
@@ -207,8 +240,9 @@ equiv_report <- function() {
   env$write_csv <- function(module) {
     if (length(env$rows) == 0L) return(invisible(NULL))
     df <- do.call(rbind, env$rows)
-    dir.create("../../tmp", showWarnings = FALSE, recursive = TRUE)
-    path <- sprintf("../../tmp/%s_equivalence_report.csv", module)
+    out_dir <- file.path(find_repo_root(), "tmp")
+    dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
+    path <- file.path(out_dir, sprintf("%s_equivalence_report.csv", module))
     write.csv(df, path, row.names = FALSE)
     message(sprintf("Equivalence report: %s (%d checks)", path, sum(df$n_checked)))
   }
@@ -259,17 +293,21 @@ equiv_report <- function() {
       ))
     )
 
-    inbox <- file.path("..", "..", "..", "validation", "data", "inbox")
-    if (!dir.exists(inbox)) inbox <- "../../validation/data/inbox"
-    if (!dir.exists(inbox)) {
-      # Try absolute path
-      inbox <- "/Users/mohammedsaqr/Documents/Github/validation/data/inbox"
-    }
-    if (dir.exists(inbox)) {
+    inbox_candidates <- c(
+      file.path(find_repo_root(), "validation", "data", "inbox"),
+      file.path(dirname(find_repo_root()), "validation", "data", "inbox"),
+      file.path("..", "..", "..", "validation", "data", "inbox"),
+      file.path("..", "..", "validation", "data", "inbox")
+    )
+    inbox <- inbox_candidates[dir.exists(inbox_candidates) &
+                                file.access(inbox_candidates, 2) == 0][1L]
+    if (!is.na(inbox)) {
       ts <- format(Sys.time(), "%Y%m%dT%H%M%S")
       path <- file.path(inbox, sprintf("nestimate-%s-%s.json", module, ts))
       writeLines(jsonlite::toJSON(result, auto_unbox = TRUE, pretty = TRUE), path)
       message(sprintf("CVS report: %s", path))
+    } else {
+      message("CVS report skipped: validation/data/inbox is not writable")
     }
   }
 
