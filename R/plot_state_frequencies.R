@@ -377,6 +377,11 @@ plot_mosaic <- function(data,
 #'   reproducible plots; ignored when \code{residuals = "asymptotic"}.
 #' @param ncol For \code{netobject_group}: number of columns in the small-
 #'   multiples layout. Default 2.
+#' @param values Logical. When \code{TRUE}, overlay each cell's standardized
+#'   residual as a numeric label (one decimal). Text colour switches to
+#'   white on saturated cells (|stdres| > 1.5) and dark grey otherwise.
+#'   Default \code{FALSE} -- the colour bar legend already conveys the
+#'   sign and magnitude.
 #' @param ... Ignored.
 #'
 #' @return A \code{ggplot} object (or a \code{gtable} from
@@ -519,7 +524,7 @@ mosaic_plot.matrix <- function(x, ...) mosaic_plot.table(as.table(x), ...)
                               top_angle = 90, left_angle = 0,
                               residuals = "permutation",
                               n_perm = 500L, seed = NULL,
-                              ncol = 2L, ...) {
+                              ncol = 2L, values = FALSE, ...) {
   panels <- .mosaic_panels(x, source_class, level)
   xlab <- xlab %||% panels$xlab_default
   ylab <- ylab %||% panels$ylab_default
@@ -533,7 +538,8 @@ mosaic_plot.matrix <- function(x, ...) mosaic_plot.table(as.table(x), ...)
                               panel_states = panels$panel_states,
                               xlab = xlab, ylab = ylab, range = range,
                               residuals = residuals,
-                              n_perm = n_perm, seed = seed, ncol = ncol))
+                              n_perm = n_perm, seed = seed, ncol = ncol,
+                              values = values))
   }
 
   plots <- lapply(seq_along(panels$tabs), function(i) {
@@ -543,7 +549,7 @@ mosaic_plot.matrix <- function(x, ...) mosaic_plot.table(as.table(x), ...)
                           top_angle = top_angle, left_angle = left_angle,
                           residuals = residuals,
                           n_perm = n_perm, seed = seed,
-                          axis_groups = ag)
+                          axis_groups = ag, values = values)
     if (!is.null(panels$titles)) p + ggplot2::ggtitle(panels$titles[[i]]) else p
   })
 
@@ -565,7 +571,8 @@ mosaic_plot.matrix <- function(x, ...) mosaic_plot.table(as.table(x), ...)
 # strip text (cluster name).
 .mosaic_facet_plot <- function(tabs, titles, panel_states = NULL,
                                xlab, ylab, range,
-                               residuals, n_perm, seed, ncol) {
+                               residuals, n_perm, seed, ncol,
+                               values = FALSE) {
   panel_dfs <- lapply(seq_along(tabs), function(i) {
     d <- .mosaic_rect_data(tabs[[i]], residuals = residuals,
                            n_perm = n_perm, seed = seed)
@@ -624,7 +631,7 @@ mosaic_plot.matrix <- function(x, ...) mosaic_plot.table(as.table(x), ...)
   }))
   y_lab_df$panel <- factor(y_lab_df$panel, levels = unlist(titles))
 
-  ggplot2::ggplot(d,
+  p <- ggplot2::ggplot(d,
     ggplot2::aes(xmin = .data$xmin, xmax = .data$xmax,
                  ymin = .data$ymin, ymax = .data$ymax,
                  fill = .data$stdres)) +
@@ -664,6 +671,22 @@ mosaic_plot.matrix <- function(x, ...) mosaic_plot.table(as.table(x), ...)
       plot.margin    = ggplot2::margin(t = 36, r = 12, b = 16, l = 36)
     ) +
     ggplot2::labs(x = xlab, y = ylab)
+
+  if (isTRUE(values)) {
+    cent <- d
+    cent$xcent <- (cent$xmin + cent$xmax) / 2
+    cent$ycent <- (cent$ymin + cent$ymax) / 2
+    p <- p + ggplot2::geom_text(
+      data = cent, inherit.aes = FALSE,
+      ggplot2::aes(x = .data$xcent, y = .data$ycent,
+                   label = sprintf("%.1f", .data$stdres),
+                   colour = abs(.data$stdres) > 1.5),
+      size = 3, show.legend = FALSE
+    ) + ggplot2::scale_colour_manual(
+      values = c(`TRUE` = "white", `FALSE` = "grey20"), guide = "none"
+    )
+  }
+  p
 }
 
 
@@ -673,7 +696,13 @@ mosaic_plot.matrix <- function(x, ...) mosaic_plot.table(as.table(x), ...)
 # $xlab_default / $ylab_default (so each class can name its axes naturally).
 .mosaic_panels <- function(x, source_class, level = "macro") {
   if (source_class %in% c("netobject", "htna")) {
-    w <- .mosaic_weights_or_stop(x$weights, x$method)
+    # Order-1 transition mosaic: chi-square needs integer transition counts.
+    # If $weights is already integer (method = "frequency" / "co_occurrence")
+    # use it directly; otherwise recount transitions from the raw $data
+    # sequences so the mosaic works on any estimation method (relative,
+    # glasso, cor, ...). Falls through to the strict integer guard only
+    # when neither path is available.
+    w <- .mosaic_count_or_stop(x)
     axis_groups <- NULL
     # htna carries actor membership in $node_groups (data.frame node, group).
     # Reorder rows/cols so each actor block is contiguous, and pass the
@@ -698,22 +727,33 @@ mosaic_plot.matrix <- function(x, ...) mosaic_plot.table(as.table(x), ...)
                 axis_groups = list(axis_groups)))
   }
   if (identical(source_class, "netobject_group")) {
-    # Single mosaic of the joint (group x state) contingency. Each group
-    # contributes one row whose cells = column sums of its $weights matrix
-    # (incoming totals per state in that group). Padded to the union of
-    # state names so all groups share columns. Result: one mosaic where
-    # column widths reflect group total flow and within-group stacks
-    # reflect that group's incoming-state distribution.
+    # Single mosaic of the joint (group x state) contingency table -- an
+    # order-0 marginal: how often each state appears within each group.
+    # When raw $data is available (typical for sequence-derived netobjects)
+    # we count states from the source, so the test works on any estimation
+    # method (relative, glasso, cor, ...) -- the chi-square is on state
+    # marginals and never needs integer $weights. Falls back to
+    # colSums($weights) with the integer-only guard when $data is absent.
     group_names <- names(x) %||% paste0("Group ", seq_along(x))
-    all_states  <- sort(unique(unlist(lapply(x,
-                                              function(g) rownames(g$weights)))))
+    weight_states <- unlist(lapply(x, function(g) rownames(g$weights)))
+    data_states   <- unlist(lapply(x, function(g) {
+      if (is.null(g$data)) return(NULL)
+      as.character(as.vector(as.matrix(g$data)))
+    }))
+    data_states <- data_states[!is.na(data_states) & nzchar(data_states)]
+    all_states  <- sort(unique(c(weight_states, data_states)))
     cnts <- vapply(seq_along(x), function(i) {
-      w  <- .mosaic_weights_or_stop(x[[i]]$weights, x[[i]]$method,
-                                    ctx = sprintf("group '%s'",
-                                                  group_names[i]))
-      cs <- colSums(w)
       full <- setNames(numeric(length(all_states)), all_states)
-      full[names(cs)] <- cs
+      if (!is.null(x[[i]]$data)) {
+        fr <- .freq_count_states(as.vector(as.matrix(x[[i]]$data)))
+        full[fr$state] <- fr$count
+      } else {
+        w  <- .mosaic_weights_or_stop(x[[i]]$weights, x[[i]]$method,
+                                      ctx = sprintf("group '%s'",
+                                                    group_names[i]))
+        cs <- colSums(w)
+        full[names(cs)] <- cs
+      }
       full
     }, numeric(length(all_states)))
 
@@ -759,6 +799,32 @@ mosaic_plot.matrix <- function(x, ...) mosaic_plot.table(as.table(x), ...)
        call. = FALSE)
 }
 
+
+# Resolve a transition count matrix for a single netobject: prefer the
+# integer $weights when the network was estimated with a count-based method,
+# otherwise recount transitions from $data so the order-1 chi-square works
+# on any estimation method (relative, glasso, cor, ...). Errors only when
+# neither path can produce integer counts.
+.mosaic_count_or_stop <- function(x) {
+  w <- x$weights
+  if (is.matrix(w) && is.numeric(w) && all(is.finite(w)) &&
+      all(w >= 0) && all(abs(w - round(w)) <= 1e-8) && sum(w) > 0) {
+    return(w)
+  }
+  if (!is.null(x$data)) {
+    counts <- tryCatch(.count_transitions(x$data, format = "auto"),
+                       error = function(e) NULL)
+    if (is.matrix(counts) && sum(counts) > 0) {
+      # Reorder rows/cols to match the netobject's node order when possible.
+      nodes <- rownames(x$weights)
+      if (!is.null(nodes) && all(nodes %in% rownames(counts))) {
+        counts <- counts[nodes, nodes, drop = FALSE]
+      }
+      return(counts)
+    }
+  }
+  .mosaic_weights_or_stop(w, x$method)
+}
 
 # Validate that a weight matrix is mosaic-able (finite, non-negative, integer-
 # valued, non-zero total). `ctx` is an optional sub-label used in the error
@@ -910,7 +976,8 @@ mosaic_plot.matrix <- function(x, ...) mosaic_plot.table(as.table(x), ...)
 .mosaic_plot_tab <- function(tab, xlab, ylab, range = NULL,
                              top_angle = NULL, left_angle = NULL,
                              residuals = "permutation", n_perm = 500L,
-                             seed = NULL, axis_groups = NULL) {
+                             seed = NULL, axis_groups = NULL,
+                             values = FALSE) {
   d <- .mosaic_rect_data(tab, residuals = residuals,
                          n_perm = n_perm, seed = seed)
   widths     <- attr(d, "widths")
@@ -967,6 +1034,16 @@ mosaic_plot.matrix <- function(x, ...) mosaic_plot.table(as.table(x), ...)
     p <- .mosaic_add_group_strips(p, tab, widths, heights,
                                   axis_groups = axis_groups,
                                   top_a = top_a, left_a = left_a)
+  }
+  if (isTRUE(values)) {
+    p <- p + ggplot2::geom_text(
+      ggplot2::aes(x = .data$xcent, y = .data$ycent,
+                   label = sprintf("%.1f", .data$stdres),
+                   colour = abs(.data$stdres) > 1.5),
+      inherit.aes = FALSE, size = 3, show.legend = FALSE
+    ) + ggplot2::scale_colour_manual(
+      values = c(`TRUE` = "white", `FALSE` = "grey20"), guide = "none"
+    )
   }
   p
 }
@@ -1980,6 +2057,26 @@ plot.state_freq <- function(x, ...) {
 #' @export
 #' @rdname state_freq
 as.data.frame.state_freq <- function(x, ...) x$table
+
+
+#' @rawNamespace if (getRversion() >= "3.6.0") S3method(knitr::knit_print, state_freq)
+#' @keywords internal
+knit_print.state_freq <- function(x, options = list(), ...) {
+  if (!requireNamespace("knitr", quietly = TRUE)) {
+    print(x); return(invisible(NULL))
+  }
+  table_text <- paste(utils::capture.output({
+    old <- list(plot = x$plot); x$plot <- NULL
+    print(x)
+    x$plot <- old$plot
+  }), collapse = "\n")
+  if (is.null(options$out.width)) options$out.width <- "70%"
+  parts <- list(
+    knitr::asis_output(paste0("\n```\n", table_text, "\n```\n")),
+    knitr::knit_print(x$plot, options = options, ...)
+  )
+  knitr::asis_output(paste(unlist(parts), collapse = "\n\n"))
+}
 
 
 # Shared dispatcher.

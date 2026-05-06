@@ -134,6 +134,12 @@ aggregate); \code{"clusters"} draws one mosaic per cluster from
 
 \item{ncol}{For \code{netobject_group}: number of columns in the small-
 multiples layout. Default 2.}
+
+\item{values}{Logical. When \code{TRUE}, overlay each cell's standardized
+residual as a numeric label (one decimal). Text colour switches to
+white on saturated cells (|stdres| > 1.5) and dark grey otherwise.
+Default \code{FALSE} -- the colour bar legend already conveys the
+sign and magnitude.}
 }
 \value{
 A \code{ggplot} object (or a \code{gtable} from
