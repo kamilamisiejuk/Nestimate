@@ -249,7 +249,7 @@ network_reliability <- function(..., iter = 1000L, split = 0.5,
   threshold <- net$threshold
   params <- net$params
   level <- net$level
-  id_col <- params$id %||% params$id_col
+  id_col <- .param_get(params, "id") %||% .param_get(params, "id_col")
 
   estimator <- get_estimator(method)
   n <- nrow(data)
@@ -309,20 +309,15 @@ network_reliability <- function(..., iter = 1000L, split = 0.5,
 # ---- Helpers ----
 
 #' Compute split-half metrics between two matrices
+#'
+#' Thin wrapper around `.network_similarity()` (R/compare_network.R) that
+#' returns the four metrics the reliability summary table reports, in the
+#' fixed order `c(mean_dev, median_dev, cor, max_dev)`.
 #' @noRd
 .split_half_metrics <- function(mat_a, mat_b) {
-  diffs <- abs(mat_a - mat_b)
-  vec_a <- as.vector(mat_a)
-  vec_b <- as.vector(mat_b)
-
-  r <- if (sd(vec_a) == 0 || sd(vec_b) == 0) NA_real_ else cor(vec_a, vec_b)
-
-  c(
-    mean(diffs),
-    median(diffs),
-    r,
-    max(diffs)
-  )
+  unname(.network_similarity(mat_a, mat_b,
+                             metrics = c("mean_abs_diff", "median_abs_diff",
+                                         "pearson", "max_abs_diff")))
 }
 
 

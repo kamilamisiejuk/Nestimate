@@ -1,6 +1,6 @@
 Package: Nestimate
 Title: Network Estimation, Bootstrap, and Higher-Order Analysis
-Version: 0.5.1
+Version: 0.5.3
 Authors@R: c(
     person("Mohammed", "Saqr", email = "saqr@saqr.me", role = c("aut", "cre", "cph")),
     person("Sonsoles", "López-Pernas", email = "sonsoles.lopez@uef.fi", role = "aut")

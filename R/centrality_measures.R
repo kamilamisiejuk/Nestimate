@@ -16,23 +16,30 @@
   pos <- W > 0
 
   D              <- matrix(Inf, n, n)
-  diag(D)        <- 0
   D[pos]         <- if (invert) 1 / W[pos] else W[pos]
+  diag(D)        <- 0
 
   sigma          <- matrix(0L, n, n)
-  diag(sigma)    <- 1L
   sigma[pos]     <- 1L
+  diag(sigma)    <- 1L
 
   Reduce(function(s, k) {
     D     <- s$D
     sigma <- s$sigma
     new_d <- outer(D[, k], D[k, ], "+")
     new_s <- outer(sigma[, k], sigma[k, ], "*")
+    # Standard Floyd-Warshall only relaxes (s, t) when both s and t differ
+    # from k. With diag(D) = 0, new_d[k, j] would otherwise match D[k, j]
+    # under the equal-path test and double-count sigma.
     shorter        <- new_d < D & is.finite(new_d)
     equal          <- (new_d == D) & is.finite(new_d) & new_d > 0
+    shorter[k, ]   <- FALSE; shorter[, k] <- FALSE
+    equal[k, ]     <- FALSE; equal[, k]   <- FALSE
     sigma[shorter] <- new_s[shorter]
     sigma[equal]   <- sigma[equal] + new_s[equal]
-    list(D = pmin(D, new_d), sigma = sigma)
+    new_D          <- D
+    new_D[shorter] <- new_d[shorter]
+    list(D = new_D, sigma = sigma)
   }, seq_len(n), list(D = D, sigma = sigma))
 }
 

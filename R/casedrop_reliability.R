@@ -196,7 +196,8 @@ casedrop_reliability <- function(x,
     estimator <- get_estimator(net_method)
     params    <- x$params
     level     <- x$level
-    id_col    <- x$params$id %||% x$params$id_col
+    id_col    <- .param_get(x$params, "id") %||%
+      .param_get(x$params, "id_col")
 
     build_matrix <- function(idx) {
       sub <- data[idx, , drop = FALSE]
@@ -236,20 +237,21 @@ casedrop_reliability <- function(x,
     if (n_drop == 0L || n_drop >= n_cases) next
     keep_n <- n_cases - n_drop
 
+    cor_metric <- match.arg(method, c("pearson", "spearman", "kendall"))
     for (it in seq_len(iter)) {
       idx <- sample(case_seq, keep_n, replace = FALSE)
       mat <- build_matrix(idx)
       if (is.null(mat)) next
       sub_edges <- as.vector(mat[idx_mask])
-      diffs <- abs(orig_edges - sub_edges)
-      r <- if (stats::sd(sub_edges, na.rm = TRUE) > 0) {
-        stats::cor(orig_edges, sub_edges, method = method,
-                   use = "complete.obs")
-      } else NA_real_
-      metrics$mean_abs_dev  [it, p_idx] <- mean(diffs,   na.rm = TRUE)
-      metrics$median_abs_dev[it, p_idx] <- stats::median(diffs, na.rm = TRUE)
-      metrics$correlation   [it, p_idx] <- r
-      metrics$max_abs_dev   [it, p_idx] <- max(diffs,    na.rm = TRUE)
+      sim <- .network_similarity(orig_edges, sub_edges,
+                                 metrics = c("mean_abs_diff",
+                                             "median_abs_diff",
+                                             cor_metric,
+                                             "max_abs_diff"))
+      metrics$mean_abs_dev  [it, p_idx] <- sim[["mean_abs_diff"]]
+      metrics$median_abs_dev[it, p_idx] <- sim[["median_abs_diff"]]
+      metrics$correlation   [it, p_idx] <- sim[[cor_metric]]
+      metrics$max_abs_dev   [it, p_idx] <- sim[["max_abs_diff"]]
     }
   }
 
