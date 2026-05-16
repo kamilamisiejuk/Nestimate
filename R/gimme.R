@@ -210,8 +210,8 @@ build_gimme <- function(data,
 
   # --- Extract results ---
   result <- .gimme_extract_results(ind_results, varnames, lag_names,
-                                    group_paths, base_syntax, n_subj,
-                                    ts_list, hybrid)
+                                    group_paths, base_syntax, fixed_paths,
+                                    n_subj, ts_list, hybrid)
 
   result$labels <- varnames
   result$n_subjects <- n_subj
@@ -853,8 +853,8 @@ build_gimme <- function(data,
 #' Extract structured results from individual search outputs
 #' @noRd
 .gimme_extract_results <- function(ind_results, varnames, lag_names,
-                                    group_paths, base_syntax, n_subj,
-                                    ts_list, hybrid) {
+                                    group_paths, base_syntax, fixed_paths,
+                                    n_subj, ts_list, hybrid) {
   p <- length(varnames)
   all_names <- c(lag_names, varnames)
   subj_names <- names(ind_results)
@@ -896,6 +896,17 @@ build_gimme <- function(data,
   for (k in seq_len(n_subj)) {
     mat <- coefs_list[[k]]
     path_counts <- path_counts + (mat != 0) * 1L
+  }
+
+  fixed_reg <- fixed_paths[grepl("~", fixed_paths, fixed = TRUE) &
+                             !grepl("~~", fixed_paths, fixed = TRUE)]
+  if (length(fixed_reg) > 0L) {
+    fixed_lhs <- sub("\\s*~.*$", "", fixed_reg)
+    fixed_rhs <- sub("^.*?~\\s*", "", fixed_reg)
+    fixed_rhs <- sub("^[+-]?[0-9.]+\\*", "", fixed_rhs)
+    fixed_ok <- fixed_lhs %in% rownames(path_counts) &
+      fixed_rhs %in% colnames(path_counts)
+    path_counts[cbind(fixed_lhs[fixed_ok], fixed_rhs[fixed_ok])] <- n_subj
   }
 
   # Separate temporal and contemporaneous count matrices

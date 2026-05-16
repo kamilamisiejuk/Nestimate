@@ -25,7 +25,14 @@ compatibility.}
 function (e.g. \code{list(gamma = 0.5)} for glasso, or
 \code{list(format = "wide")} for transition methods). This is the key
 composability feature: downstream functions like bootstrap or grid search
-can store and replay the full params list without knowing method internals.}
+can store and replay the full params list without knowing method internals.
+Transition estimators accept tna-style sequence options such as
+\code{weighted}, \code{begin_state}, \code{end_state}, and \code{concat}.
+Column-like entries in \code{params} (\code{action}, \code{id},
+\code{id_col}, \code{time}, \code{session}, \code{order}, \code{codes},
+and \code{group}) are resolved before format detection and must name
+existing columns. If the same column role is supplied both directly and
+through \code{params}, the names must agree.}
 
 \item{scaling}{Character vector or NULL. Post-estimation scaling to apply
 (in order). Options: \code{"minmax"}, \code{"max"}, \code{"rank"},

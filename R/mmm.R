@@ -234,6 +234,46 @@
   )
 }
 
+
+#' @noRd
+.mmm_component_warnings <- function(models, assignments, k,
+                                    tol = sqrt(.Machine$double.eps)) {
+  sizes <- tabulate(assignments, nbins = k)
+  empty <- which(sizes == 0L)
+  if (length(empty) > 0L) {
+    warning(
+      "MMM produced empty hard-assignment cluster",
+      if (length(empty) == 1L) " " else "s ",
+      paste(empty, collapse = ", "),
+      ". The fitted mixture components should be treated as unstable; ",
+      "try fewer clusters, more starts, a fixed seed, or stronger sequence ",
+      "signal.",
+      call. = FALSE
+    )
+  }
+
+  pairs <- utils::combn(seq_len(k), 2L, simplify = FALSE)
+  duplicated <- vapply(pairs, function(pair) {
+    max(abs(models[[pair[1L]]]$weights - models[[pair[2L]]]$weights),
+        na.rm = TRUE) <= tol
+  }, logical(1L))
+  if (any(duplicated)) {
+    dup_labels <- vapply(pairs[duplicated], function(pair) {
+      paste(pair, collapse = "-")
+    }, character(1L))
+    warning(
+      "MMM produced effectively identical transition components: ",
+      paste(dup_labels, collapse = ", "),
+      ". The requested k is not supported by the observed transition ",
+      "structure in this fit.",
+      call. = FALSE
+    )
+  }
+
+  invisible(list(empty = empty, duplicated = pairs[duplicated]))
+}
+
+
 # ---------------------------------------------------------------------------
 # Covariate M-step helpers
 # ---------------------------------------------------------------------------
@@ -335,22 +375,40 @@
 #'
 #' @param data A data.frame (wide format), \code{netobject}, or
 #'   \code{tna} model. For tna objects, extracts the stored data.
-#' @param k Integer. Number of mixture components. Default: 2.
-#' @param n_starts Integer. Number of random restarts. Default: 50.
-#' @param max_iter Integer. Maximum EM iterations per start. Default: 200.
-#' @param tol Numeric. Convergence tolerance. Default: 1e-6.
-#' @param smooth Numeric. Laplace smoothing constant. Default: 0.01.
+#' @param k Integer. Whole finite number of mixture components, >= 2.
+#'   Default: 2.
+#' @param n_starts Integer. Positive whole finite number of random restarts.
+#'   Default: 50.
+#' @param max_iter Integer. Positive whole finite maximum EM iterations per
+#'   start. Default: 200.
+#' @param tol Numeric. Finite positive convergence tolerance. Default: 1e-6.
+#' @param smooth Numeric. Finite non-negative Laplace smoothing constant.
+#'   Default: 0.01.
 #' @param seed Integer or NULL. Random seed.
 #' @param covariates Optional. Covariates integrated into the EM algorithm
-#'   to model covariate-dependent mixing proportions. Accepts formula,
-#'   character vector, string, or data.frame (same forms as
-#'   \code{\link{build_clusters}}). Unlike the post-hoc analysis in
-#'   \code{build_clusters()}, these covariates directly influence cluster
-#'   membership during estimation. Requires the \pkg{nnet} package.
+#'   to model covariate-dependent mixing proportions. Accepts a string,
+#'   character vector, formula, or data.frame (same forms as
+#'   \code{\link{build_clusters}}). For \code{netobject} or
+#'   \code{cograph_network} input, names are resolved against
+#'   \code{$metadata} first, so a typical call is
+#'   \code{build_mmm(net, k = 3, covariates = "session_label")}.
+#'   Unlike the post-hoc analysis in \code{build_clusters()}, these
+#'   covariates directly influence cluster membership during EM
+#'   estimation.
+#' @param estimator Multinomial fitter for the post-hoc covariate
+#'   analysis (does not affect EM): \code{"firth"} (default, via
+#'   \code{brglm2::brmultinom}; finite under separation),
+#'   \code{"multinom"} (\code{nnet::multinom}; warns about separation
+#'   risk), or \code{"chisq"} (descriptive tests, no logit). See
+#'   \code{\link{build_clusters}} for full details.
 #'
 #' @return An object of class \code{net_mmm} with components:
 #'   \describe{
-#'     \item{models}{List of \code{netobject}s, one per component.}
+#'     \item{data}{The full N-row sequence frame used for estimation.}
+#'     \item{models}{List of \code{netobject}s, one per component. Each
+#'       component carries the rows assigned to that component in its
+#'       \code{$data} slot, while its transition matrix is the EM-estimated
+#'       component transition matrix.}
 #'     \item{k}{Number of components.}
 #'     \item{mixing}{Numeric vector of mixing proportions.}
 #'     \item{posterior}{N x k matrix of posterior probabilities.}
@@ -404,18 +462,43 @@ build_mmm <- function(data,
                       tol = 1e-6,
                       smooth = 0.01,
                       seed = NULL,
-                      covariates = NULL) {
+                      covariates = NULL,
+                      estimator = c("firth", "multinom", "chisq")) {
 
+  estimator <- match.arg(estimator)
+  stopifnot(
+    "'k' must be a single numeric value" = is.numeric(k) && length(k) == 1L,
+    "'n_starts' must be a single numeric value" =
+      is.numeric(n_starts) && length(n_starts) == 1L,
+    "'max_iter' must be a single numeric value" =
+      is.numeric(max_iter) && length(max_iter) == 1L,
+    "'tol' must be a single numeric value" =
+      is.numeric(tol) && length(tol) == 1L,
+    "'smooth' must be a single numeric value" =
+      is.numeric(smooth) && length(smooth) == 1L
+  )
+  if (!is.finite(k) || k != floor(k) || k < 2L) {
+    stop("'k' must be a whole finite number >= 2.", call. = FALSE)
+  }
+  if (!is.finite(n_starts) || n_starts != floor(n_starts) ||
+      n_starts < 1L) {
+    stop("'n_starts' must be a positive whole finite number.",
+         call. = FALSE)
+  }
+  if (!is.finite(max_iter) || max_iter != floor(max_iter) ||
+      max_iter < 1L) {
+    stop("'max_iter' must be a positive whole finite number.",
+         call. = FALSE)
+  }
+  if (!is.finite(tol) || tol <= 0) {
+    stop("'tol' must be a finite positive number.", call. = FALSE)
+  }
+  if (!is.finite(smooth) || smooth < 0) {
+    stop("'smooth' must be a finite non-negative number.", call. = FALSE)
+  }
   k <- as.integer(k)
   n_starts <- as.integer(n_starts)
   max_iter <- as.integer(max_iter)
-  stopifnot(
-    "'k' must be >= 2" = k >= 2L,
-    "'n_starts' must be >= 1" = n_starts >= 1L,
-    "'max_iter' must be >= 1" = max_iter >= 1L,
-    "'tol' must be > 0" = tol > 0,
-    "'smooth' must be >= 0" = smooth >= 0
-  )
 
   # ---- Extract data and states ----
   network_method <- NULL
@@ -588,6 +671,10 @@ build_mmm <- function(data,
          call. = FALSE)
   }
 
+  # ---- Assignments ----
+  # max.col is the vectorized row-wise argmax — avoids `apply` overhead.
+  assignments <- max.col(best$posterior, ties.method = "first")
+
   # ---- Build netobjects for each component ----
   models <- lapply(seq_len(k), function(m) {
     P_vec <- best$P_all[, m]
@@ -603,9 +690,10 @@ build_mmm <- function(data,
 
     # Initial state probabilities from EM M-step (states x components matrix)
     init <- setNames(best$init_all[, m], states)
+    model_data <- raw_data[assignments == m, , drop = FALSE]
 
     structure(list(
-      data = raw_data,
+      data = model_data,
       weights = P_mat,
       nodes = nodes_df,
       edges = edges,
@@ -626,10 +714,9 @@ build_mmm <- function(data,
 
   names(models) <- paste0("Cluster ", seq_len(k))
 
-  # ---- Assignments & quality ----
-  # max.col is the vectorized row-wise argmax — avoids `apply` overhead.
-  assignments <- max.col(best$posterior, ties.method = "first")
+  # ---- Quality ----
   quality <- .mmm_quality(best$posterior, assignments, k)
+  .mmm_component_warnings(models, assignments, k)
 
   # ---- Information criteria ----
   n_params <- k * n_states * (n_states - 1L) +
@@ -644,13 +731,15 @@ build_mmm <- function(data,
   if (!is.null(cov_df) && !is.null(best$cov_beta)) {
     # Run final nnet::multinom once for SEs and proper inference
     cov_result <- .run_covariate_analysis(
-      assignments, cov_df, paste(names(cov_df), collapse = " + "), k
+      assignments, cov_df, paste(names(cov_df), collapse = " + "), k,
+      estimator = estimator
     )
     # Store EM-estimated beta
     cov_result$beta <- best$cov_beta
   }
 
   structure(list(
+    data = raw_data,
     models = models,
     k = k,
     mixing = best$pi_mix,
@@ -679,12 +768,13 @@ build_mmm <- function(data,
 #' Compare MMM fits across different k
 #'
 #' @param data Data frame, netobject, or tna model.
-#' @param k Integer vector of component counts. Default: 2:5.
+#' @param k Integer vector of component counts. Values must be whole finite
+#'   numbers >= 2. Default: 2:5.
 #' @param return_fits Logical. When \code{TRUE} the fitted models are
 #'   retained on the result via \code{attr(result, "fits")} (a list of
 #'   \code{net_mmm} objects, named by \code{k}), so the user can pick
 #'   the chosen model without re-running the EM. Default \code{FALSE}
-#'   keeps the historical lightweight return shape — only the comparison
+#'   keeps the historical lightweight return shape -- only the comparison
 #'   table is allocated.
 #' @param ... Arguments passed to \code{\link{build_mmm}}.
 #'
@@ -713,8 +803,16 @@ build_mmm <- function(data,
 #'
 #' @export
 compare_mmm <- function(data, k = 2:5, return_fits = FALSE, ...) {
-  stopifnot("'return_fits' must be a single logical" =
-              is.logical(return_fits) && length(return_fits) == 1L)
+  if (!is.logical(return_fits) || length(return_fits) != 1L ||
+      is.na(return_fits)) {
+    stop("'return_fits' must be TRUE or FALSE.", call. = FALSE)
+  }
+  if (!is.numeric(k) || !length(k) || any(!is.finite(k)) ||
+      any(k != floor(k)) || any(k < 2L)) {
+    stop("'k' must be a non-empty vector of whole finite numbers >= 2.",
+         call. = FALSE)
+  }
+  k <- as.integer(k)
   fits <- lapply(k, function(m) build_mmm(data, k = m, ...))
   rows <- lapply(seq_along(k), function(i) {
     fit <- fits[[i]]
@@ -756,7 +854,7 @@ compare_mmm <- function(data, k = 2:5, return_fits = FALSE, ...) {
 #' @param digits Integer. Decimal places for floating-point statistics.
 #'   Default \code{3}. Non-breaking: \code{print(x)} keeps the same
 #'   alignment as before.
-#' @param ... Additional arguments (ignored).
+#' @param ... Unsupported. Supplying unused arguments raises an error.
 #'
 #' @return The input object, invisibly.
 #'
@@ -778,6 +876,8 @@ compare_mmm <- function(data, k = 2:5, return_fits = FALSE, ...) {
 #'
 #' @export
 print.net_mmm <- function(x, digits = 3L, ...) {
+  .net_mmm_check_unused_dots("print.net_mmm", ...)
+  .net_mmm_check_digits(digits)
   digits <- as.integer(digits)
   k <- as.integer(x$k)
   n_total <- as.integer(x$n_sequences)
@@ -824,7 +924,7 @@ print.net_mmm <- function(x, digits = 3L, ...) {
 #' Summary Method for net_mmm
 #'
 #' @param object A \code{net_mmm} object.
-#' @param ... Additional arguments (ignored).
+#' @param ... Unsupported. Supplying unused arguments raises an error.
 #'
 #' @return The input object, invisibly.
 #'
@@ -846,6 +946,7 @@ print.net_mmm <- function(x, digits = 3L, ...) {
 #'
 #' @export
 summary.net_mmm <- function(object, ...) {
+  .net_mmm_check_unused_dots("summary.net_mmm", ...)
   print(object)
   cat("\n")
   for (m in seq_len(object$k)) {
@@ -871,7 +972,7 @@ summary.net_mmm <- function(object, ...) {
     mean(object$posterior[idx, m])
   }, numeric(1L))
 
-  data.frame(
+  component_stats <- data.frame(
     component      = seq_len(k),
     prior          = as.numeric(object$mixing),
     n_assigned     = as.integer(tabulate(object$assignments, nbins = k)),
@@ -880,13 +981,19 @@ summary.net_mmm <- function(object, ...) {
     stringsAsFactors = FALSE,
     row.names      = NULL
   )
+
+  if (!is.null(object$covariates)) {
+    return(invisible(.tidy_covariates(object$covariates,
+                                       cluster_stats = component_stats)))
+  }
+  component_stats
 }
 
 #' Plot Method for net_mmm
 #'
 #' @param x A \code{net_mmm} object.
 #' @param type Character. Plot type: \code{"posterior"} (default) or \code{"covariates"}.
-#' @param ... Additional arguments (ignored).
+#' @param ... Unsupported. Supplying unused arguments raises an error.
 #'
 #' @return A \code{ggplot} object, invisibly.
 #'
@@ -907,8 +1014,11 @@ summary.net_mmm <- function(object, ...) {
 #' }
 #'
 #' @export
-plot.net_mmm <- function(x, type = c("posterior", "covariates"), ...) {
+plot.net_mmm <- function(x, type = c("posterior", "covariates"),
+                          combined = TRUE, ...) {
+  .net_mmm_check_unused_dots("plot.net_mmm", ...)
   type <- match.arg(type)
+  stopifnot(is.logical(combined), length(combined) == 1L)
 
   if (type == "covariates") {
     if (is.null(x$covariates)) {
@@ -918,7 +1028,8 @@ plot.net_mmm <- function(x, type = c("posterior", "covariates"), ...) {
     return(.plot_covariate_forest(
       x$covariates$coefficients,
       sprintf("Covariate Effects (ref: Cluster %s)",
-              x$covariates$fit$reference_cluster)
+              x$covariates$fit$reference_cluster),
+      combined = combined
     ))
   }
 
@@ -954,7 +1065,7 @@ plot.net_mmm <- function(x, type = c("posterior", "covariates"), ...) {
 #' Print Method for mmm_compare
 #'
 #' @param x An \code{mmm_compare} object.
-#' @param ... Additional arguments (ignored).
+#' @param ... Unsupported. Supplying unused arguments raises an error.
 #'
 #' @return The input object, invisibly.
 #'
@@ -976,6 +1087,7 @@ plot.net_mmm <- function(x, type = c("posterior", "covariates"), ...) {
 #'
 #' @export
 print.mmm_compare <- function(x, ...) {
+  .mmm_compare_check_unused_dots(...)
   cat("MMM Model Comparison\n\n")
   best_bic <- which.min(x$BIC)
   best_icl <- which.min(x$ICL)
@@ -989,11 +1101,12 @@ print.mmm_compare <- function(x, ...) {
 #' Summary Method for mmm_compare
 #'
 #' @param object An \code{mmm_compare} object (a data.frame subclass).
-#' @param ... Additional arguments (ignored).
+#' @param ... Unsupported. Supplying unused arguments raises an error.
 #' @return A tidy data frame with one row per \code{k}, plus a \code{best}
 #'   character column flagging the minimum-BIC and minimum-ICL solutions.
 #' @export
 summary.mmm_compare <- function(object, ...) {
+  .mmm_compare_check_unused_dots(...)
   best_bic <- which.min(object$BIC)
   best_icl <- which.min(object$ICL)
   best <- rep("", nrow(object))
@@ -1011,7 +1124,7 @@ summary.mmm_compare <- function(object, ...) {
 #' Plot Method for mmm_compare
 #'
 #' @param x An \code{mmm_compare} object.
-#' @param ... Additional arguments (ignored).
+#' @param ... Unsupported. Supplying unused arguments raises an error.
 #'
 #' @return A \code{ggplot} object, invisibly.
 #'
@@ -1033,6 +1146,7 @@ summary.mmm_compare <- function(object, ...) {
 #'
 #' @export
 plot.mmm_compare <- function(x, ...) {
+  .mmm_compare_check_unused_dots(...)
   if (!requireNamespace("ggplot2", quietly = TRUE)) { # nocov start
     stop("Package 'ggplot2' required.", call. = FALSE)
   } # nocov end
@@ -1057,6 +1171,45 @@ plot.mmm_compare <- function(x, ...) {
   invisible(p)
 }
 
+.net_mmm_check_unused_dots <- function(method, ...) {
+  dots <- list(...)
+  if (!length(dots)) {
+    return(invisible(TRUE))
+  }
+  dot_names <- names(dots)
+  dot_names[!nzchar(dot_names)] <- paste0("..", which(!nzchar(dot_names)))
+  stop(
+    method, "() got unsupported argument",
+    if (length(dots) == 1L) ": " else "s: ",
+    paste(dot_names, collapse = ", "),
+    call. = FALSE
+  )
+}
+
+.net_mmm_check_digits <- function(digits) {
+  if (!is.numeric(digits) || length(digits) != 1L || !is.finite(digits) ||
+      digits != floor(digits) || digits < 0L) {
+    stop("'digits' must be a single non-negative whole finite number.",
+         call. = FALSE)
+  }
+  invisible(TRUE)
+}
+
+.mmm_compare_check_unused_dots <- function(...) {
+  dots <- list(...)
+  if (!length(dots)) {
+    return(invisible(TRUE))
+  }
+  dot_names <- names(dots)
+  dot_names[!nzchar(dot_names)] <- paste0("..", which(!nzchar(dot_names)))
+  stop(
+    "mmm_compare method got unsupported argument",
+    if (length(dots) == 1L) ": " else "s: ",
+    paste(dot_names, collapse = ", "),
+    call. = FALSE
+  )
+}
+
 # ---------------------------------------------------------------------------
 # cluster_mmm — wrapper returning netobject_group (parallel to cluster_network)
 # ---------------------------------------------------------------------------
@@ -1070,6 +1223,9 @@ plot.mmm_compare <- function(x, ...) {
 #' @noRd
 .attach_mmm_clustering <- function(nets, mmm, full_data = NULL) {
   clustering_info <- mmm[setdiff(names(mmm), "models")]
+  if (is.null(full_data) && !is.null(mmm$data)) {
+    full_data <- mmm$data
+  }
   if (is.null(full_data) && length(nets) > 0L) {
     full_data <- nets[[1L]]$data
   }
@@ -1097,8 +1253,7 @@ plot.mmm_compare <- function(x, ...) {
 #'   default). Present so \code{cluster_mmm()} and \code{cluster_network()}
 #'   share the same call shape; any other value raises an error pointing
 #'   at \code{\link{cluster_network}}.
-#' @param ... Reserved for forward compatibility with the unified
-#'   \code{cluster_*} surface. Currently unused.
+#' @param ... Unsupported. Supplying unused arguments raises an error.
 #' @return A \code{netobject_group} (list of \code{netobject}s, one per
 #'   cluster). MMM-specific information is stored in
 #'   \code{attr(, "clustering")} (class \code{"net_mmm_clustering"}):
@@ -1135,7 +1290,18 @@ plot.mmm_compare <- function(x, ...) {
 cluster_mmm <- function(data, k = 2L, n_starts = 50L, max_iter = 200L,
                         tol = 1e-6, smooth = 0.01, seed = NULL,
                         covariates = NULL,
+                        estimator = c("firth", "multinom", "chisq"),
                         cluster_by = "mmm", ...) {
+  estimator <- match.arg(estimator)
+  dots <- list(...)
+  if (length(dots) > 0L) {
+    dot_names <- names(dots)
+    dot_names[!nzchar(dot_names)] <- paste0("..", which(!nzchar(dot_names)))
+    stop("cluster_mmm() got unsupported argument",
+         if (length(dots) == 1L) ": " else "s: ",
+         paste(dot_names, collapse = ", "), call. = FALSE)
+  }
+
   # cluster_by exists for API parity with cluster_network() so a single
   # surface argument toggles the clustering family. Only "mmm" is valid
   # here; anything else is a programming error worth catching loudly.
@@ -1144,19 +1310,15 @@ cluster_mmm <- function(data, k = 2L, n_starts = 50L, max_iter = 200L,
          "clustering algorithms, use cluster_network(..., cluster_by = ...).",
          call. = FALSE)
   }
-  # Quietly ignore further `...` so the cluster_network()-style call
-  # `cluster_mmm(x, k, dissimilarity = "hamming")` doesn't fail noisily.
-  # (build_mmm has no `...` itself; we don't want to leak strange args
-  # into the EM core either.)
-
   mmm <- build_mmm(data = data, k = k, n_starts = n_starts,
                    max_iter = max_iter, tol = tol, smooth = smooth,
-                   seed = seed, covariates = covariates)
+                   seed = seed, covariates = covariates,
+                   estimator = estimator)
 
   grp <- mmm$models
   if (is.null(names(grp))) names(grp) <- paste0("Cluster ", seq_along(grp))
   class(grp) <- "netobject_group"
-  .attach_mmm_clustering(grp, mmm, full_data = grp[[1L]]$data)
+  .attach_mmm_clustering(grp, mmm, full_data = mmm$data)
 }
 
 #' Print Method for MMM Clustering Attribute
@@ -1170,7 +1332,7 @@ cluster_mmm <- function(data, k = 2L, n_starts = 50L, max_iter = 200L,
 #' @param x A \code{net_mmm_clustering} object.
 #' @param digits Integer. Decimal places for floating-point statistics.
 #'   Default \code{3}.
-#' @param ... Additional arguments (ignored).
+#' @param ... Unsupported. Supplying unused arguments raises an error.
 #'
 #' @return The input object, invisibly.
 #'
@@ -1182,6 +1344,8 @@ cluster_mmm <- function(data, k = 2L, n_starts = 50L, max_iter = 200L,
 #'
 #' @export
 print.net_mmm_clustering <- function(x, digits = 3L, ...) {
+  .net_mmm_check_unused_dots("print.net_mmm_clustering", ...)
+  .net_mmm_check_digits(digits)
   digits <- as.integer(digits)
   k <- as.integer(x$k)
   n_total <- as.integer(x$n_sequences)
@@ -1238,7 +1402,7 @@ print.net_mmm_clustering <- function(x, digits = 3L, ...) {
 #'   max posterior probability per sequence, coloured by cluster),
 #'   \code{"covariates"} or its alias \code{"predictors"} (covariate
 #'   forest plot when \code{cluster_mmm()} was run with \code{covariates}).
-#' @param ... Currently unused.
+#' @param ... Unsupported. Supplying unused arguments raises an error.
 #' @return A \code{ggplot} object, invisibly.
 #'
 #' @examples
@@ -1250,8 +1414,11 @@ print.net_mmm_clustering <- function(x, digits = 3L, ...) {
 #' }
 #' @export
 plot.net_mmm_clustering <- function(x, type = c("posterior", "covariates",
-                                                 "predictors"), ...) {
+                                                 "predictors"),
+                                     combined = TRUE, ...) {
+  .net_mmm_check_unused_dots("plot.net_mmm_clustering", ...)
   type <- match.arg(type)
+  stopifnot(is.logical(combined), length(combined) == 1L)
   if (type == "predictors") type <- "covariates"
 
   if (type == "covariates") {
@@ -1263,7 +1430,8 @@ plot.net_mmm_clustering <- function(x, type = c("posterior", "covariates",
     return(.plot_covariate_forest(
       x$covariates$coefficients,
       sprintf("Covariate Effects (ref: Cluster %s)",
-              x$covariates$fit$reference_cluster)
+              x$covariates$fit$reference_cluster),
+      combined = combined
     ))
   }
 

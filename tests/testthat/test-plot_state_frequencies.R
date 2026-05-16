@@ -85,6 +85,28 @@ test_that("plot_state_frequencies works on netobject_group", {
   expect_s3_class(p_bars$plot, "ggplot")
 })
 
+test_that("plot_state_frequencies uses cluster_mmm member data, not full data twice", {
+  data <- data.frame(
+    V1 = c(rep("A", 20), rep("C", 20)),
+    V2 = c(rep("A", 20), rep("C", 20)),
+    V3 = c(rep("B", 20), rep("D", 20)),
+    V4 = c(rep("B", 20), rep("D", 20)),
+    stringsAsFactors = FALSE
+  )
+  grp <- cluster_mmm(data, k = 2, n_starts = 5, max_iter = 50, seed = 1)
+  cl <- attr(grp, "clustering")
+  sizes <- tabulate(cl$assignments, nbins = cl$k)
+
+  expect_equal(unname(vapply(grp, function(x) nrow(x$data), integer(1L))),
+               sizes)
+  expect_false(identical(grp[[1L]]$data, grp[[2L]]$data))
+
+  res <- plot_state_frequencies(grp, style = "bars")
+  totals <- aggregate(count ~ group, as.data.frame(res), sum)
+  expect_equal(sort(totals$count), sort(as.integer(sizes) * ncol(data)))
+  expect_equal(sum(totals$count), length(cl$assignments) * ncol(data))
+})
+
 
 # ---------------------------------------------------------------------------
 # plot_state_frequencies on mcml
@@ -118,6 +140,47 @@ test_that("plot_state_frequencies works on mcml", {
 
   p_bars <- plot_state_frequencies(mc, style = "bars")
   expect_s3_class(p_bars$plot, "ggplot")
+})
+
+test_that("state_distribution.mcml matches direct within-cluster data counts", {
+  seq_df <- data.frame(
+    t1 = c("a1", "a2", "b1", "b2"),
+    t2 = c("a2", "a1", "b2", "b1"),
+    t3 = c("a1", "a1", "b1", "b2"),
+    stringsAsFactors = FALSE
+  )
+  clusters <- list(A = c("a1", "a2"), B = c("b1", "b2"))
+  mc <- build_mcml(seq_df, clusters, type = "raw")
+
+  sd <- state_distribution(mc)
+  direct <- do.call(rbind, lapply(names(mc$clusters), function(cn) {
+    vals <- unlist(mc$clusters[[cn]]$data, use.names = FALSE)
+    vals <- vals[!is.na(vals)]
+    tab <- table(vals)
+    data.frame(group = cn, state = names(tab),
+               count = as.integer(tab), stringsAsFactors = FALSE)
+  }))
+  merged <- merge(sd[, c("group", "state", "count")], direct,
+                  by = c("group", "state"), all = TRUE)
+
+  expect_identical(merged$count.x, merged$count.y)
+  expect_equal(sum(sd$count), sum(direct$count))
+})
+
+test_that("mcml frequency methods reject unsupported dots", {
+  seq_df <- data.frame(
+    t1 = c("a1", "a2", "b1", "b2"),
+    t2 = c("a2", "a1", "b2", "b1"),
+    t3 = c("a1", "a1", "b1", "b2"),
+    stringsAsFactors = FALSE
+  )
+  clusters <- list(A = c("a1", "a2"), B = c("b1", "b2"))
+  mc <- build_mcml(seq_df, clusters, type = "raw")
+
+  expect_error(state_distribution(mc, typo_arg = TRUE),
+               "unsupported argument: typo_arg")
+  expect_error(plot_state_frequencies(mc, typo_arg = TRUE, legend = "bottom"),
+               "unsupported argument: typo_arg")
 })
 
 

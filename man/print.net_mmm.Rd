@@ -13,7 +13,7 @@
 Default \code{3}. Non-breaking: \code{print(x)} keeps the same
 alignment as before.}
 
-\item{...}{Additional arguments (ignored).}
+\item{...}{Unsupported. Supplying unused arguments raises an error.}
 }
 \value{
 The input object, invisibly.

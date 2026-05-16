@@ -19,13 +19,41 @@ NULL
 .coerce_label_map <- function(labels) {
   if (is.null(labels)) return(NULL)
   if (is.data.frame(labels)) {
-    stopifnot(ncol(labels) >= 2)
-    return(setNames(as.character(labels[[2]]), as.character(labels[[1]])))
+    if (ncol(labels) < 2L) {
+      stop("`labels` data.frame must have at least two columns.",
+           call. = FALSE)
+    }
+    map <- setNames(as.character(labels[[2]]), as.character(labels[[1]]))
+    return(.validate_label_map(map))
   }
-  if (is.list(labels) && !is.null(names(labels))) return(unlist(labels))
-  if (is.character(labels) && !is.null(names(labels))) return(labels)
+  if (is.list(labels) && !is.null(names(labels))) {
+    return(.validate_label_map(unlist(labels)))
+  }
+  if (is.character(labels) && !is.null(names(labels))) {
+    return(.validate_label_map(labels))
+  }
   stop("`labels` must be a named character vector, named list, or 2-column ",
        "data.frame (name, label).", call. = FALSE)
+}
+
+.validate_label_map <- function(map) {
+  key <- names(map)
+  map <- as.character(map)
+  names(map) <- key
+  if (is.null(key) || any(is.na(key)) || any(!nzchar(key))) {
+    stop("`labels` must have non-empty source names.", call. = FALSE)
+  }
+  if (anyDuplicated(key)) {
+    stop("`labels` source names must be unique.", call. = FALSE)
+  }
+  if (any(is.na(map)) || any(!nzchar(map))) {
+    stop("`labels` values must be non-missing and non-empty.",
+         call. = FALSE)
+  }
+  if (anyDuplicated(map)) {
+    stop("`labels` values must be unique.", call. = FALSE)
+  }
+  map
 }
 
 #' Apply a name -> label remap to a netobject or mcml object.
@@ -42,6 +70,12 @@ NULL
 
   remap <- function(v) {
     out <- map[v]; out[is.na(out)] <- v[is.na(out)]; unname(out)
+  }
+  check_unique <- function(v) {
+    if (anyDuplicated(v)) {
+      stop("`labels` must map nodes to unique labels.", call. = FALSE)
+    }
+    v
   }
 
   if (inherits(x, "mcml")) {
@@ -73,7 +107,7 @@ NULL
     }
     relabel_one <- function(net) {
       if (is.null(net)) return(net)
-      net$labels <- remap(net$labels)
+      net$labels <- check_unique(remap(net$labels))
       if (!is.null(net$weights))
         dimnames(net$weights) <- list(net$labels, net$labels)
       if (!is.null(net$inits)) names(net$inits) <- net$labels
@@ -81,7 +115,6 @@ NULL
       net
     }
     if (!is.null(x$clusters))        x$clusters        <- lapply(x$clusters, relabel_one)
-    if (!is.null(x$macro))           x$macro           <- relabel_one(x$macro)
     if (!is.null(x$cluster_members)) x$cluster_members <- lapply(x$cluster_members, remap)
     if (!is.null(x$edges)) {
       x$edges$from <- remap(x$edges$from)
@@ -92,11 +125,14 @@ NULL
 
   if (inherits(x, "netobject")) {
     if (!is.null(x$nodes) && "name" %in% names(x$nodes)) {
-      x$nodes$label <- remap(as.character(x$nodes$name))
+      x$nodes$label <- check_unique(remap(as.character(x$nodes$name)))
     }
     if (!is.null(x$weights)) {
       nm <- rownames(x$weights) %||% colnames(x$weights)
-      if (!is.null(nm)) dimnames(x$weights) <- list(remap(nm), remap(nm))
+      if (!is.null(nm)) {
+        mapped <- check_unique(remap(nm))
+        dimnames(x$weights) <- list(mapped, mapped)
+      }
     }
     return(x)
   }
@@ -397,5 +433,3 @@ safe_sd <- function(x) {
     node_groups = NULL
   )
 }
-
-

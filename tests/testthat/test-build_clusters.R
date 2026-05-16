@@ -70,6 +70,29 @@ test_that("build_clusters error messages name the offending argument", {
                "'weighted' must be a single logical")
 })
 
+test_that("build_clusters rejects non-finite or silently truncated numeric arguments", {
+  df <- make_test_data(n = 20, k = 10)
+
+  expect_error(build_clusters(df, k = 2.9), "'k' must be a whole")
+  expect_error(build_clusters(df, k = NA_real_), "'k' must be a whole")
+  expect_error(build_clusters(df, k = 2, weighted = NA),
+               "'weighted' must be TRUE or FALSE")
+  expect_error(build_clusters(df, k = 2, lambda = -1),
+               "'lambda' must be a finite non-negative")
+  expect_error(build_clusters(df, k = 2, q = 2.5),
+               "'q' must be a positive whole")
+  expect_error(build_clusters(df, k = 2, q = 0),
+               "'q' must be a positive whole")
+  expect_error(build_clusters(df, k = 2, p = 0.5),
+               "'p' must be a finite number between 0 and 0.25")
+})
+
+test_that("build_clusters rejects unsupported extra arguments", {
+  df <- make_test_data(n = 20, k = 10)
+  expect_error(build_clusters(df, k = 2, typo_arg = TRUE),
+               "unsupported argument: typo_arg")
+})
+
 # ==============================================================================
 # 2. Basic clustering works for all metrics
 # ==============================================================================
@@ -196,6 +219,35 @@ test_that("summary.net_clustering works", {
   expect_equal(nrow(res), 2L)
   expect_true("size" %in% names(res))
   expect_true("mean_within_dist" %in% names(res))
+})
+
+test_that("summary.net_clustering matches direct within-distance computation", {
+  df <- make_test_data(n = 24, k = 8, n_states = 3, seed = 31)
+  cl <- build_clusters(df, k = 3, method = "ward.D2")
+  capture.output(res <- summary(cl))
+
+  expect_equal(res$size, as.integer(tabulate(cl$assignments, nbins = cl$k)))
+  expect_equal(
+    res$mean_within_dist,
+    .per_cluster_within_dist(cl$distance, cl$assignments, cl$k),
+    tolerance = 1e-12
+  )
+})
+
+test_that("net_clustering methods reject unsupported dots and bad digits", {
+  df <- make_test_data(n = 20, k = 10)
+  cl <- build_clusters(df, k = 2)
+
+  expect_error(print(cl, typo_arg = TRUE),
+               "unsupported argument: typo_arg")
+  expect_error(summary(cl, typo_arg = TRUE),
+               "unsupported argument: typo_arg")
+  expect_error(plot(cl, typo_arg = TRUE),
+               "unsupported argument: typo_arg")
+  expect_error(print(cl, digits = NA_real_),
+               "'digits' must be a single non-negative whole")
+  expect_error(print(cl, digits = 2.5),
+               "'digits' must be a single non-negative whole")
 })
 
 test_that("plot.net_clustering silhouette works", {
@@ -1164,6 +1216,66 @@ test_that("cluster_network preserves build_args when input is a netobject", {
   expect_equal(cls$lambda, 1.5)
   # Inherited method survives
   expect_equal(grp[[1]]$method, "frequency")
+})
+
+test_that("cluster_network distance branch is equivalent to explicit two-step call", {
+  data <- make_test_data(n = 36, k = 6, n_states = 3, seed = 18)
+
+  one_step <- cluster_network(
+    data, k = 3, seed = 180L, weighted = TRUE, lambda = 1.25,
+    method = "frequency"
+  )
+  clustered <- build_clusters(
+    data, k = 3, seed = 180L, weighted = TRUE, lambda = 1.25
+  )
+  two_step <- build_network(clustered, method = "frequency")
+
+  expect_equal(attr(one_step, "clustering")$assignments, clustered$assignments)
+  expect_equal(lapply(one_step, `[[`, "weights"),
+               lapply(two_step, `[[`, "weights"))
+})
+
+test_that("cluster_network MMM branch is equivalent to explicit two-step call", {
+  data <- make_test_data(n = 36, k = 6, n_states = 3, seed = 19)
+
+  one_step <- cluster_network(
+    data, k = 2, cluster_by = "mmm", n_starts = 3, max_iter = 50,
+    seed = 190L, method = "frequency"
+  )
+  mmm <- build_mmm(data, k = 2, n_starts = 3, max_iter = 50, seed = 190L)
+  two_step <- build_network(mmm, method = "frequency")
+
+  expect_equal(attr(one_step, "clustering")$assignments, mmm$assignments)
+  expect_equal(lapply(one_step, `[[`, "weights"),
+               lapply(two_step, `[[`, "weights"))
+})
+
+test_that("cluster_network rejects unknown routed arguments", {
+  data <- make_test_data(n = 30, k = 6, n_states = 3, seed = 20)
+
+  expect_error(
+    cluster_network(data, k = 2, typo_arg = TRUE),
+    "Unknown argument"
+  )
+  expect_error(
+    cluster_network(
+      data, k = 2, cluster_by = "mmm", n_starts = 1, max_iter = 5,
+      typo_arg = TRUE
+    ),
+    "Unknown argument"
+  )
+})
+
+test_that("cluster_network rejects distance options on MMM branch", {
+  data <- make_test_data(n = 30, k = 6, n_states = 3, seed = 21)
+
+  expect_error(
+    cluster_network(
+      data, k = 2, cluster_by = "mmm", dissimilarity = "lv",
+      n_starts = 1, max_iter = 5
+    ),
+    "dissimilarity"
+  )
 })
 
 # ---- Branch-matrix coverage (task #17) ----

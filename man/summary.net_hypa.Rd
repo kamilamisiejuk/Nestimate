@@ -4,7 +4,13 @@
 \alias{summary.net_hypa}
 \title{Summary Method for net_hypa}
 \usage{
-\method{summary}{net_hypa}(object, n = 10L, type = c("all", "over", "under"), ...)
+\method{summary}{net_hypa}(
+  object,
+  n = 10L,
+  type = c("all", "over", "under"),
+  order_by = c("sig", "freq", "ratio", "path"),
+  ...
+)
 }
 \arguments{
 \item{object}{A \code{net_hypa} object.}
@@ -15,10 +21,16 @@
 \item{type}{Character. Which anomalies to show: \code{"all"} (default),
 \code{"over"}, or \code{"under"}.}
 
+\item{order_by}{Character. Ranking used within each anomaly direction:
+\code{"sig"} ranks by the active tail probability, \code{"freq"} by
+observed count, \code{"ratio"} by observed/expected ratio, and
+\code{"path"} alphabetically.}
+
 \item{...}{Additional arguments (ignored).}
 }
 \value{
-The input object, invisibly.
+A data frame with path, observed, expected, ratio, p_tail, and
+direction columns.
 }
 \description{
 Summary Method for net_hypa

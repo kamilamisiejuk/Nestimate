@@ -79,6 +79,11 @@ cluster_choice <- function(data,
                                 "dissimilarity")
   method        <- .expand_all(method,        .clustering_methods,
                                 "method")
+  if (!is.numeric(k) || !length(k) || any(!is.finite(k)) ||
+      any(k != floor(k))) {
+    stop("'k' must be a non-empty vector of whole finite numbers.",
+         call. = FALSE)
+  }
   k             <- as.integer(k)
 
   # ---- Pre-validate weighted/dissimilarity combination ---------------
@@ -174,10 +179,12 @@ cluster_choice <- function(data,
 #' @param x A \code{cluster_choice} object.
 #' @param digits Integer. Decimal places for floating-point columns.
 #'   Default \code{3L}.
-#' @param ... Additional arguments (ignored).
+#' @param ... Unsupported. Supplying unused arguments raises an error.
 #' @return The input object, invisibly.
 #' @export
 print.cluster_choice <- function(x, digits = 3L, ...) {
+  .cluster_choice_check_unused_dots("print.cluster_choice", ...)
+  .cluster_choice_check_digits(digits)
   digits <- as.integer(digits)
   swept  <- attr(x, "swept") %||%
             c("k", "dissimilarity", "method")
@@ -219,11 +226,12 @@ print.cluster_choice <- function(x, digits = 3L, ...) {
 #' Summary Method for cluster_choice
 #'
 #' @param object A \code{cluster_choice} object.
-#' @param ... Additional arguments (ignored).
+#' @param ... Unsupported. Supplying unused arguments raises an error.
 #' @return A data frame with the swept configurations, all metrics, and
 #'   a \code{best} character column flagging the silhouette-max row.
 #' @export
 summary.cluster_choice <- function(object, ...) {
+  .cluster_choice_check_unused_dots("summary.cluster_choice", ...)
   best_idx <- which.max(object$silhouette)
   best <- rep("", nrow(object))
   best[best_idx] <- "silhouette"
@@ -299,15 +307,26 @@ summary.cluster_choice <- function(object, ...) {
 #'   shown on tick labels and point labels are shortened (e.g.
 #'   \code{"hamming"} -> \code{"ham"}, \code{"ward.D2"} -> \code{"wD2"}).
 #'   The legend shows the full canonical name. Default \code{FALSE}.
-#' @param ... Additional arguments (ignored).
-#' @return A \code{ggplot} object, invisibly.
+#' @param combined Only meaningful for \code{type = "facet"}. When
+#'   \code{TRUE} (default), all methods are shown in one ggplot via
+#'   \code{facet_wrap(~ method)}. When \code{FALSE}, returns a named list
+#'   of single-panel ggplots, one per method.
+#' @param ... Unsupported. Supplying unused arguments raises an error.
+#' @return A \code{ggplot} object, invisibly; for \code{type = "facet"}
+#'   with \code{combined = FALSE}, a named list of ggplots.
 #' @export
 plot.cluster_choice <- function(x,
                                  type   = c("auto", "lines", "bars",
                                              "heatmap", "tradeoff",
                                              "facet"),
                                  abbrev = FALSE,
+                                 combined = TRUE,
                                  ...) {
+  .cluster_choice_check_unused_dots("plot.cluster_choice", ...)
+  if (!is.logical(abbrev) || length(abbrev) != 1L || is.na(abbrev)) {
+    stop("'abbrev' must be TRUE or FALSE.", call. = FALSE)
+  }
+  stopifnot(is.logical(combined), length(combined) == 1L)
   if (!requireNamespace("ggplot2", quietly = TRUE)) { # nocov start
     stop("Package 'ggplot2' required.", call. = FALSE)
   } # nocov end
@@ -317,13 +336,21 @@ plot.cluster_choice <- function(x,
   if (type == "auto") type <- .auto_choice_type(swept)
   .require_type_supported(type, swept)
 
-  # Apply abbreviations to a working copy if requested. The original
-  # object is never mutated -- callers keep canonical names in their
-  # data frame.
   df <- as.data.frame(x)
   if (abbrev) {
     df$dissimilarity <- .abbrev_dissimilarity(df$dissimilarity)
     df$method        <- .abbrev_method(df$method)
+  }
+
+  if (type == "facet" && !combined) {
+    methods <- unique(as.character(df$method))
+    plots <- lapply(methods, function(m) {
+      sub <- df[df$method == m, , drop = FALSE]
+      .plot_choice_facet(sub, swept) +
+        ggplot2::labs(title = sprintf("Cluster Choice (method = %s)", m))
+    })
+    names(plots) <- methods
+    return(invisible(plots))
   }
 
   p <- switch(type,
@@ -335,6 +362,32 @@ plot.cluster_choice <- function(x,
 
   print(p)
   invisible(p)
+}
+
+#' @noRd
+.cluster_choice_check_unused_dots <- function(method, ...) {
+  dots <- list(...)
+  if (!length(dots)) {
+    return(invisible(TRUE))
+  }
+  dot_names <- names(dots)
+  dot_names[!nzchar(dot_names)] <- paste0("..", which(!nzchar(dot_names)))
+  stop(
+    method, "() got unsupported argument",
+    if (length(dots) == 1L) ": " else "s: ",
+    paste(dot_names, collapse = ", "),
+    call. = FALSE
+  )
+}
+
+#' @noRd
+.cluster_choice_check_digits <- function(digits) {
+  if (!is.numeric(digits) || length(digits) != 1L ||
+      !is.finite(digits) || digits != floor(digits) || digits < 0L) {
+    stop("'digits' must be a single non-negative whole finite number.",
+         call. = FALSE)
+  }
+  invisible(TRUE)
 }
 
 #' @noRd

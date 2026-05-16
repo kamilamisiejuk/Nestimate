@@ -78,6 +78,10 @@ convert long-format data first.
 For association methods (\code{"cor"}, \code{"pcor"}, \code{"glasso"},
 and custom estimators), the full estimator is called on resampled rows
 each iteration.
+
+If a transition network contains only one sequence, the function warns that
+such a network is not recommended for bootstrap or other confirmatory
+testing.
 }
 \examples{
 net <- build_network(data.frame(V1 = c("A","B","C"), V2 = c("B","C","A")),

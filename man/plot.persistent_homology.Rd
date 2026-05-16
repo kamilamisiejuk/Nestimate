@@ -4,19 +4,24 @@
 \alias{plot.persistent_homology}
 \title{Plot Persistent Homology}
 \usage{
-\method{plot}{persistent_homology}(x, ...)
+\method{plot}{persistent_homology}(x, combined = TRUE, ...)
 }
 \arguments{
 \item{x}{A \code{persistent_homology} object.}
 
+\item{combined}{When \code{TRUE} (default), the two panels are stitched
+side-by-side via \code{gridExtra::arrangeGrob}. When \code{FALSE}, returns a
+named list (\code{betti_curve}, \code{persistence}) of ggplots.}
+
 \item{...}{Ignored.}
 }
 \value{
-A grid grob (invisibly).
+A grid grob (invisibly) when \code{combined = TRUE}; a named list
+of two ggplots when \code{combined = FALSE}.
 }
 \description{
-Two panels: Betti curve (threshold vs Betti number) and persistence
-diagram (birth vs death).
+Two panels: Betti curve (threshold vs Betti number) and heuristic
+persistence diagram (birth vs death) derived from Betti-count changes.
 }
 \examples{
 \donttest{

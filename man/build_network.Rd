@@ -110,7 +110,14 @@ with \code{state_cols}. Default: \code{NULL}.}
 function (e.g. \code{list(gamma = 0.5)} for glasso, or
 \code{list(format = "wide")} for transition methods). This is the key
 composability feature: downstream functions like bootstrap or grid search
-can store and replay the full params list without knowing method internals.}
+can store and replay the full params list without knowing method internals.
+Transition estimators accept tna-style sequence options such as
+\code{weighted}, \code{begin_state}, \code{end_state}, and \code{concat}.
+Column-like entries in \code{params} (\code{action}, \code{id},
+\code{id_col}, \code{time}, \code{session}, \code{order}, \code{codes},
+and \code{group}) are resolved before format detection and must name
+existing columns. If the same column role is supplied both directly and
+through \code{params}, the names must agree.}
 
 \item{labels}{Optional name -> label remap applied after construction.
 Accepts a 2-column data.frame \code{(name, label)}, a named character
@@ -162,6 +169,7 @@ estimator registry, so custom estimators can also be used.
 The function works as follows:
 \enumerate{
 \item Resolves method aliases to canonical names.
+\item Validates explicit column arguments before any format guessing.
 \item Retrieves the estimator function from the global registry.
 \item For association methods with \code{level} specified, decomposes
 the data (between-person means or within-person centering).
@@ -169,6 +177,12 @@ the data (between-person means or within-person centering).
 \item Applies scaling and thresholding to the result matrix.
 \item Extracts edges and constructs the \code{netobject}.
 }
+
+For long-format transition data, supplying \code{action} without
+\code{actor} is allowed and treats all rows as one sequence in row/time
+order. The function warns because a one-sequence transition network is not
+recommended and cannot be validated by bootstrap or other confirmatory
+tests.
 }
 \examples{
 seqs <- data.frame(V1 = c("A","B","C","A"), V2 = c("B","C","A","B"))

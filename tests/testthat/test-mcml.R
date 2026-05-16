@@ -40,6 +40,22 @@ test_that("net_aggregate_weights geomean method", {
   expect_equal(net_aggregate_weights(c(4, 9), "geomean"), 6, tolerance = 0.01)
 })
 
+test_that("net_aggregate_weights matches direct base calculations", {
+  w <- c(1, 2, 3, NA, 0)
+  cleaned <- c(1, 2, 3)
+
+  expect_equal(net_aggregate_weights(w, "sum"), sum(cleaned))
+  expect_equal(net_aggregate_weights(w, "mean"), mean(cleaned))
+  expect_equal(net_aggregate_weights(w, "median"), stats::median(cleaned))
+  expect_equal(net_aggregate_weights(w, "max"), max(cleaned))
+  expect_equal(net_aggregate_weights(w, "min"), min(cleaned))
+  expect_equal(net_aggregate_weights(w, "prod"), prod(cleaned))
+  expect_equal(net_aggregate_weights(w, "density"), sum(cleaned) / length(cleaned))
+  expect_equal(net_aggregate_weights(w, "density", n_possible = 10), sum(cleaned) / 10)
+  expect_equal(net_aggregate_weights(c(4, 9), "geomean"),
+               exp(mean(log(c(4, 9)))))
+})
+
 test_that("net_aggregate_weights removes NA and zero", {
   expect_equal(net_aggregate_weights(c(1, NA, 0, 2), "sum"), 3)
 })
@@ -53,8 +69,72 @@ test_that("net_aggregate_weights errors on unknown method", {
   expect_error(net_aggregate_weights(c(1, 2), "bogus"), "Unknown method")
 })
 
+test_that("net_aggregate_weights validates arguments strictly", {
+  expect_error(net_aggregate_weights(c("1", "2"), "sum"),
+               "'w' must be a numeric vector", fixed = TRUE)
+  expect_error(net_aggregate_weights(c(1, Inf), "sum"),
+               "'w' must contain only finite values or NA", fixed = TRUE)
+  expect_error(net_aggregate_weights(c(1, 2), NA_character_),
+               "'method' must be a single non-missing character value",
+               fixed = TRUE)
+  expect_error(net_aggregate_weights(c(1, 2), c("sum", "mean")),
+               "'method' must be a single non-missing character value",
+               fixed = TRUE)
+  expect_error(net_aggregate_weights(c(1, 2), "density",
+                                     n_possible = NA_real_),
+               "'n_possible' must be a single finite numeric value or NULL",
+               fixed = TRUE)
+  expect_error(net_aggregate_weights(c(1, 2), "density",
+                                     n_possible = c(1, 2)),
+               "'n_possible' must be a single finite numeric value or NULL",
+               fixed = TRUE)
+})
+
 test_that("net_aggregate_weights is a function", {
   expect_true(is.function(net_aggregate_weights))
+})
+
+# ============================================
+# mcml_layer
+# ============================================
+
+test_that(".mcml_layer validates layer structure strictly", {
+  mat <- matrix(c(1, 2, 3, 4), 2, 2,
+                dimnames = list(c("A", "B"), c("A", "B")))
+
+  layer <- Nestimate:::.mcml_layer(mat, c(A = 0.4, B = 0.6),
+                                   c("A", "B"))
+  expect_s3_class(layer, "mcml_layer")
+  expect_equal(layer$inits, c(A = 0.4, B = 0.6))
+
+  expect_error(Nestimate:::.mcml_layer(data.frame(A = 1), c(A = 1), "A"),
+               "'weights' must be a numeric matrix", fixed = TRUE)
+  expect_error(Nestimate:::.mcml_layer(matrix(1, 2, 3), c(A = 1), "A"),
+               "'weights' must be a square matrix", fixed = TRUE)
+  expect_error(Nestimate:::.mcml_layer(
+    matrix(c(1, NA, 2, 3), 2, 2,
+           dimnames = list(c("A", "B"), c("A", "B"))),
+    c(A = 0.4, B = 0.6), c("A", "B")
+  ), "finite non-missing weights")
+  expect_error(Nestimate:::.mcml_layer(mat, c(A = 1), c("A", "B")),
+               "'inits' must be a finite numeric vector with one value per node",
+               fixed = TRUE)
+  expect_error(Nestimate:::.mcml_layer(mat, c(A = 0.4, C = 0.6),
+                                       c("A", "B")),
+               "'inits' names must match layer labels", fixed = TRUE)
+  expect_error(Nestimate:::.mcml_layer(mat, c(A = 0.4, B = 0.6),
+                                       c("A", "A")),
+               "'labels' must be unique", fixed = TRUE)
+})
+
+test_that("print.mcml_layer rejects unsupported dots", {
+  mat <- matrix(c(1, 2, 3, 4), 2, 2,
+                dimnames = list(c("A", "B"), c("A", "B")))
+  layer <- Nestimate:::.mcml_layer(mat, c(A = 0.4, B = 0.6),
+                                   c("A", "B"))
+
+  expect_error(print(layer, typo_arg = TRUE),
+               "unsupported argument: typo_arg")
 })
 
 # ============================================
@@ -114,6 +194,45 @@ test_that("cluster_summary inits sum to 1", {
   expect_equal(sum(cs$macro$inits), 1, tolerance = 1e-10)
 })
 
+test_that("cluster_summary matrix aggregation matches direct block sums", {
+  mat <- matrix(c(1, 2, 3,
+                  4, 5, 6,
+                  7, 8, 9), 3, 3,
+                dimnames = list(c("A", "B", "C"), c("A", "B", "C")))
+  clusters <- list(G1 = c("A", "B"), G2 = "C")
+
+  cs <- cluster_summary(mat, clusters, method = "sum")
+  manual <- matrix(
+    c(sum(mat[c("A", "B"), c("A", "B")]),
+      sum(mat[c("A", "B"), "C"]),
+      sum(mat["C", c("A", "B")]),
+      mat["C", "C"]),
+    2, 2, byrow = TRUE,
+    dimnames = list(c("G1", "G2"), c("G1", "G2"))
+  )
+
+  expect_equal(cs$macro$weights, manual, tolerance = 1e-12)
+  expect_equal(cs$macro$inits, colSums(manual) / sum(manual),
+               tolerance = 1e-12)
+  expect_equal(cs$clusters$G1$weights,
+               mat[c("A", "B"), c("A", "B")],
+               tolerance = 1e-12)
+})
+
+test_that("cluster_summary rejects invalid logical controls", {
+  mat <- matrix(1, 2, 2, dimnames = list(c("A", "B"), c("A", "B")))
+  clusters <- list(G1 = "A", G2 = "B")
+
+  expect_error(cluster_summary(mat, clusters, directed = NA),
+               "'directed' must be TRUE or FALSE")
+  expect_error(cluster_summary(mat, clusters, directed = c(TRUE, FALSE)),
+               "'directed' must be TRUE or FALSE")
+  expect_error(cluster_summary(mat, clusters, compute_within = NA),
+               "'compute_within' must be TRUE or FALSE")
+  expect_error(cluster_summary(mat, clusters, compute_within = c(TRUE, FALSE)),
+               "'compute_within' must be TRUE or FALSE")
+})
+
 test_that("cluster_summary errors without clusters", {
   mat <- matrix(1, 2, 2, dimnames = list(c("A", "B"), c("A", "B")))
   expect_error(cluster_summary(mat), "clusters")
@@ -124,11 +243,51 @@ test_that("cluster_summary errors on non-square matrix", {
   expect_error(cluster_summary(mat, c(1, 2)), "square")
 })
 
+test_that("cluster_summary validates matrix weights and dimnames strictly", {
+  clusters <- list(G1 = "A", G2 = "B")
+
+  mat_na <- matrix(c(1, NA, 2, 3), 2, 2,
+                   dimnames = list(c("A", "B"), c("A", "B")))
+  expect_error(cluster_summary(mat_na, clusters),
+               "finite non-missing weights")
+
+  mat_dup <- matrix(1, 2, 2,
+                    dimnames = list(c("A", "A"), c("A", "A")))
+  expect_error(cluster_summary(mat_dup, list(G1 = "A")),
+               "row names must be unique")
+
+  mat_col_dup <- matrix(1, 2, 2,
+                        dimnames = list(c("A", "B"), c("A", "A")))
+  expect_error(cluster_summary(mat_col_dup, clusters),
+               "column names must be unique")
+
+  mat_mismatch <- matrix(1, 2, 2,
+                         dimnames = list(c("A", "B"), c("B", "A")))
+  expect_error(cluster_summary(mat_mismatch, clusters),
+               "row and column names must be identical")
+
+  mat_empty <- matrix(1, 2, 2,
+                      dimnames = list(c("A", ""), c("A", "")))
+  expect_error(cluster_summary(mat_empty, list(G1 = "A", G2 = "")),
+               "row names must not contain missing or empty values")
+})
+
 test_that("cluster_summary print method works", {
   mat <- matrix(runif(9), 3, 3,
                 dimnames = list(c("A", "B", "C"), c("A", "B", "C")))
   cs <- cluster_summary(mat, list(G1 = c("A", "B"), G2 = "C"))
   expect_output(print(cs))
+})
+
+test_that("mcml print and summary reject unsupported dots", {
+  mat <- matrix(runif(9), 3, 3,
+                dimnames = list(c("A", "B", "C"), c("A", "B", "C")))
+  cs <- cluster_summary(mat, list(G1 = c("A", "B"), G2 = "C"))
+
+  expect_error(print(cs, typo_arg = TRUE),
+               "unsupported argument: typo_arg")
+  expect_error(summary(cs, typo_arg = TRUE),
+               "unsupported argument: typo_arg")
 })
 
 test_that("cluster_summary is a function", {
@@ -204,6 +363,63 @@ test_that("build_mcml type=raw preserves counts", {
 
   cs <- build_mcml(seqs, clusters, type = "raw")
   expect_true(is.numeric(cs$macro$weights))
+})
+
+test_that("build_mcml raw sequence counts match direct cluster transitions", {
+  seqs <- data.frame(
+    T1 = c("A", "C"),
+    T2 = c("B", "D"),
+    T3 = c("C", "A"),
+    stringsAsFactors = FALSE
+  )
+  clusters <- list(G1 = c("A", "B"), G2 = c("C", "D"))
+
+  cs <- build_mcml(seqs, clusters, type = "raw")
+  manual <- matrix(c(1, 1,
+                     1, 1), 2, 2, byrow = TRUE,
+                   dimnames = list(c("G1", "G2"), c("G1", "G2")))
+
+  expect_equal(cs$macro$weights, manual, tolerance = 1e-12)
+  expect_equal(cs$macro$inits, c(G1 = 0.5, G2 = 0.5),
+               tolerance = 1e-12)
+  expect_equal(nrow(cs$edges), 4L)
+})
+
+test_that("build_mcml rejects invalid logical controls", {
+  seqs <- data.frame(
+    T1 = c("A", "C"),
+    T2 = c("B", "D"),
+    T3 = c("C", "A"),
+    stringsAsFactors = FALSE
+  )
+  clusters <- list(G1 = c("A", "B"), G2 = c("C", "D"))
+
+  expect_error(build_mcml(seqs, clusters, directed = NA),
+               "'directed' must be TRUE or FALSE")
+  expect_error(build_mcml(seqs, clusters, directed = c(TRUE, FALSE)),
+               "'directed' must be TRUE or FALSE")
+  expect_error(build_mcml(seqs, clusters, compute_within = NA),
+               "'compute_within' must be TRUE or FALSE")
+  expect_error(build_mcml(seqs, clusters, compute_within = c(TRUE, FALSE)),
+               "'compute_within' must be TRUE or FALSE")
+})
+
+test_that("build_mcml rejects duplicate and incomplete cluster lists", {
+  seqs <- data.frame(
+    T1 = c("A", "C"),
+    T2 = c("B", "D"),
+    T3 = c("C", "A"),
+    stringsAsFactors = FALSE
+  )
+
+  expect_error(
+    build_mcml(seqs, list(G1 = c("A", "B"), G2 = c("B", "C", "D"))),
+    "Nodes assigned to multiple clusters: B"
+  )
+  expect_error(
+    build_mcml(seqs, list(G1 = c("A", "B"), G2 = "C")),
+    "Unmapped nodes: D"
+  )
 })
 
 test_that("build_mcml returns mcml if already mcml", {
@@ -400,6 +616,29 @@ test_that(".detect_mcml_input returns unknown for unrecognized class (L644)", {
   expect_equal(result, "unknown")
 })
 
+test_that(".detect_mcml_input accepts igraph-style first-two-column edge lists", {
+  unnamed_edges <- data.frame(node_from = c("A", "B"),
+                              node_to = c("B", "A"),
+                              stringsAsFactors = FALSE)
+  weighted_edges <- data.frame(node_from = c("A", "B"),
+                               node_to = c("B", "A"),
+                               weight = c(2, 3),
+                               stringsAsFactors = FALSE)
+
+  expect_equal(Nestimate:::.detect_mcml_input(unnamed_edges), "edgelist")
+  expect_equal(Nestimate:::.detect_mcml_input(weighted_edges), "edgelist")
+})
+
+test_that(".detect_mcml_input keeps named two-step sequence data as sequence", {
+  seqs <- data.frame(T1 = c("A", "B"), T2 = c("B", "A"),
+                     stringsAsFactors = FALSE)
+  long_names <- data.frame(time1 = c("A", "B"), time2 = c("B", "A"),
+                           stringsAsFactors = FALSE)
+
+  expect_equal(Nestimate:::.detect_mcml_input(seqs), "sequence")
+  expect_equal(Nestimate:::.detect_mcml_input(long_names), "sequence")
+})
+
 # ---- .auto_detect_clusters coverage (L650-672) ----
 
 test_that(".auto_detect_clusters finds cluster from nodes$cluster column (L650-656)", {
@@ -459,6 +698,49 @@ test_that(".auto_detect_clusters errors when no cluster info found (L667-671)", 
   expect_error(Nestimate:::.auto_detect_clusters(net), "No clusters found")
 })
 
+test_that(".auto_detect_clusters rejects missing and duplicate auto assignments", {
+  mat <- matrix(0, 3, 3, dimnames = list(c("A", "B", "C"), c("A", "B", "C")))
+  nodes <- data.frame(label = c("A", "B", "C"), stringsAsFactors = FALSE)
+
+  nodes_bad <- data.frame(label = c("A", "B", "C"),
+                          cluster = c("G1", NA, "G2"),
+                          stringsAsFactors = FALSE)
+  net_nodes_bad <- structure(
+    list(weights = mat, nodes = nodes_bad, data = NULL, node_groups = NULL),
+    class = c("netobject", "cograph_network")
+  )
+  expect_error(Nestimate:::.auto_detect_clusters(net_nodes_bad),
+               "x\\$nodes cluster assignments must not contain missing")
+
+  net_dup_groups <- structure(
+    list(
+      weights = mat,
+      nodes = nodes,
+      data = NULL,
+      node_groups = data.frame(node = c("A", "A", "B", "C"),
+                               cluster = c("G1", "G2", "G1", "G2"),
+                               stringsAsFactors = FALSE)
+    ),
+    class = c("netobject", "cograph_network")
+  )
+  expect_error(Nestimate:::.auto_detect_clusters(net_dup_groups),
+               "assigns duplicate rows to node\\(s\\): A")
+
+  net_missing_group <- structure(
+    list(
+      weights = mat,
+      nodes = nodes,
+      data = NULL,
+      node_groups = data.frame(node = c("A", "B", "C"),
+                               cluster = c("G1", "", "G2"),
+                               stringsAsFactors = FALSE)
+    ),
+    class = c("netobject", "cograph_network")
+  )
+  expect_error(Nestimate:::.auto_detect_clusters(net_missing_group),
+               "node_groups cluster assignments must not contain missing")
+})
+
 # ---- .build_cluster_lookup coverage (L696-725) ----
 
 test_that(".build_cluster_lookup errors on unmapped nodes (L696-698)", {
@@ -467,6 +749,15 @@ test_that(".build_cluster_lookup errors on unmapped nodes (L696-698)", {
   expect_error(
     Nestimate:::.build_cluster_lookup(cl, c("A", "B", "C")),
     "Unmapped nodes"
+  )
+})
+
+test_that(".build_cluster_lookup rejects duplicate list membership", {
+  cl <- list(G1 = c("A", "B"), G2 = c("B", "C"))
+
+  expect_error(
+    Nestimate:::.build_cluster_lookup(cl, c("A", "B", "C")),
+    "Nodes assigned to multiple clusters: B"
   )
 })
 
@@ -542,6 +833,73 @@ test_that("build_mcml zero transitions produce uniform between_inits (L784)", {
   expect_s3_class(cs, "mcml")
 })
 
+test_that(".build_from_transitions validates transition vectors strictly", {
+  clusters <- list(G1 = "A", G2 = "B")
+  lookup <- c(A = "G1", B = "G2")
+
+  expect_error(
+    Nestimate:::.build_from_transitions(
+      c("A"), c("B", "A"), c(1), lookup, clusters,
+      "sum", "raw", TRUE, TRUE
+    ),
+    "must have the same length"
+  )
+  expect_error(
+    Nestimate:::.build_from_transitions(
+      c("A"), c("B"), NA_real_, lookup, clusters,
+      "sum", "raw", TRUE, TRUE
+    ),
+    "'weights' must be a finite non-missing numeric vector",
+    fixed = TRUE
+  )
+  expect_error(
+    Nestimate:::.build_from_transitions(
+      c("A"), c("B"), -1, lookup, clusters,
+      "sum", "raw", TRUE, TRUE
+    ),
+    "'weights' must not contain negative values",
+    fixed = TRUE
+  )
+  expect_error(
+    Nestimate:::.build_from_transitions(
+      c("X"), c("B"), 1, lookup, clusters,
+      "sum", "raw", TRUE, TRUE
+    ),
+    "'cluster_lookup' is missing node\\(s\\): X"
+  )
+  expect_error(
+    Nestimate:::.build_from_transitions(
+      c("A"), c("B"), 1, c(A = "G1", B = "G9"), clusters,
+      "sum", "raw", TRUE, TRUE
+    ),
+    "'cluster_lookup' contains unknown cluster\\(s\\): G9"
+  )
+  expect_error(
+    Nestimate:::.build_from_transitions(
+      c("A"), c("B"), 1, lookup, clusters,
+      "sum", "raw", TRUE, NA
+    ),
+    "'compute_within' must be TRUE or FALSE",
+    fixed = TRUE
+  )
+})
+
+test_that(".build_from_transitions accepts zero-transition inputs", {
+  clusters <- list(G1 = "A", G2 = "B")
+  lookup <- c(A = "G1", B = "G2")
+
+  out <- Nestimate:::.build_from_transitions(
+    character(0), character(0), numeric(0), lookup, clusters,
+    "sum", "raw", TRUE, TRUE
+  )
+
+  expect_s3_class(out, "mcml")
+  expect_equal(out$macro$weights,
+               matrix(0, 2, 2, dimnames = list(c("G1", "G2"),
+                                                c("G1", "G2"))))
+  expect_equal(out$macro$inits, c(G1 = 0.5, G2 = 0.5))
+})
+
 # ---- Single-node within-cluster (L839-847) ----
 
 test_that("build_mcml single-node cluster computes self-loop weight (L839-847)", {
@@ -578,34 +936,107 @@ test_that("build_mcml single-node cluster with no self-loops returns 0 weight (L
   expect_equal(unname(cs$clusters$G2$inits), 1)
 })
 
-# ---- .build_mcml_edgelist: fallback column detection (L945, L949) ----
+# ---- .build_mcml_edgelist: igraph-style endpoint detection ----
 
-test_that(".build_mcml_edgelist falls back to first/second columns when no named from/to (L945,L949)", {
-  # Column names not in the standard from/to list — call .build_mcml_edgelist directly
+test_that(".build_mcml_edgelist accepts first two columns as endpoints", {
   edges <- data.frame(
     node_from = c("A", "B", "C"),
     node_to   = c("B", "C", "A"),
     stringsAsFactors = FALSE
   )
-  # Neither 'node_from' nor 'node_to' match standard aliases
-  # so from_col and to_col fall back to 1 and 2 respectively
   clusters <- list(G1 = c("A", "B"), G2 = "C")
-  cs <- Nestimate:::.build_mcml_edgelist(edges, clusters, "sum", "tna", TRUE, TRUE)
+  cs <- Nestimate:::.build_mcml_edgelist(edges, clusters, "sum", "raw",
+                                         TRUE, TRUE)
+
   expect_s3_class(cs, "mcml")
+  expect_equal(cs$macro$weights["G1", "G1"], 1)
+  expect_equal(cs$macro$weights["G1", "G2"], 1)
+  expect_equal(cs$macro$weights["G2", "G1"], 1)
+})
+
+test_that("build_mcml distinguishes two-step sequences from unnamed edge lists", {
+  clusters <- list(G1 = "A", G2 = "B")
+  seqs <- data.frame(T1 = c("A", "A", "B"),
+                     T2 = c("B", "B", "B"),
+                     stringsAsFactors = FALSE)
+  edges <- data.frame(node_from = c("A", "A", "B"),
+                      node_to = c("B", "B", "B"),
+                      stringsAsFactors = FALSE)
+
+  seq_mc <- build_mcml(seqs, clusters, type = "raw")
+  edge_mc <- build_mcml(edges, clusters, type = "raw")
+
+  expect_null(attr(seq_mc$macro$data, "source"))
+  expect_identical(attr(edge_mc$macro$data, "source"), "edgelist")
+  expect_equal(seq_mc$macro$inits, c(G1 = 2 / 3, G2 = 1 / 3),
+               tolerance = 1e-12)
+  expect_equal(edge_mc$macro$inits, c(G1 = 0, G2 = 1),
+               tolerance = 1e-12)
+})
+
+test_that("build_mcml edgelist validates endpoints and weights", {
+  clusters <- list(G1 = "A", G2 = "B")
+
+  expect_error(
+    build_mcml(
+      data.frame(from = c("A", ""), to = c("B", "A"),
+                 stringsAsFactors = FALSE),
+      clusters, type = "raw"
+    ),
+    "source and target columns must not contain missing or empty values"
+  )
+  expect_error(
+    build_mcml(
+      data.frame(from = c("A", "B"), to = c("B", "A"),
+                 weight = c("2", "bad"), stringsAsFactors = FALSE),
+      clusters, type = "raw"
+    ),
+    "weight column must be numeric"
+  )
+  expect_error(
+    build_mcml(
+      data.frame(from = c("A", "B"), to = c("B", "A"),
+                 weight = c(2, NA_real_), stringsAsFactors = FALSE),
+      clusters, type = "raw"
+    ),
+    "weight column must contain finite non-missing values"
+  )
+  expect_error(
+    build_mcml(
+      data.frame(from = c("A", "B"), to = c("B", "A"),
+                 weight = c(2, -1), stringsAsFactors = FALSE),
+      clusters, type = "raw"
+    ),
+    "weight column must not contain negative values"
+  )
 })
 
 # ---- Column-name clusters branch in edgelist (L971-989) ----
 
 test_that("build_mcml edgelist accepts cluster column name (L971-989)", {
   edges <- data.frame(
-    from  = c("A", "A", "B", "C", "C", "D"),
-    to    = c("B", "C", "A", "D", "D", "A"),
-    group = c("G1", "G1", "G1", "G2", "G2", "G2"),
+    from  = c("A", "B", "C", "D"),
+    to    = c("B", "A", "D", "C"),
+    group = c("G1", "G1", "G2", "G2"),
     stringsAsFactors = FALSE
   )
   cs <- build_mcml(edges, clusters = "group")
   expect_s3_class(cs, "mcml")
   expect_equal(nrow(cs$macro$weights), 2)
+})
+
+test_that("build_mcml edgelist cluster column rejects conflicting node groups", {
+  edges <- data.frame(
+    from = c("A", "B"),
+    to = c("B", "A"),
+    group = c("G1", "G2"),
+    stringsAsFactors = FALSE
+  )
+
+  expect_error(
+    build_mcml(edges, clusters = "group"),
+    "assigns nodes to multiple groups"
+  )
 })
 
 test_that("build_mcml edgelist errors when clusters=NULL (L992-993)", {
@@ -665,6 +1096,36 @@ test_that(".build_mcml_sequence calls .normalize_clusters for non-list clusters 
   expect_s3_class(cs, "mcml")
 })
 
+test_that("build_mcml sequence requires clusters for all observed states", {
+  seqs <- data.frame(
+    T1 = c("X", "A"),
+    T2 = c(NA, "B"),
+    stringsAsFactors = FALSE
+  )
+
+  expect_error(
+    build_mcml(seqs, list(G1 = "A", G2 = "B"), type = "raw"),
+    "Unmapped nodes: X"
+  )
+})
+
+test_that("build_mcml sequence keeps zero-transition observed states in metadata", {
+  seqs <- data.frame(
+    T1 = c("X", "A"),
+    T2 = c(NA, "B"),
+    stringsAsFactors = FALSE
+  )
+  clusters <- list(G1 = c("A", "X"), G2 = "B")
+
+  mc <- build_mcml(seqs, clusters, type = "raw")
+
+  expect_equal(mc$meta$n_nodes, 3L)
+  expect_equal(mc$meta$cluster_sizes, c(G1 = 2L, G2 = 1L))
+  expect_equal(mc$macro$weights["G1", "G2"], 1)
+  expect_equal(mc$macro$inits, c(G1 = 1, G2 = 0), tolerance = 1e-12)
+  expect_equal(mc$macro$data$T1, c("G1", "G1"))
+})
+
 # ---- .process_weights: cooccurrence type (L1070) ----
 
 test_that(".process_weights returns symmetrized matrix for cooccurrence type (L1070)", {
@@ -673,6 +1134,63 @@ test_that(".process_weights returns symmetrized matrix for cooccurrence type (L1
   result <- Nestimate:::.process_weights(raw, "cooccurrence")
   expect_true(isSymmetric(result))
   expect_equal(result["A", "B"], 2.5)
+})
+
+test_that(".process_weights applies undirected symmetrisation before type processing", {
+  raw <- matrix(c(0, 3, 1, 0), 2, 2,
+                dimnames = list(c("A", "B"), c("A", "B")))
+  sym <- (raw + t(raw)) / 2
+
+  expect_equal(Nestimate:::.process_weights(raw, "raw", directed = FALSE),
+               sym)
+  expect_equal(Nestimate:::.process_weights(raw, "frequency",
+                                            directed = FALSE), sym)
+  expect_equal(Nestimate:::.process_weights(raw, "tna", directed = FALSE),
+               matrix(c(0, 1, 1, 0), 2, 2,
+                      dimnames = dimnames(raw)))
+  expect_equal(Nestimate:::.process_weights(raw, "semi_markov",
+                                            directed = FALSE),
+               matrix(c(0, 1, 1, 0), 2, 2,
+                      dimnames = dimnames(raw)))
+})
+
+test_that(".process_weights validates arguments strictly", {
+  raw <- matrix(c(0, 1, 3, 0), 2, 2)
+
+  expect_error(Nestimate:::.process_weights(data.frame(A = 1), "raw"),
+               "'raw_weights' must be a numeric matrix", fixed = TRUE)
+  expect_error(Nestimate:::.process_weights(matrix(1, 2, 3), "raw"),
+               "'raw_weights' must be a square matrix", fixed = TRUE)
+  expect_error(Nestimate:::.process_weights(raw, NA_character_),
+               "'type' must be a single non-missing character value",
+               fixed = TRUE)
+  expect_error(Nestimate:::.process_weights(raw, "bad"),
+               "'type' must be one of", fixed = TRUE)
+  expect_error(Nestimate:::.process_weights(raw, "raw", directed = NA),
+               "'directed' must be TRUE or FALSE", fixed = TRUE)
+})
+
+test_that("build_mcml sequence path honours directed = FALSE", {
+  seqs <- data.frame(
+    T1 = c("A", "A", "A"),
+    T2 = c("B", "B", "B"),
+    stringsAsFactors = FALSE
+  )
+  clusters <- list(G1 = "A", G2 = "B")
+
+  directed_raw <- build_mcml(seqs, clusters, type = "raw",
+                             directed = TRUE)$macro$weights
+  undirected_raw <- build_mcml(seqs, clusters, type = "raw",
+                               directed = FALSE)$macro$weights
+  undirected_tna <- build_mcml(seqs, clusters, type = "tna",
+                               directed = FALSE)$macro$weights
+
+  expect_equal(directed_raw["G1", "G2"], 3)
+  expect_equal(directed_raw["G2", "G1"], 0)
+  expect_equal(undirected_raw["G1", "G2"], 1.5)
+  expect_equal(undirected_raw["G2", "G1"], 1.5)
+  expect_equal(undirected_tna["G1", "G2"], 1)
+  expect_equal(undirected_tna["G2", "G1"], 1)
 })
 
 # ---- as_tna generic dispatch and methods (L1226-1306) ----
@@ -692,6 +1210,19 @@ test_that("as_tna.mcml on matrix path uses frequency method (matrix is aggregati
   result <- as_tna(cs)
   expect_s3_class(result, "netobject_group")
   # Matrix-derived mcml carries no $meta$type, as_tna defaults to "frequency".
+  expect_equal(result$macro$method, "frequency")
+})
+
+test_that("as_tna.mcml preserves matrix-path macro weights and inits", {
+  mat <- matrix(c(1, 2, 3,
+                  4, 5, 6,
+                  7, 8, 9), 3, 3,
+                dimnames = list(c("A", "B", "C"), c("A", "B", "C")))
+  cs <- cluster_summary(mat, list(G1 = c("A", "B"), G2 = "C"))
+  result <- as_tna(cs)
+
+  expect_identical(result$macro$weights, cs$macro$weights)
+  expect_identical(result$macro$inits, cs$macro$inits)
   expect_equal(result$macro$method, "frequency")
 })
 
@@ -738,6 +1269,35 @@ test_that(".wrap_netobject produces valid dual-class object (L1270-1296)", {
   expect_equal(result$nodes$label, c("A", "B", "C"))
 })
 
+test_that(".wrap_netobject validates matrix and inits strictly", {
+  mat <- matrix(c(1, 2, 3, 4), 2, 2,
+                dimnames = list(c("A", "B"), c("A", "B")))
+
+  expect_error(Nestimate:::.wrap_netobject(data.frame(A = 1)),
+               "'mat' must be a numeric matrix", fixed = TRUE)
+  expect_error(Nestimate:::.wrap_netobject(matrix(1, 2, 3)),
+               "'mat' must be a square matrix", fixed = TRUE)
+  expect_error(Nestimate:::.wrap_netobject(
+    matrix(c(1, NA, 2, 3), 2, 2,
+           dimnames = list(c("A", "B"), c("A", "B")))
+  ), "finite non-missing weights")
+  expect_error(Nestimate:::.wrap_netobject(mat, method = NA_character_),
+               "'method' must be a single non-missing character value",
+               fixed = TRUE)
+  expect_error(Nestimate:::.wrap_netobject(mat, directed = NA),
+               "'directed' must be TRUE or FALSE", fixed = TRUE)
+  expect_error(Nestimate:::.wrap_netobject(mat, inits = c(A = 1)),
+               "'inits' must be a finite numeric vector with one value per state",
+               fixed = TRUE)
+  expect_error(Nestimate:::.wrap_netobject(mat, inits = c(A = 1, C = 0)),
+               "'inits' names must match matrix state names", fixed = TRUE)
+
+  unnamed <- Nestimate:::.wrap_netobject(matrix(c(1, 2, 3, 4), 2, 2),
+                                         inits = c(0.25, 0.75))
+  expect_equal(rownames(unnamed$weights), c("1", "2"))
+  expect_equal(names(unnamed$inits), c("1", "2"))
+})
+
 test_that("as_tna.default errors for non-tna objects (L1305-1306)", {
   expect_error(as_tna(list(a = 1)), "Cannot convert")
   expect_error(as_tna("some string"), "Cannot convert")
@@ -757,12 +1317,74 @@ test_that(".normalize_clusters handles data.frame input (L1313-1318)", {
   expect_equal(sort(names(result)), c("G1", "G2"))
 })
 
+test_that(".normalize_clusters validates data.frame membership strictly", {
+  node_names <- c("A", "B", "C")
+
+  expect_error(
+    Nestimate:::.normalize_clusters(data.frame(node = c("A", "B", "C")),
+                                    node_names),
+    "must have at least two columns"
+  )
+  expect_error(
+    Nestimate:::.normalize_clusters(
+      data.frame(node = c("A", "", "C"), group = c("G1", "G1", "G2")),
+      node_names
+    ),
+    "node column must not contain missing or empty values"
+  )
+  expect_error(
+    Nestimate:::.normalize_clusters(
+      data.frame(node = c("A", "B", "C"), group = c("G1", NA, "G2")),
+      node_names
+    ),
+    "group column must not contain missing or empty values"
+  )
+  expect_error(
+    Nestimate:::.normalize_clusters(
+      data.frame(node = c("A", "A", "B", "C"),
+                 group = c("G1", "G2", "G1", "G2")),
+      node_names
+    ),
+    "Nodes assigned to multiple clusters: A"
+  )
+})
+
 test_that(".normalize_clusters errors on unknown nodes in list (L1325-1327)", {
   node_names <- c("A", "B")
   # C is not in node_names
   expect_error(
     Nestimate:::.normalize_clusters(list(G1 = c("A", "C")), node_names),
     "Unknown nodes"
+  )
+})
+
+test_that(".normalize_clusters rejects duplicate and missing list mappings", {
+  node_names <- c("A", "B", "C")
+
+  expect_error(
+    Nestimate:::.normalize_clusters(
+      list(G1 = c("A", "B"), G2 = c("B", "C")),
+      node_names
+    ),
+    "Nodes assigned to multiple clusters: B"
+  )
+  expect_error(
+    Nestimate:::.normalize_clusters(list(G1 = c("A", "B")), node_names),
+    "Unmapped nodes: C"
+  )
+})
+
+test_that("cluster_summary rejects duplicate and incomplete cluster lists", {
+  mat <- matrix(1, 3, 3,
+                dimnames = list(c("A", "B", "C"), c("A", "B", "C")))
+
+  expect_error(
+    cluster_summary(mat, list(G1 = c("A", "B"), G2 = c("B", "C"))),
+    "Nodes assigned to multiple clusters: B"
+  )
+  expect_error(
+    cluster_summary(mat, list(G1 = c("A", "B"))),
+    "Unmapped nodes: C"
   )
 })
 
@@ -788,6 +1410,53 @@ test_that(".normalize_clusters handles character cluster membership (L1348-1359)
   result <- Nestimate:::.normalize_clusters(c("G1", "G1", "G2"), node_names)
   expect_true(is.list(result))
   expect_equal(length(result), 2)
+})
+
+test_that(".normalize_clusters aligns named membership vectors by node name", {
+  node_names <- c("A", "B", "C")
+
+  result <- Nestimate:::.normalize_clusters(
+    c(C = "G2", A = "G1", B = "G1"),
+    node_names
+  )
+  expect_equal(result$G1, c("A", "B"))
+  expect_equal(result$G2, "C")
+
+  result_num <- Nestimate:::.normalize_clusters(
+    c(C = 2, A = 1, B = 1),
+    node_names
+  )
+  expect_equal(result_num$`1`, c("A", "B"))
+  expect_equal(result_num$`2`, "C")
+})
+
+test_that(".normalize_clusters rejects malformed membership vectors", {
+  node_names <- c("A", "B", "C")
+
+  expect_error(
+    Nestimate:::.normalize_clusters(c(A = "G1", A = "G2", B = "G1"),
+                                    node_names),
+    "names must be unique"
+  )
+  expect_error(
+    Nestimate:::.normalize_clusters(c(A = "G1", B = "G1", D = "G2"),
+                                    node_names),
+    "names must match node names exactly"
+  )
+  expect_error(
+    Nestimate:::.normalize_clusters(setNames(c("G1", "G1", "G2"),
+                                             c("A", "", "C")),
+                                    node_names),
+    "names must not contain missing or empty values"
+  )
+  expect_error(
+    Nestimate:::.normalize_clusters(c("G1", NA, "G2"), node_names),
+    "must not contain missing or empty values"
+  )
+  expect_error(
+    Nestimate:::.normalize_clusters(c(1, NA_real_, 2), node_names),
+    "must not contain missing or non-finite values"
+  )
 })
 
 test_that(".normalize_clusters errors on character vector wrong length (L1350-1351)", {
@@ -885,11 +1554,51 @@ test_that("centrality_stability() works on mcml", {
   }
 })
 
+test_that("centrality_stability() mcml dispatch matches as_tna group shape", {
+  cs <- .make_mcml()
+  grp <- as_tna(cs)
+
+  stab_mc <- centrality_stability(cs, iter = 5, seed = 1)
+  stab_grp <- centrality_stability(grp, iter = 5, seed = 1)
+
+  expect_identical(names(stab_mc), names(grp))
+  expect_identical(
+    vapply(stab_mc, function(x) class(x)[1L], character(1L)),
+    vapply(stab_grp, function(x) class(x)[1L], character(1L))
+  )
+})
+
 test_that("network_reliability() works on mcml", {
   cs <- .make_mcml()
   rel <- network_reliability(cs, iter = 20, seed = 1)
 
   expect_s3_class(rel, "net_reliability")
+})
+
+test_that("network_reliability() mcml dispatch matches as_tna labels", {
+  cs <- .make_mcml()
+  grp <- as_tna(cs)
+
+  rel_mc <- network_reliability(cs, iter = 5, seed = 1)
+  rel_grp <- network_reliability(grp, iter = 5, seed = 1)
+
+  expect_s3_class(rel_mc, "net_reliability")
+  expect_setequal(as.character(rel_mc$results$network),
+                  as.character(rel_grp$results$network))
+})
+
+test_that("casedrop_reliability() mcml dispatch matches as_tna group shape", {
+  cs <- .make_mcml()
+  grp <- as_tna(cs)
+
+  case_mc <- casedrop_reliability(cs, iter = 5, seed = 1)
+  case_grp <- casedrop_reliability(grp, iter = 5, seed = 1)
+
+  expect_identical(names(case_mc), names(grp))
+  expect_identical(
+    vapply(case_mc, function(x) class(x)[1L], character(1L)),
+    vapply(case_grp, function(x) class(x)[1L], character(1L))
+  )
 })
 
 test_that("extract_transition_matrix() works on mcml", {
@@ -925,6 +1634,40 @@ test_that("extract_edges() works on mcml", {
   expect_true("macro" %in% names(edges))
   expect_true(is.data.frame(edges$macro))
   expect_true(all(c("from", "to", "weight") %in% names(edges$macro)))
+})
+
+test_that("mcml extraction returns stored matrices, inits, and delegated edges", {
+  seqs <- data.frame(
+    T1 = c("A", "D"),
+    T2 = c("B", "E"),
+    T3 = c("C", "F"),
+    T4 = c("A", "D"),
+    stringsAsFactors = FALSE
+  )
+  clusters <- list(G1 = c("A", "B", "C"), G2 = c("D", "E", "F"))
+  mc <- build_mcml(seqs, clusters, type = "raw")
+
+  mats <- extract_transition_matrix(mc)
+  inits <- extract_initial_probs(mc)
+  edges <- extract_edges(mc, include_self = TRUE, sort_by = "from")
+  ref_edges <- extract_edges(mc$macro, include_self = TRUE, sort_by = "from")
+
+  expect_identical(unclass(mats$macro), mc$macro$weights)
+  expect_identical(unclass(mats$G1), mc$clusters$G1$weights)
+  expect_identical(inits$macro, mc$macro$inits)
+  expect_identical(inits$G1, mc$clusters$G1$inits)
+  expect_identical(edges$macro, ref_edges)
+})
+
+test_that("extract_edges rejects invalid controls on mcml", {
+  cs <- .make_mcml()
+
+  expect_error(extract_edges(cs, threshold = NA_real_),
+               "'threshold' must be a single finite numeric")
+  expect_error(extract_edges(cs, include_self = NA),
+               "'include_self' must be TRUE or FALSE")
+  expect_error(extract_edges(cs, sort_by = "bad"),
+               "'sort_by' must be one of")
 })
 
 # ---- Edgelist input: $data propagated to macro + clusters so that
@@ -1061,6 +1804,47 @@ test_that("MCML labels propagate to state_distribution()", {
   expect_true(any(grepl("Activity|Behavior", sd$state)))
 })
 
+test_that("MCML labels reject collisions and leave macro cluster labels untouched", {
+  seq_df <- data.frame(
+    t1 = c("a1", "a2", "b1", "b2"),
+    t2 = c("a2", "a1", "b2", "b1"),
+    stringsAsFactors = FALSE
+  )
+  clusters <- list(A = c("a1", "a2"), B = c("b1", "b2"))
+
+  expect_error(
+    build_mcml(seq_df, clusters, labels = c(a1 = "Same", a2 = "Same")),
+    "`labels` values must be unique",
+    fixed = TRUE
+  )
+  expect_error(
+    build_mcml(seq_df, clusters, labels = c(a1 = "a2")),
+    "`labels` must map nodes to unique labels",
+    fixed = TRUE
+  )
+  expect_error(
+    build_mcml(seq_df, clusters, labels = setNames("Activity", "")),
+    "`labels` must have non-empty source names",
+    fixed = TRUE
+  )
+  expect_error(
+    build_mcml(seq_df, clusters, labels = c(a1 = "")),
+    "`labels` values must be non-missing and non-empty",
+    fixed = TRUE
+  )
+
+  labelled <- build_mcml(
+    seq_df, clusters,
+    labels = c(a1 = "Activity-1", a2 = "Activity-2",
+               A = "Do-not-rename-cluster")
+  )
+
+  expect_equal(labelled$macro$labels, c("A", "B"))
+  expect_equal(rownames(labelled$macro$weights), c("A", "B"))
+  expect_true("Activity-1" %in% labelled$clusters$A$labels)
+  expect_false("Do-not-rename-cluster" %in% labelled$macro$labels)
+})
+
 # ============================================
 # audit_mcml gap: edge-list `clusters = "<colname>"` mode assigns the
 # row's group to BOTH endpoints. Pin the expected behaviour so the
@@ -1121,4 +1905,24 @@ test_that("as_tna.mcml drops zero-row-sum clusters and warns", {
   expect_warning(out <- as_tna(mc), "Dropped clusters with zero row sums")
   expect_false("G2" %in% names(out))
   expect_true("macro" %in% names(out))
+})
+
+test_that("as_tna.mcml preserves relative macro weights and inits while dropping bad within clusters", {
+  seq_df <- data.frame(
+    t1 = c("b2", "b2", "a1", "a2"),
+    t2 = c("b1", "b1", "a2", "a1"),
+    t3 = c("a1", "a2", "a1", "a2"),
+    t4 = c("a2", "a1", "a2", "a1"),
+    stringsAsFactors = FALSE
+  )
+  clusters <- list(G1 = c("a1", "a2"), G2 = c("b1", "b2"))
+  mc <- build_mcml(seq_df, clusters, type = "tna")
+
+  expect_warning(result <- as_tna(mc),
+                 "Dropped clusters with zero row sums")
+  expect_identical(result$macro$weights, mc$macro$weights)
+  expect_identical(result$macro$inits, mc$macro$inits)
+  expect_equal(result$macro$method, "relative")
+  expect_true("G1" %in% names(result))
+  expect_false("G2" %in% names(result))
 })

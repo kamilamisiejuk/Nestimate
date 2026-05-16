@@ -9,7 +9,7 @@
 \arguments{
 \item{x}{An \code{mmm_compare} object.}
 
-\item{...}{Additional arguments (ignored).}
+\item{...}{Unsupported. Supplying unused arguments raises an error.}
 }
 \value{
 A \code{ggplot} object, invisibly.

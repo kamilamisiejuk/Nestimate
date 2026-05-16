@@ -299,6 +299,30 @@ test_that("id_col columns are excluded from analysis", {
   expect_false("rid" %in% colnames(net$weights))
 })
 
+test_that("association id and id_col params are resolved exactly", {
+  df <- .make_freq_data(n = 80, p = 5)
+  df$subject_id <- rep(seq_len(20), each = 4)
+
+  via_id_col <- build_network(df, method = "cor",
+                              params = list(id_col = "subject_id"))
+  via_id <- build_network(df, method = "cor",
+                          params = list(id = "subject_id"))
+  expect_false("subject_id" %in% colnames(via_id_col$weights))
+  expect_false("subject_id" %in% colnames(via_id$weights))
+
+  between <- build_network(df, method = "cor",
+                           params = list(id_col = "subject_id"),
+                           level = "between")
+  expect_equal(between$level, "between")
+  expect_equal(between$n, 20L)
+
+  expect_error(
+    build_network(df, method = "cor",
+                  params = list(id = "subject_id", id_col = "state_1")),
+    "'actor' and 'params\\$id_col' specify different columns"
+  )
+})
+
 
 # ---- Gamma effects ----
 
@@ -769,6 +793,118 @@ test_that("build_network with explicit codes triggers onehot format", {
   expect_false(net$directed)
 })
 
+test_that("onehot frequency dispatch matches wtna transition counts", {
+  df <- data.frame(
+    A = c(1L, 0L, 1L, 0L, 1L, 0L),
+    B = c(0L, 1L, 0L, 1L, 0L, 1L),
+    C = c(0L, 0L, 1L, 0L, 0L, 1L)
+  )
+
+  net <- suppressWarnings(build_network(df, method = "frequency",
+                                        format = "onehot",
+                                        window_size = 1L))
+  ref <- suppressWarnings(build_network(df, method = "wtna",
+                                        window_size = 1L))
+
+  expect_equal(net$nodes$label, ref$nodes$label)
+  expect_equal(net$weights, ref$weights)
+  expect_equal(net$frequency_matrix, ref$weights)
+  expect_equal(net$method, "frequency")
+})
+
+test_that("onehot relative dispatch matches wtna transition probabilities", {
+  df <- data.frame(
+    A = c(1L, 0L, 1L, 0L, 1L, 0L),
+    B = c(0L, 1L, 0L, 1L, 0L, 1L),
+    C = c(0L, 0L, 1L, 0L, 0L, 1L)
+  )
+
+  net <- suppressWarnings(build_network(df, method = "relative",
+                                        format = "onehot",
+                                        window_size = 1L))
+  ref <- wtna(df, method = "transition", type = "relative",
+              window_size = 1L)
+
+  expect_equal(net$nodes$label, ref$nodes$label)
+  expect_equal(net$weights, ref$weights)
+  expect_equal(net$method, "relative")
+})
+
+test_that("onehot build_network treats NA indicators as inactive", {
+  df_na <- data.frame(
+    A = c(1L, NA, 0L, 1L),
+    B = c(0L, 1L, NA, 0L),
+    C = c(0L, 0L, 1L, NA)
+  )
+  df_zero <- df_na
+  df_zero[is.na(df_zero)] <- 0L
+
+  freq_na <- suppressWarnings(build_network(df_na, method = "frequency",
+                                            format = "onehot",
+                                            codes = c("A", "B", "C"),
+                                            window_size = 1L))
+  freq_zero <- suppressWarnings(build_network(df_zero, method = "frequency",
+                                              format = "onehot",
+                                              codes = c("A", "B", "C"),
+                                              window_size = 1L))
+  rel_na <- suppressWarnings(build_network(df_na, method = "relative",
+                                           format = "onehot",
+                                           codes = c("A", "B", "C"),
+                                           window_size = 1L))
+  rel_zero <- suppressWarnings(build_network(df_zero, method = "relative",
+                                             format = "onehot",
+                                             codes = c("A", "B", "C"),
+                                             window_size = 1L))
+  cna_na <- suppressWarnings(build_network(df_na, method = "cna",
+                                           format = "onehot",
+                                           codes = c("A", "B", "C"),
+                                           window_size = 1L))
+  cna_zero <- suppressWarnings(build_network(df_zero, method = "cna",
+                                             format = "onehot",
+                                             codes = c("A", "B", "C"),
+                                             window_size = 1L))
+
+  expect_false(anyNA(freq_na$weights))
+  expect_false(anyNA(rel_na$weights))
+  expect_false(anyNA(cna_na$weights))
+  expect_equal(freq_na$weights, freq_zero$weights)
+  expect_equal(rel_na$weights, rel_zero$weights)
+  expect_equal(cna_na$weights, cna_zero$weights)
+})
+
+test_that("onehot build_network keeps code columns in data", {
+  df <- data.frame(
+    A = c(1L, 0L, 1L, 0L, 1L, 0L),
+    B = c(0L, 1L, 0L, 1L, 0L, 1L),
+    C = c(0L, 0L, 1L, 0L, 0L, 1L)
+  )
+
+  net <- suppressWarnings(build_network(df, method = "frequency",
+                                        format = "onehot",
+                                        window_size = 1L))
+
+  expect_equal(names(net$data), c("A", "B", "C"))
+  expect_null(net$metadata)
+  expect_equal(net$data, df)
+})
+
+test_that("onehot build_network separates actor/session metadata from codes", {
+  df <- data.frame(
+    actor = c("s1", "s1", "s1", "s2", "s2", "s2"),
+    session = c("a", "a", "b", "a", "a", "b"),
+    A = c(1L, 0L, 1L, 0L, 1L, 0L),
+    B = c(0L, 1L, 0L, 1L, 0L, 1L)
+  )
+
+  net <- build_network(df, method = "relative", format = "onehot",
+                       codes = c("A", "B"), actor = "actor",
+                       session = "session", window_size = 1L)
+
+  expect_equal(names(net$data), c("A", "B"))
+  expect_true(all(c("actor", "session") %in% names(net$metadata)))
+  expect_equal(net$data, df[, c("A", "B")])
+})
+
 # L215: action column present → long format detection
 test_that("build_network auto-detects long format via action column", {
   long_data <- data.frame(
@@ -777,10 +913,158 @@ test_that("build_network auto-detects long format via action column", {
     Action = c("A", "B", "A", "B", "A", "B"),
     stringsAsFactors = FALSE
   )
-  net <- build_network(long_data, method = "relative",
-                       action = "Action")
+  expect_warning(
+    net <- build_network(long_data, method = "relative",
+                         action = "Action"),
+    "one long sequence is not recommended"
+  )
   expect_s3_class(net, "netobject")
   expect_true(net$directed)
+})
+
+test_that("build_network warns when long data has action but no actor", {
+  long_data <- data.frame(
+    action = c("A", "B", "C", "A", "C", "B"),
+    stringsAsFactors = FALSE
+  )
+
+  expect_warning(
+    net <- build_tna(long_data, action = "action"),
+    "one long sequence is not recommended"
+  )
+  expect_s3_class(net, "netobject")
+  expect_null(net$build_args$actor)
+})
+
+test_that("build_network rejects explicit missing column arguments before auto-detection", {
+  long_data <- data.frame(
+    id = c(1L, 1L, 1L, 2L, 2L, 2L),
+    action = c("A", "B", "C", "A", "C", "B"),
+    stringsAsFactors = FALSE
+  )
+
+  expect_error(
+    build_tna(long_data, actor = "id", action = "actoin"),
+    "'action' column not found in data: actoin"
+  )
+  expect_error(
+    build_network(long_data, method = "relative", actor = "student",
+                  action = "action"),
+    "'actor' column not found in data: student"
+  )
+  expect_error(
+    build_network(long_data, method = "relative", group = "condition"),
+    "'group' column not found in data: condition"
+  )
+  expect_error(
+    build_network(long_data, method = "relative", format = "onehot",
+                  codes = c("A", "B")),
+    "'codes' columns not found in data: A, B"
+  )
+})
+
+test_that("build_network rejects explicit missing params column arguments", {
+  long_data <- data.frame(
+    id = c(1L, 1L, 1L, 2L, 2L, 2L),
+    action = c("A", "B", "C", "A", "C", "B"),
+    stringsAsFactors = FALSE
+  )
+
+  expect_error(
+    build_network(long_data, method = "relative",
+                  params = list(action = "actoin")),
+    "'action' column not found in data: actoin"
+  )
+  expect_error(
+    build_network(long_data, method = "relative",
+                  params = list(action = "action", id = "student")),
+    "'actor' column not found in data: student"
+  )
+  expect_error(
+    build_network(long_data, method = "relative",
+                  params = list(format = "wide", cols = c("T1", "T2"))),
+    "'params\\$cols' columns not found in data: T1, T2"
+  )
+})
+
+test_that("build_network rejects conflicting formal and params column arguments", {
+  long_data <- data.frame(
+    actor = c(1L, 1L, 2L, 2L),
+    other_actor = c(1L, 1L, 2L, 2L),
+    action = c("A", "B", "A", "C"),
+    other_action = c("B", "C", "B", "A"),
+    stringsAsFactors = FALSE
+  )
+
+  expect_error(
+    build_network(long_data, method = "relative", action = "action",
+                  params = list(action = "other_action")),
+    "'action' and 'params\\$action' specify different columns"
+  )
+  expect_error(
+    build_network(long_data, method = "relative", actor = "actor",
+                  action = "action", params = list(id = "other_actor")),
+    "'actor' and 'params\\$id' specify different columns"
+  )
+})
+
+test_that("build_network params long action is honored before auto-matching", {
+  long_data <- data.frame(
+    id = c(1L, 1L, 2L, 2L),
+    time = c(1L, 2L, 1L, 2L),
+    action = c("X", "Y", "Y", "X"),
+    code = c("A", "B", "B", "A"),
+    stringsAsFactors = FALSE
+  )
+
+  net <- build_network(
+    long_data, method = "frequency",
+    params = list(format = "long", action = "code", id = "id",
+                  time = "time")
+  )
+
+  expect_equal(sort(net$nodes$label), c("A", "B"))
+  expect_false(any(c("X", "Y") %in% net$nodes$label))
+  expect_equal(net$params$format, "wide")
+  expect_equal(net$build_args$action, "code")
+})
+
+test_that("build_network grouped params long excludes id and time from states", {
+  long_data <- data.frame(
+    id = c(1L, 1L, 1L, 2L, 2L, 2L),
+    order = c(1L, 2L, 3L, 1L, 2L, 3L),
+    code = c("A", "B", "C", "A", "C", "B"),
+    grp = c("G1", "G1", "G1", "G2", "G2", "G2"),
+    stringsAsFactors = FALSE
+  )
+
+  nets <- build_network(
+    long_data, method = "frequency", group = "grp",
+    params = list(format = "long", action = "code", id = "id",
+                  time = "order")
+  )
+
+  expect_s3_class(nets, "netobject_group")
+  expect_equal(sort(nets$G1$nodes$label), c("A", "B", "C"))
+  expect_equal(sort(nets$G2$nodes$label), c("A", "B", "C"))
+})
+
+test_that("build_network params long creates replayable wide transition networks", {
+  long_data <- data.frame(
+    id = c(1L, 1L, 1L, 2L, 2L, 2L),
+    time = c(1L, 2L, 3L, 1L, 2L, 3L),
+    code = c("A", "B", "C", "A", "C", "B"),
+    stringsAsFactors = FALSE
+  )
+
+  net <- build_network(
+    long_data, method = "frequency",
+    params = list(format = "long", action = "code", id = "id",
+                  time = "time")
+  )
+
+  expect_equal(net$params$format, "wide")
+  expect_error(bootstrap_network(net, iter = 2), NA)
 })
 
 # L236-246: long format path through prepare
@@ -953,13 +1237,12 @@ test_that(".count_transitions_wide errors on missing state columns", {
   )
 })
 
-# L92: .count_transitions_wide stop on < 2 state columns
-test_that(".count_transitions_wide errors on fewer than 2 state columns", {
+# One-column sequences have states but no transitions; tna returns a zero matrix.
+test_that(".count_transitions_wide returns zero matrix for fewer than 2 state columns", {
   df <- data.frame(T1 = c("A", "B"), stringsAsFactors = FALSE)
-  expect_error(
-    .count_transitions_wide(df),
-    "At least 2 state columns"
-  )
+  out <- .count_transitions_wide(df)
+  expect_equal(rownames(out), c("A", "B"))
+  expect_equal(out, matrix(0, 2, 2, dimnames = list(c("A", "B"), c("A", "B"))))
 })
 
 # L113: .count_transitions_wide all-NA returns 0x0 matrix
@@ -1212,6 +1495,84 @@ test_that(".compute_initial_probs gives 0 to states never starting a sequence", 
   expect_equal(net$initial[["A"]], 1)
   expect_equal(net$initial[["B"]], 0)
   expect_equal(net$initial[["C"]], 0)
+})
+
+test_that("transition estimators retain states with no observed transitions", {
+  seqs <- data.frame(V1 = c("A", "B"), V2 = c(NA, NA))
+  net <- build_network(seqs, method = "relative")
+  expect_equal(rownames(net$weights), c("A", "B"))
+  expect_equal(net$weights, matrix(0, 2, 2,
+                                   dimnames = list(c("A", "B"),
+                                                   c("A", "B"))))
+  expect_equal(net$initial, c(A = 0.5, B = 0.5))
+})
+
+test_that("grouped transition networks use a global state alphabet", {
+  seqs <- data.frame(
+    V1 = c("A", "A", "B", "C"),
+    V2 = c("B", "B", "C", NA),
+    grp = c("g1", "g2", "g2", "g1")
+  )
+  nets <- build_network(seqs, method = "relative", group = "grp")
+  expect_equal(rownames(nets$g1$weights), c("A", "B", "C"))
+  expect_equal(rownames(nets$g2$weights), c("A", "B", "C"))
+  expect_equal(nets$g1$weights["C", ], c(A = 0, B = 0, C = 0))
+})
+
+test_that("transition estimators support tna weighted counts", {
+  seqs <- data.frame(
+    V1 = c("A", "A", "B"),
+    V2 = c("B", "C", "C"),
+    V3 = c("C", "C", NA)
+  )
+  freq <- build_network(seqs, method = "frequency",
+                        params = list(weighted = TRUE))
+  expect_equal(freq$weights["A", "B"], 1 / 3)
+  expect_equal(freq$weights["B", "C"], 1 / 3 + 1 / 2)
+
+  cooc <- build_network(seqs, method = "co_occurrence",
+                        params = list(weighted = TRUE))
+  expect_equal(cooc$weights["A", "C"], 1 / 3 + 1 / 3 + 1 / 3)
+  expect_equal(cooc$weights["C", "C"], 1 / 3)
+})
+
+test_that("transition estimators support begin/end states and concat", {
+  seqs <- data.frame(
+    V1 = c("A", "A", "B"),
+    V2 = c("B", "C", "C"),
+    V3 = c("C", "C", NA)
+  )
+  sent <- build_network(seqs, method = "relative",
+                        begin_state = "BEGIN", end_state = "END")
+  expect_true(all(c("BEGIN", "END") %in% rownames(sent$weights)))
+  expect_equal(sent$weights["BEGIN", c("A", "B")], c(A = 2 / 3, B = 1 / 3))
+  expect_equal(sent$initial[["BEGIN"]], 1)
+
+  concat <- build_network(seqs, method = "relative", concat = 2)
+  expect_equal(concat$weights["C", "A"], 0.5)
+})
+
+test_that("transition matrix input matches tna-style handling", {
+  m <- matrix(c(1, 2, 3, 4), 2, 2,
+              dimnames = list(c("A", "B"), c("A", "B")))
+  net <- build_network(m, method = "relative")
+  expect_equal(net$weights["A", ], c(A = 1 / 4, B = 3 / 4))
+  expect_equal(net$weights["B", ], c(A = 1 / 3, B = 2 / 3))
+})
+
+test_that("transition scaling ranks and minmax scales the full matrix", {
+  seqs <- data.frame(
+    V1 = c("A", "A", "B"),
+    V2 = c("B", "C", "C"),
+    V3 = c("C", "C", NA)
+  )
+  ranked <- build_network(seqs, method = "frequency", scaling = "rank")
+  expect_equal(ranked$weights["A", "A"], 3)
+  expect_equal(ranked$weights["B", "C"], 9)
+
+  scaled <- build_network(seqs, method = "frequency", scaling = "minmax")
+  expect_equal(scaled$weights["A", "A"], 0)
+  expect_equal(scaled$weights["B", "C"], 1)
 })
 
 # L1004-1005: .select_ebic handles glasso fit failure (NULL fit → Inf EBIC)

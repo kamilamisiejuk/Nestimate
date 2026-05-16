@@ -19,6 +19,10 @@
 #' and custom estimators), the full estimator is called on resampled rows
 #' each iteration.
 #'
+#' If a transition network contains only one sequence, the function warns that
+#' such a network is not recommended for bootstrap or other confirmatory
+#' testing.
+#'
 #' @param x A \code{netobject} from \code{\link{build_network}}.
 #'   The data, method, params, scaling, threshold, and level are all
 #'   extracted from this object.
@@ -199,8 +203,10 @@ bootstrap_network <- function(x,
            "For wtna/cna networks, use wtna() directly instead of ",
            "build_network(method='cna').", call. = FALSE)
     }
+    transition_data <- .resampling_transition_data(data, x$metadata, params)
+    .warn_single_sequence_confirmatory_network(transition_data, params)
     boot_matrices <- .bootstrap_transition(
-      data = data, method = method, params = params, states = states,
+      data = transition_data, method = method, params = params, states = states,
       scaling = scaling, threshold = threshold, iter = iter
     )
   } else {
@@ -294,6 +300,54 @@ bootstrap_network <- function(x,
 }
 
 
+#' Reattach grouping columns needed by transition resampling
+#' @noRd
+.resampling_transition_data <- function(data, metadata, params) {
+  if (!is.data.frame(data) || !is.data.frame(metadata)) return(data)
+  needed <- unique(c(params$actor, params$id, params$id_col))
+  needed <- needed[!is.na(needed) & nzchar(needed)]
+  add <- setdiff(intersect(needed, names(metadata)), names(data))
+  if (length(add) == 0L) return(data)
+  cbind(metadata[, add, drop = FALSE], data)
+}
+
+
+#' Warn when confirmatory testing is requested for one sequence
+#' @noRd
+.warn_single_sequence_confirmatory_network <- function(data, params,
+                                                       label = NULL) {
+  n_seq <- .transition_resampling_n_sequences(data, params)
+  if (!is.na(n_seq) && n_seq <= 1L) {
+    prefix <- if (is.null(label)) "" else paste0(label, ": ")
+    warning(
+      prefix,
+      "A network with one long sequence is not recommended and can't be ",
+      "validated using bootstrap and other confirmatory testings.",
+      call. = FALSE
+    )
+  }
+  invisible(n_seq)
+}
+
+
+#' @noRd
+.transition_resampling_n_sequences <- function(data, params) {
+  if (!is.data.frame(data)) {
+    return(NA_integer_)
+  }
+  actor <- .param_get(params, "actor") %||% .param_get(params, "id") %||%
+    .param_get(params, "id_col")
+  if (!is.null(actor) && all(actor %in% names(data))) {
+    if (length(actor) == 1L) {
+      return(length(unique(data[[actor]])))
+    }
+    return(length(unique(interaction(data[, actor, drop = FALSE],
+                                     drop = TRUE))))
+  }
+  nrow(data)
+}
+
+
 # ---- Transition fast path ----
 
 #' Bootstrap transition networks via pre-computed per-sequence counts
@@ -339,8 +393,8 @@ bootstrap_network <- function(x,
 #' @noRd
 .precompute_per_sequence <- function(data, method, params, states) {
   # Determine format (mirrors estimator dispatch)
-  format <- params$format %||% "auto"
-  action <- params$action %||% "Action"
+  format <- .param_get(params, "format", "auto")
+  action <- .param_get(params, "action", "Action")
 
   if (format == "auto") {
     format <- if (action %in% names(data)) "long" else "wide"
@@ -354,9 +408,49 @@ bootstrap_network <- function(x,
     )
   }
 
-  id_col <- params$id %||% params$id_col
+  id_col <- .param_get(params, "id") %||% .param_get(params, "id_col")
+  codes <- .param_get(params, "codes")
+  if (identical(format, "onehot") || !is.null(codes)) {
+    return(.precompute_per_sequence_onehot(data, method, params, states))
+  }
   cols <- params$cols
   .precompute_per_sequence_wide(data, method, cols, id_col, states)
+}
+
+
+#' Pre-compute per-sequence counts from one-hot format
+#' @noRd
+.precompute_per_sequence_onehot <- function(data, method, params, states) {
+  codes <- .param_get(params, "codes", states)
+  actor <- .param_get(params, "actor")
+  window_size <- .param_get(params, "window_size", 1L)
+  mode <- .param_get(params, "mode", "non-overlapping")
+  wtna_method <- if (method == "co_occurrence") "cooccurrence" else "transition"
+  n_states <- length(states)
+  nbins <- n_states * n_states
+
+  groups <- if (is.null(actor)) {
+    list(data)
+  } else if (length(actor) == 1L) {
+    split(data, data[[actor]], drop = TRUE)
+  } else {
+    split(data, interaction(data[, actor, drop = FALSE], drop = TRUE),
+          drop = TRUE)
+  }
+
+  rows <- lapply(groups, function(g) {
+    mat <- .estimator_wtna_core(
+      g, codes = codes, window_size = window_size, mode = mode,
+      actor = NULL, wtna_method = wtna_method, type = "frequency"
+    )$matrix
+    mat <- mat[states, states, drop = FALSE]
+    as.vector(t(mat))
+  })
+
+  if (length(rows) == 0L) {
+    return(matrix(numeric(0), nrow = 0L, ncol = nbins))
+  }
+  do.call(rbind, rows)
 }
 
 
@@ -887,5 +981,3 @@ summary.wtna_boot_mixed <- function(object, ...) {
     cooccurrence = summary(object$cooccurrence)
   )
 }
-
-

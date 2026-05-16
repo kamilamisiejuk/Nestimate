@@ -10,7 +10,7 @@ prepare_onehot(
   actor = NULL,
   session = NULL,
   interval = NULL,
-  window_size = 1L,
+  window_size = 3L,
   window_type = c("non-overlapping", "overlapping"),
   aggregate = FALSE
 )
@@ -51,6 +51,11 @@ Converts binary indicator (one-hot) data into the wide sequence format
 expected by \code{\link{build_network}} and \code{tna::tna()}. Each binary
 column represents a state; rows where the value is 1 are marked with the
 column name. Supports optional windowed aggregation.
+
+Simultaneous active states are preserved using the same window-span
+representation as \code{tna::import_onehot()}: each input row/window is
+expanded to one sequence slot per code and transition counting occurs between
+windows, not between simultaneous states inside the same row.
 }
 \examples{
 # Simple binary data

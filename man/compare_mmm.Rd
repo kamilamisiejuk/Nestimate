@@ -9,13 +9,14 @@ compare_mmm(data, k = 2:5, return_fits = FALSE, ...)
 \arguments{
 \item{data}{Data frame, netobject, or tna model.}
 
-\item{k}{Integer vector of component counts. Default: 2:5.}
+\item{k}{Integer vector of component counts. Values must be whole finite
+numbers >= 2. Default: 2:5.}
 
 \item{return_fits}{Logical. When \code{TRUE} the fitted models are
 retained on the result via \code{attr(result, "fits")} (a list of
 \code{net_mmm} objects, named by \code{k}), so the user can pick
 the chosen model without re-running the EM. Default \code{FALSE}
-keeps the historical lightweight return shape — only the comparison
+keeps the historical lightweight return shape -- only the comparison
 table is allocated.}
 
 \item{...}{Arguments passed to \code{\link{build_mmm}}.}

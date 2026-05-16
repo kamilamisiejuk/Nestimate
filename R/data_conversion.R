@@ -421,6 +421,11 @@ action_to_onehot <- function(data, action_col = "Action", states = NULL,
 #' column represents a state; rows where the value is 1 are marked with the
 #' column name. Supports optional windowed aggregation.
 #'
+#' Simultaneous active states are preserved using the same window-span
+#' representation as \code{tna::import_onehot()}: each input row/window is
+#' expanded to one sequence slot per code and transition counting occurs between
+#' windows, not between simultaneous states inside the same row.
+#'
 #' @param data Data frame with binary (0/1) indicator columns.
 #' @param cols Character vector. Names of the one-hot columns to use.
 #' @param actor Character or NULL. Name of the actor/ID column. If NULL,
@@ -468,7 +473,7 @@ prepare_onehot <- function(data,
                            actor = NULL,
                            session = NULL,
                            interval = NULL,
-                           window_size = 1L,
+                           window_size = 3L,
                            window_type = c("non-overlapping", "overlapping"),
                            aggregate = FALSE) {
   stopifnot(is.data.frame(data))
@@ -478,134 +483,138 @@ prepare_onehot <- function(data,
   stopifnot(window_size >= 1L)
   window_type <- match.arg(window_type)
 
-  # Replace 1s with column names, 0s with NA
+  interval <- if (is.null(interval)) ncol(data) * nrow(data) else interval
+  tna_window_type <- switch(window_type,
+                            "non-overlapping" = "tumbling",
+                            "overlapping" = "sliding")
+
   work <- data
-  for (col in cols) {
-    vals <- work[[col]]
-    work[[col]] <- ifelse(vals == 1, col, NA_character_)
+  code_values <- lapply(cols, function(col) {
+    ifelse(work[[col]] == 1, col, NA_character_)
+  })
+  names(code_values) <- cols
+  work[cols] <- code_values
+
+  actor_col <- if (is.null(actor)) ".actor" else actor
+  session_col <- if (is.null(session)) ".session" else session
+  if (!is.null(actor)) stopifnot(actor %in% names(data))
+  if (!is.null(session)) stopifnot(session %in% names(data))
+  if (is.null(actor)) work[[actor_col]] <- 1L
+  if (is.null(session)) work[[session_col]] <- 1L
+
+  group_key <- interaction(work[, c(actor_col, session_col), drop = FALSE],
+                           drop = TRUE)
+  group_key <- as.character(group_key)
+  groups <- lapply(unique(group_key), function(key) work[group_key == key, , drop = FALSE])
+
+  lag_chr <- function(x, n) {
+    if (n == 0L) return(x)
+    if (n >= length(x)) return(rep(NA_character_, length(x)))
+    c(rep(NA_character_, n), head(x, -n))
   }
 
-  # Build group key
-  if (is.null(actor) && is.null(session)) {
-    work$.grp <- 1L
-  } else {
-    grp_parts <- list()
-    if (!is.null(actor)) {
-      stopifnot(actor %in% names(data))
-      grp_parts[[actor]] <- work[[actor]]
-    }
-    if (!is.null(session)) {
-      stopifnot(session %in% names(data))
-      grp_parts[[session]] <- work[[session]]
-    }
-    work$.grp <- interaction(grp_parts, drop = TRUE)
+  first_non_missing <- function(x) {
+    x <- x[!is.na(x)]
+    if (length(x) == 0L) NA_character_ else x[1L]
   }
 
-  # Within-group row numbers
-  work$.rn <- ave(seq_len(nrow(work)), work$.grp, FUN = seq_along)
-
-  # Window assignment
-  if (window_size > 1L) {
-    if (window_type == "non-overlapping") {
-      work$.win <- (work$.rn - 1L) %/% window_size
-    } else {
-      # Sliding: each row starts a window of window_size rows
-      # Expand and aggregate
-      groups <- split(work, work$.grp)
-      agg_list <- lapply(groups, function(g) {
-        n <- nrow(g)
-        if (n < window_size) return(g[0, , drop = FALSE])
-        n_windows <- n - window_size + 1L
-        rows <- lapply(seq_len(n_windows), function(w) {
-          window_rows <- g[w:(w + window_size - 1L), cols, drop = FALSE]
-          # Take first non-NA per column
-          agg_row <- g[w, , drop = FALSE]
-          for (col in cols) {
-            vals <- window_rows[[col]]
-            non_na <- vals[!is.na(vals)]
-            agg_row[[col]] <- if (length(non_na) > 0) non_na[1] else NA_character_
-          }
-          agg_row$.win <- w - 1L
-          agg_row$.rn <- w
-          agg_row
+  work <- do.call(rbind, lapply(groups, function(g) {
+    rownames(g) <- NULL
+    if (tna_window_type == "sliding") {
+      # seq_len(window_size - 1L) is cleanly empty when window_size == 1L;
+      # seq(1, window_size - 1) on R's "decreasing implied" rule would be
+      # c(1, 0), which iterates twice with an off-by-one shift.
+      for (w in seq_len(window_size - 1L)) {
+        g[cols] <- lapply(cols, function(col) {
+          x <- g[[col]]
+          ifelse(!is.na(x) | !is.na(lag_chr(x, w)), col, NA_character_)
         })
-        do.call(rbind, rows)
-      })
-      work <- do.call(rbind, agg_list)
-    }
-
-    if (window_type == "non-overlapping" && aggregate) {
-      groups <- split(work, interaction(work$.grp, work$.win, drop = TRUE))
-      agg_list <- lapply(groups, function(g) {
-        agg_row <- g[1, , drop = FALSE]
-        for (col in cols) {
-          vals <- g[[col]]
-          non_na <- vals[!is.na(vals)]
-          agg_row[[col]] <- if (length(non_na) > 0) non_na[1] else NA_character_
-        }
-        agg_row
-      })
-      work <- do.call(rbind, agg_list)
-      work$.rn <- ave(seq_len(nrow(work)), work$.grp, FUN = seq_along)
-    }
-  }
-
-  # Interval grouping
-  if (!is.null(interval)) {
-    work$.win_grp <- (work$.rn - 1L) %/% interval
-  } else {
-    work$.win_grp <- 0L
-  }
-
-  # Within sub-groups, assign observation index
-  sub_key <- interaction(work$.grp, work$.win_grp, drop = TRUE)
-  work$.obs <- ave(seq_len(nrow(work)), sub_key, FUN = seq_along)
-
-  # Compute window index per group
-  work$.win_idx <- ave(work$.win_grp, work$.grp,
-                       FUN = function(x) match(x, unique(x)) - 1L)
-
-  # Build wide format: columns W{win_idx}_T{obs}
-  groups <- split(work, work$.grp)
-  wide_list <- lapply(groups, function(g) {
-    grp_id <- g$.grp[1]
-    row <- data.frame(.grp = grp_id, stringsAsFactors = FALSE)
-    for (i in seq_len(nrow(g))) {
-      for (col in cols) {
-        col_name <- sprintf("W%d_T%d", g$.win_idx[i], g$.obs[i])
-        if (!is.null(row[[col_name]])) {
-          # If multiple cols active in same time slot, keep first
-          if (is.na(row[[col_name]]) && !is.na(g[[col]][i])) {
-            row[[col_name]] <- g[[col]][i]
-          }
-        } else {
-          row[[col_name]] <- g[[col]][i]
-        }
+        names(g[cols]) <- cols
       }
+      # Drop only the leading row that the lag propagation invalidates.
+      # window_size == 1L has no overlap, so no row should be dropped.
+      if (window_size > 1L && nrow(g) > 0L) {
+        g <- g[-1L, , drop = FALSE]
+      }
+      g$.window <- floor(seq_len(nrow(g)) - 1L)
+    } else {
+      g$.window <- floor((seq_len(nrow(g)) - 1L) / window_size)
     }
-    row
-  })
-  # Align columns across groups (pad missing with NA)
-  all_cols <- unique(unlist(lapply(wide_list, names)))
-  wide_list <- lapply(wide_list, function(row) {
-    missing <- setdiff(all_cols, names(row))
-    for (m in missing) row[[m]] <- NA_character_
-    row[, all_cols, drop = FALSE]
-  })
-  result <- do.call(rbind, wide_list)
+    g
+  }))
 
-  # Remove group column if it was auto-generated
-  if (is.null(actor) && is.null(session)) {
-    result$.grp <- NULL
+  if (aggregate && nrow(work) > 0L) {
+    ord <- do.call(order, work[, c(actor_col, session_col, ".window"),
+                                drop = FALSE])
+    work <- work[ord, , drop = FALSE]
+    agg_key <- interaction(work[, c(actor_col, session_col, ".window"),
+                                drop = FALSE], drop = TRUE)
+    agg_key <- as.character(agg_key)
+    work <- do.call(rbind, lapply(unique(agg_key), function(key) {
+      g <- work[agg_key == key, , drop = FALSE]
+      out <- g[1L, , drop = FALSE]
+      out[cols] <- lapply(cols, function(col) first_non_missing(g[[col]]))
+      names(out[cols]) <- cols
+      out
+    }))
+    rownames(work) <- NULL
   }
 
-  result <- as.data.frame(result)
-  rownames(result) <- NULL
+  if (is.null(work) || nrow(work) == 0L) {
+    result <- as.data.frame(setNames(replicate(0, character(0), simplify = FALSE),
+                                     character(0)))
+  } else {
+    work$.window_grp <- work$.window %/% interval
+    work$.window_idx <- work$.window %% interval
 
-  # Set attributes
-  attr(result, "windowed") <- window_size > 1L
-  attr(result, "window_size") <- window_size
-  attr(result, "window_span") <- window_size
+    long_rows <- lapply(seq_len(nrow(work)), function(i) {
+      data.frame(
+        .actor = work[[actor_col]][i],
+        .session = work[[session_col]][i],
+        .window_grp = work$.window_grp[i],
+        .window_idx = work$.window_idx[i],
+        value = unname(unlist(work[i, cols, drop = FALSE], use.names = FALSE)),
+        stringsAsFactors = FALSE
+      )
+    })
+    long <- do.call(rbind, long_rows)
+    obs_key <- interaction(long[, c(".actor", ".session", ".window_grp",
+                                    ".window_idx"), drop = FALSE],
+                           drop = TRUE)
+    long$.obs <- ave(seq_len(nrow(long)), obs_key, FUN = seq_along)
+    id_key <- interaction(long[, c(".actor", ".session", ".window_grp"),
+                               drop = FALSE], drop = TRUE)
+    id_key <- as.character(id_key)
+    wide_list <- lapply(unique(id_key), function(key) {
+      g <- long[id_key == key, , drop = FALSE]
+      row <- data.frame(.row = 1L)
+      for (i in seq_len(nrow(g))) {
+        col_name <- sprintf("W%d_T%d", g$.window_idx[i], g$.obs[i])
+        row[[col_name]] <- g$value[i]
+      }
+      row$.row <- NULL
+      row
+    })
+
+    all_cols <- unique(unlist(lapply(wide_list, names), use.names = FALSE))
+    wide_list <- lapply(wide_list, function(row) {
+      missing <- setdiff(all_cols, names(row))
+      for (m in missing) {
+        row[[m]] <- NA_character_
+      }
+      row[, all_cols, drop = FALSE]
+    })
+    result <- do.call(rbind, wide_list)
+    rownames(result) <- NULL
+  }
+
+  if (ncol(result) > 0L) {
+    result[] <- lapply(result, as.character)
+  }
+
+  attr(result, "windowed") <- TRUE
+  attr(result, "window_size") <- window_size^(!aggregate)
+  attr(result, "window_span") <- length(cols)
   attr(result, "codes") <- cols
 
   result

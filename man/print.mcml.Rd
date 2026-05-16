@@ -9,7 +9,7 @@
 \arguments{
 \item{x}{An \code{mcml} object.}
 
-\item{...}{Additional arguments (ignored).}
+\item{...}{Unsupported. Supplying unused arguments raises an error.}
 }
 \value{
 The input object, invisibly.

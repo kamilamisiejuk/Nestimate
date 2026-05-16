@@ -4,7 +4,12 @@
 \alias{plot.net_comparison}
 \title{Plot a network comparison}
 \usage{
-\method{plot}{net_comparison}(x, type = c("scatter", "heatmap", "diff_hist", "weight_dist", "all"), ...)
+\method{plot}{net_comparison}(
+  x,
+  type = c("scatter", "heatmap", "diff_hist", "weight_dist", "all"),
+  combined = TRUE,
+  ...
+)
 }
 \arguments{
 \item{x}{A \code{net_comparison} object from \code{\link[=compare_model]{compare_model()}}.}
@@ -17,11 +22,17 @@ x - y differences using the diverging palette), \code{"diff_hist"}
 or \code{"all"} (2 by 2 grid of all four panels; requires the gridExtra
 package).}
 
+\item{combined}{When \code{type = "all"} and \code{combined = TRUE} (default),
+the four panels are stitched into a 2x2 gtable. When \code{FALSE}, returns
+a named list of the four ggplots so each can be printed, saved, or
+re-laid-out independently. Ignored for other \code{type} values.}
+
 \item{...}{Ignored.}
 }
 \value{
-A \code{ggplot} object, or for \code{type = "all"} a \code{gtable} arranged
-2 by 2.
+A \code{ggplot} object; for \code{type = "all"} with \code{combined = TRUE}
+a \code{gtable} arranged 2 by 2; for \code{type = "all"} with \code{combined = FALSE}
+a named list of four ggplots.
 }
 \description{
 Visualises a \code{net_comparison} object. Currently supports the edge-weight

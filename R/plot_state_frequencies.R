@@ -458,12 +458,28 @@ mosaic_plot.mcml <- function(x,
                              seed = NULL,
                              ncol = 2L,
                              ...) {
+  .mosaic_plot_check_unused_dots("mosaic_plot.mcml", ...)
   .mosaic_plot_impl(x, source_class = "mcml",
                     level = match.arg(level),
                     xlab = xlab, ylab = ylab, range = range,
                     top_angle = top_angle, left_angle = left_angle,
                     residuals = match.arg(residuals),
                     n_perm = n_perm, seed = seed, ncol = ncol, ...)
+}
+
+.mosaic_plot_check_unused_dots <- function(method, ...) {
+  dots <- list(...)
+  if (!length(dots)) {
+    return(invisible(TRUE))
+  }
+  dot_names <- names(dots)
+  dot_names[!nzchar(dot_names)] <- paste0("..", which(!nzchar(dot_names)))
+  stop(
+    method, "() got unsupported argument",
+    if (length(dots) == 1L) ": " else "s: ",
+    paste(dot_names, collapse = ", "),
+    call. = FALSE
+  )
 }
 
 #' @export
@@ -800,28 +816,14 @@ mosaic_plot.matrix <- function(x, ...) mosaic_plot.table(as.table(x), ...)
 }
 
 
-# Resolve a transition count matrix for a single netobject: prefer the
-# integer $weights when the network was estimated with a count-based method,
-# otherwise recount transitions from $data so the order-1 chi-square works
-# on any estimation method (relative, glasso, cor, ...). Errors only when
-# neither path can produce integer counts.
+# Resolve a transition count matrix for a single netobject. Mosaic residuals
+# are defined for count tables, so the stored weights must already be finite,
+# non-negative, integer-valued counts from a count-based network.
 .mosaic_count_or_stop <- function(x) {
   w <- x$weights
   if (is.matrix(w) && is.numeric(w) && all(is.finite(w)) &&
       all(w >= 0) && all(abs(w - round(w)) <= 1e-8) && sum(w) > 0) {
     return(w)
-  }
-  if (!is.null(x$data)) {
-    counts <- tryCatch(.count_transitions(x$data, format = "auto"),
-                       error = function(e) NULL)
-    if (is.matrix(counts) && sum(counts) > 0) {
-      # Reorder rows/cols to match the netobject's node order when possible.
-      nodes <- rownames(x$weights)
-      if (!is.null(nodes) && all(nodes %in% rownames(counts))) {
-        counts <- counts[nodes, nodes, drop = FALSE]
-      }
-      return(counts)
-    }
   }
   .mosaic_weights_or_stop(w, x$method)
 }
@@ -1727,6 +1729,7 @@ plot_state_frequencies.mcml <- function(x,
                                          ncol = NULL,
                                          node_groups = NULL,
                                          ...) {
+  .plot_state_freq_check_unused_dots("plot_state_frequencies.mcml", ...)
   .plot_state_frequencies_impl(
     x, source_class = "mcml", hierarchical = TRUE,
     style = style, metric = metric, label = label, legend = legend,
@@ -1922,7 +1925,23 @@ state_distribution.htna <- function(x, ...) .freq_df_htna(x)
 #' @export
 #' @rdname state_distribution
 state_distribution.mcml <- function(x, include_macro = FALSE, ...) {
+  .plot_state_freq_check_unused_dots("state_distribution.mcml", ...)
   .freq_df_mcml(x, include_macro = include_macro)
+}
+
+.plot_state_freq_check_unused_dots <- function(method, ...) {
+  dots <- list(...)
+  if (!length(dots)) {
+    return(invisible(TRUE))
+  }
+  dot_names <- names(dots)
+  dot_names[!nzchar(dot_names)] <- paste0("..", which(!nzchar(dot_names)))
+  stop(
+    method, "() got unsupported argument",
+    if (length(dots) == 1L) ": " else "s: ",
+    paste(dot_names, collapse = ", "),
+    call. = FALSE
+  )
 }
 
 #' @export

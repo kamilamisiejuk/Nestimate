@@ -18,6 +18,10 @@
 #' and custom estimators), the full estimator is called on each permuted
 #' group split.
 #'
+#' If either transition network contains only one sequence, the function warns
+#' that such a network is not recommended for permutation or other
+#' confirmatory testing.
+#'
 #' @param x A \code{netobject} (from \code{\link{build_network}}).
 #' @param y A \code{netobject} (from \code{\link{build_network}}).
 #'   Must use the same method and have the same nodes as \code{x}.
@@ -84,6 +88,25 @@ permutation <- function(x, y = NULL,
                              adjust = "none",
                              nlambda = 50L,
                              seed = NULL) {
+
+  # ---- wtna_mixed dispatch: permute both components ----
+  if (inherits(x, "wtna_mixed") || inherits(y, "wtna_mixed")) {
+    if (!inherits(x, "wtna_mixed") || !inherits(y, "wtna_mixed")) {
+      stop("Both x and y must be wtna_mixed objects.", call. = FALSE)
+    }
+    result <- list(
+      transition = permutation(
+        x$transition, y$transition, iter = iter, alpha = alpha,
+        paired = paired, adjust = adjust, nlambda = nlambda, seed = seed
+      ),
+      cooccurrence = permutation(
+        x$cooccurrence, y$cooccurrence, iter = iter, alpha = alpha,
+        paired = paired, adjust = adjust, nlambda = nlambda, seed = seed
+      )
+    )
+    class(result) <- "wtna_perm_mixed"
+    return(result)
+  }
 
   # ---- mcml dispatch: convert to netobject_group via as_tna ----
   if (inherits(x, "mcml")) x <- as_tna(x)
@@ -195,6 +218,18 @@ permutation <- function(x, y = NULL,
       stop("Permutation test requires the original data stored in the netobject. ",
            "For wtna/cna networks, use wtna() directly instead of ",
            "build_network(method='cna').", call. = FALSE)
+    }
+    x$data <- .resampling_transition_data(x$data, x$metadata, x$params)
+    y$data <- .resampling_transition_data(y$data, y$metadata, y$params)
+    n_seq_x <- .transition_resampling_n_sequences(x$data, x$params)
+    n_seq_y <- .transition_resampling_n_sequences(y$data, y$params)
+    if ((!is.na(n_seq_x) && n_seq_x <= 1L) ||
+        (!is.na(n_seq_y) && n_seq_y <= 1L)) {
+      warning(
+        "A network with one long sequence is not recommended and can't be ",
+        "validated using bootstrap and other confirmatory testings.",
+        call. = FALSE
+      )
     }
     perm_result <- .permutation_transition(
       x = x, y = y, nodes = nodes, method = method,
@@ -370,7 +405,7 @@ permutation <- function(x, y = NULL,
 
   # Extract params
   params_x <- x$params
-  cor_method <- params_x$cor_method %||% "pearson"
+  cor_method <- .param_get(params_x, "cor_method", "pearson")
   threshold_x <- x$threshold
   threshold_y <- y$threshold
   scaling_x <- x$scaling
@@ -383,8 +418,8 @@ permutation <- function(x, y = NULL,
   # Pre-compute glasso lambda path: narrowed around original lambdas,
   # solved via glassopath (single Fortran call for entire path)
   if (use_fast && method == "glasso") {
-    gamma <- params_x$gamma %||% 0.5
-    penalize_diag <- params_x$penalize.diagonal %||% FALSE
+    gamma <- .param_get(params_x, "gamma", 0.5)
+    penalize_diag <- .param_get(params_x, "penalize.diagonal", FALSE)
 
     # Compute lambda path from pooled correlation, using glassopath
     # for the per-iteration solve (single Fortran call for full path)
@@ -712,3 +747,32 @@ summary.net_permutation_group <- function(object, ...) {
   }))
 }
 
+
+#' Print Method for wtna_perm_mixed
+#'
+#' @param x A \code{wtna_perm_mixed} object.
+#' @param ... Additional arguments (ignored).
+#' @return The input object, invisibly.
+#' @export
+print.wtna_perm_mixed <- function(x, ...) {
+  cat("Mixed WTNA Permutation Test (transition + co-occurrence)\n")
+  cat("-- Transition (directed) --\n")
+  print(x$transition)
+  cat("-- Co-occurrence (undirected) --\n")
+  print(x$cooccurrence)
+  invisible(x)
+}
+
+
+#' Summary Method for wtna_perm_mixed
+#'
+#' @param object A \code{wtna_perm_mixed} object.
+#' @param ... Additional arguments (ignored).
+#' @return A list with transition and co-occurrence permutation summaries.
+#' @export
+summary.wtna_perm_mixed <- function(object, ...) {
+  list(
+    transition = summary(object$transition),
+    cooccurrence = summary(object$cooccurrence)
+  )
+}

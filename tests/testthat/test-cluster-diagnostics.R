@@ -140,6 +140,22 @@ test_that("default method errors clearly on unsupported input", {
                "no method for class")
 })
 
+test_that("cluster_diagnostics rejects unsupported extra arguments", {
+  d <- .make_diag_data()
+  cl <- build_clusters(d, k = 2, method = "ward.D2")
+  mmm <- build_mmm(d, k = 2, n_starts = 1, max_iter = 20, seed = 1)
+  grp <- cluster_mmm(d, k = 2, n_starts = 1, max_iter = 20, seed = 1)
+
+  expect_error(cluster_diagnostics(cl, typo_arg = TRUE),
+               "unsupported argument: typo_arg")
+  expect_error(cluster_diagnostics(mmm, typo_arg = TRUE),
+               "unsupported argument: typo_arg")
+  expect_error(cluster_diagnostics(attr(grp, "clustering"), typo_arg = TRUE),
+               "unsupported argument: typo_arg")
+  expect_error(cluster_diagnostics(grp, typo_arg = TRUE),
+               "unsupported argument: typo_arg")
+})
+
 # ==============================================================================
 # Print
 # ==============================================================================
@@ -187,6 +203,17 @@ test_that("print() returns invisibly with default args (non-breaking)", {
   res <- withVisible(print(diag))
   expect_identical(res$value, diag)
   expect_false(res$visible)
+})
+
+test_that("print and as.data.frame diagnostics reject unsupported dots", {
+  d <- .make_diag_data()
+  cl <- build_clusters(d, k = 2, method = "ward.D2")
+  diag <- cluster_diagnostics(cl)
+
+  expect_error(print(diag, typo_arg = TRUE),
+               "unsupported argument: typo_arg")
+  expect_error(as.data.frame(diag, typo_arg = TRUE),
+               "unsupported argument: typo_arg")
 })
 
 # ==============================================================================

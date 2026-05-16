@@ -4,15 +4,20 @@
 \alias{plot.q_analysis}
 \title{Plot Q-Analysis}
 \usage{
-\method{plot}{q_analysis}(x, ...)
+\method{plot}{q_analysis}(x, combined = TRUE, ...)
 }
 \arguments{
 \item{x}{A \code{q_analysis} object.}
 
+\item{combined}{When \code{TRUE} (default), the two panels are stitched
+side-by-side via \code{gridExtra::arrangeGrob}. When \code{FALSE}, returns a
+named list (\code{q_vector}, \code{structure_vector}) of ggplots.}
+
 \item{...}{Ignored.}
 }
 \value{
-A grid grob (invisibly).
+A grid grob (invisibly) when \code{combined = TRUE}; a named list
+of two ggplots when \code{combined = FALSE}.
 }
 \description{
 Two panels: Q-vector (components at each connectivity level) and

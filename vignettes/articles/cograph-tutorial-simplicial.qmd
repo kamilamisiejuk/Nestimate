@@ -364,7 +364,15 @@ qa
 plot(qa)
 ```
 
-The left panel is the **Q-vector**: number of $q$-connected components at each level $q$, plotted right-to-left as $q$ decreases. At very high $q$, only simplices that share large faces are linked, so most simplices stand alone (high component count). As $q$ drops the connectivity criterion relaxes; pieces merge. The **fragmentation point** is the largest $q$ where the count first rises above 1 — below it the network is one piece through high-order structural sharing; above it, sub-structures become isolated. The right panel shows the **structure vector**: the maximum simplex dimension each node participates in, sorted descending. Nodes at the top are members of the densest clique-groups in the network.
+The left panel is the **Q-vector**: number of $q$-connected components at each level $q$, plotted right-to-left as $q$ decreases. Read it as a fragmentation profile of the complex.
+
+- At very high $q$: only simplices that share a large face are linked. Most simplices stand alone, so the component count is high.
+- As $q$ drops: the connectivity criterion relaxes. Simplices that share even one or two vertices now count as connected, so components merge and the count falls.
+- At $q = 0$: any two simplices sharing a single vertex are linked. Usually one big component.
+
+The **fragmentation point** is the largest $q$ at which the count first rises above 1. Below it the complex hangs together as one piece through high-order shared structure (groups of simplices that overlap in big faces). Above it that high-order glue is broken — sub-structures become isolated islands held together only by sparse low-order overlaps. A high fragmentation point means strong cohesion: many simplices share substantial substructure. A low one means simplices are stitched together mostly through one or two shared vertices, with no deep shared structure.
+
+The right panel shows the **structure vector**: the maximum simplex dimension each node participates in, sorted descending. Nodes at the top are members of the densest clique-groups in the network.
 
 ### Pathway Complex from HON
 

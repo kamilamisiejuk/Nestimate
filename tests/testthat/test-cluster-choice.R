@@ -139,6 +139,24 @@ test_that("silhouette matches a manual build_clusters() call", {
                c(min(ref$sizes), max(ref$sizes)))
 })
 
+test_that("each swept row matches the corresponding build_clusters fit", {
+  d <- .make_choice_data()
+  ch <- cluster_choice(d, k = 2:3, method = "ward.D2",
+                        dissimilarity = "hamming", seed = 1)
+  ref2 <- build_clusters(d, k = 2, method = "ward.D2",
+                         dissimilarity = "hamming", seed = 1)
+  ref3 <- build_clusters(d, k = 3, method = "ward.D2",
+                         dissimilarity = "hamming", seed = 1)
+
+  expect_equal(ch$silhouette, c(ref2$silhouette, ref3$silhouette),
+               tolerance = 1e-8)
+  expect_equal(ch$min_size, c(min(ref2$sizes), min(ref3$sizes)))
+  expect_equal(ch$max_size, c(max(ref2$sizes), max(ref3$sizes)))
+  expect_equal(ch$size_ratio,
+               c(max(ref2$sizes) / min(ref2$sizes),
+                 max(ref3$sizes) / min(ref3$sizes)))
+})
+
 test_that("size_ratio is max_size / min_size", {
   d <- .make_choice_data()
   ch <- cluster_choice(d, k = 2:4, method = "ward.D2")
@@ -158,6 +176,15 @@ test_that("weighted = TRUE with non-hamming sweep is rejected up-front", {
                     weighted = TRUE),
     "weighted = TRUE requires dissimilarity"
   )
+})
+
+test_that("k sweep rejects non-whole or non-finite values before fitting", {
+  d <- .make_choice_data()
+
+  expect_error(cluster_choice(d, k = c(2, 2.9)),
+               "'k' must be a non-empty vector of whole finite numbers")
+  expect_error(cluster_choice(d, k = NA_real_),
+               "'k' must be a non-empty vector of whole finite numbers")
 })
 
 # ==============================================================================
@@ -212,6 +239,19 @@ test_that("print: constant axis columns drop out of the table", {
   expect_false(grepl("method",        data_hdr))
 })
 
+test_that("print rejects unsupported dots and invalid digits", {
+  d <- .make_choice_data()
+  ch <- cluster_choice(d, k = 2:4, method = "ward.D2",
+                        dissimilarity = "hamming")
+
+  expect_error(print(ch, typo_arg = TRUE),
+               "unsupported argument: typo_arg")
+  expect_error(print(ch, digits = NA_real_),
+               "'digits' must be a single non-negative whole")
+  expect_error(print(ch, digits = 1.5),
+               "'digits' must be a single non-negative whole")
+})
+
 # ==============================================================================
 # Summary
 # ==============================================================================
@@ -227,6 +267,15 @@ test_that("summary returns data.frame with $best on silhouette-max row", {
   best_idx <- which(s$best == "silhouette")
   expect_length(best_idx, 1L)
   expect_equal(best_idx, which.max(ch$silhouette))
+})
+
+test_that("summary rejects unsupported dots", {
+  d <- .make_choice_data()
+  ch <- cluster_choice(d, k = 2:4, method = "ward.D2",
+                        dissimilarity = "hamming")
+
+  expect_error(summary(ch, typo_arg = TRUE),
+               "unsupported argument: typo_arg")
 })
 
 # ==============================================================================
@@ -291,6 +340,18 @@ test_that("plot type validation: unsupported type points at the alternative", {
                                 dissimilarity = c("hamming", "lcs"))
   expect_error(plot(ch_fixed_k, type = "lines"),
                "requires k to be swept")
+})
+
+test_that("plot rejects unsupported dots and invalid abbrev", {
+  d <- .make_choice_data()
+  ch <- cluster_choice(d, k = 2:4, method = "ward.D2")
+
+  expect_error(plot(ch, typo_arg = TRUE),
+               "unsupported argument: typo_arg")
+  expect_error(plot(ch, abbrev = NA),
+               "'abbrev' must be TRUE or FALSE")
+  expect_error(plot(ch, abbrev = c(TRUE, FALSE)),
+               "'abbrev' must be TRUE or FALSE")
 })
 
 # ==============================================================================

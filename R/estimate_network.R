@@ -220,18 +220,22 @@ build_ising <- function(data, ...) {
 
 #' Apply scaling transformations to a network matrix
 #' @noRd
-.apply_scaling <- function(mat, scaling) {
+.apply_scaling <- function(mat, scaling, include_zeros = FALSE) {
   for (s in scaling) {
     mat <- switch(s,
       minmax = {
-        vals <- mat[mat != 0]
+        vals <- if (isTRUE(include_zeros)) as.vector(mat) else mat[mat != 0]
         if (length(vals) == 0) {
           mat
         } else {
-          rng <- range(vals)
+          rng <- range(vals, na.rm = TRUE)
           if (rng[1] == rng[2]) mat
           else {
-            mat[mat != 0] <- (mat[mat != 0] - rng[1]) / (rng[2] - rng[1])
+            if (isTRUE(include_zeros)) {
+              mat[] <- (mat - rng[1]) / (rng[2] - rng[1])
+            } else {
+              mat[mat != 0] <- (mat[mat != 0] - rng[1]) / (rng[2] - rng[1])
+            }
             mat
           }
         }
@@ -241,9 +245,13 @@ build_ising <- function(data, ...) {
         if (max_abs > 0) mat / max_abs else mat # nocov
       },
       rank = {
+        # Rank scaling always preserves structural zeros: a non-edge must
+        # remain a non-edge after scaling. include_zeros = TRUE only affects
+        # min-max / range scalings; for ranks it would promote absent
+        # transitions to positive weights and densify the network.
         nz <- mat != 0
         if (any(nz)) {
-          mat[nz] <- rank(mat[nz])
+          mat[nz] <- rank(mat[nz], ties.method = "average")
           mat
         } else {
           mat

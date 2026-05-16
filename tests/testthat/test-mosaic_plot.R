@@ -84,6 +84,35 @@ test_that("mosaic_plot.mcml level='macro' draws one cluster x cluster panel", {
   expect_s3_class(p, "ggplot")
 })
 
+test_that("mosaic_plot.mcml panels use transposed MCML weights", {
+  edges <- data.frame(
+    from = c("A", "A", "C", "D"),
+    to = c("B", "C", "D", "A"),
+    weight = c(1, 2, 3, 4),
+    stringsAsFactors = FALSE
+  )
+  clusters <- list(G1 = c("A", "B"), G2 = c("C", "D"))
+  fit <- build_mcml(edges, clusters, type = "frequency")
+
+  macro_tab <- Nestimate:::.mosaic_panels(fit, "mcml", "macro")$tabs[[1]]
+  cluster_tabs <- Nestimate:::.mosaic_panels(fit, "mcml", "clusters")$tabs
+
+  expect_equal(unclass(as.matrix(macro_tab)), t(fit$macro$weights))
+  expect_equal(length(cluster_tabs), length(fit$clusters))
+  expect_equal(unclass(as.matrix(cluster_tabs[[1]])),
+               t(fit$clusters[[1]]$weights))
+})
+
+test_that("mosaic_plot.mcml rejects unsupported dots", {
+  fit <- .tiny_mcml()
+
+  expect_error(mosaic_plot(fit, typo_arg = TRUE, seed = 1L),
+               "unsupported argument: typo_arg")
+  expect_error(mosaic_plot(fit, level = "clusters", typo_arg = TRUE,
+                           seed = 1L),
+               "unsupported argument: typo_arg")
+})
+
 test_that("mosaic_plot.mcml level='clusters' returns a faceted ggplot", {
   fit <- .tiny_mcml()
   out <- mosaic_plot(fit, level = "clusters", seed = 1L)

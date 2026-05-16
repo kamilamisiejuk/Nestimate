@@ -8,7 +8,9 @@ test_that("wtna transition counts match manual crossprod", {
     C = c(0, 0, 0, 0, 0)
   )
 
-  net <- wtna(df, method = "transition", type = "frequency")
+  # Pinned to size 1 (was the implicit default before 2026-05-10);
+  # the manual crossprod expectation is for size-1 transitions.
+  net <- wtna(df, method = "transition", type = "frequency", window_size = 1L)
   expect_s3_class(net, "netobject")
   expect_true(net$directed)
 
@@ -25,7 +27,8 @@ test_that("wtna cooccurrence counts match crossprod", {
     C = c(0, 0, 1, 0, 0)
   )
 
-  net <- wtna(df, method = "cooccurrence", type = "frequency")
+  # Pinned to size 1 — the manual crossprod is the size-1 reference.
+  net <- wtna(df, method = "cooccurrence", type = "frequency", window_size = 1L)
   expect_s3_class(net, "netobject")
   expect_false(net$directed)
 
@@ -102,8 +105,9 @@ test_that("wtna per-actor grouping", {
     B = c(0, 1, 0, 1, 0, 1)
   )
 
+  # Pinned to size 1 — manual per-actor crossprod is the size-1 reference.
   net <- wtna(df, method = "transition", type = "frequency",
-              codes = c("A", "B"), actor = "actor")
+              codes = c("A", "B"), actor = "actor", window_size = 1L)
   expect_s3_class(net, "netobject")
 
   # Manual: compute per actor and sum
@@ -113,6 +117,32 @@ test_that("wtna per-actor grouping", {
   t2 <- crossprod(g2[-3, ], g2[-1, ])
   expected <- t1 + t2
   expect_equal(unname(net$weights), unname(expected))
+})
+
+test_that("wtna treats one-hot NA indicators as inactive", {
+  df_na <- data.frame(
+    actor = c("s1", "s1", "s1", "s2", "s2"),
+    A = c(1L, NA, 0L, 1L, 0L),
+    B = c(0L, 1L, NA, 0L, 1L),
+    C = c(0L, 0L, 1L, NA, 0L)
+  )
+  df_zero <- df_na
+  df_zero[is.na(df_zero)] <- 0L
+
+  trans_na <- wtna(df_na, method = "transition", type = "frequency",
+                   codes = c("A", "B", "C"), actor = "actor")
+  trans_zero <- wtna(df_zero, method = "transition", type = "frequency",
+                     codes = c("A", "B", "C"), actor = "actor")
+  co_na <- wtna(df_na, method = "cooccurrence", type = "frequency",
+                codes = c("A", "B", "C"), actor = "actor")
+  co_zero <- wtna(df_zero, method = "cooccurrence", type = "frequency",
+                  codes = c("A", "B", "C"), actor = "actor")
+
+  expect_false(anyNA(trans_na$weights))
+  expect_false(anyNA(co_na$weights))
+  expect_equal(trans_na$weights, trans_zero$weights)
+  expect_equal(co_na$weights, co_zero$weights)
+  expect_equal(trans_na$initial, trans_zero$initial)
 })
 
 test_that("wtna type='relative' row-normalizes", {
@@ -296,7 +326,7 @@ test_that("wcna bootstrap works via wtna()", {
   expect_false(boot$original$directed)
 })
 
-test_that("wcna bootstrap errors with build_network (no stored data)", {
+test_that("wcna bootstrap works via build_network one-hot data", {
   set.seed(42)
   df <- data.frame(
     A = sample(0:1, 30, replace = TRUE),
@@ -304,10 +334,11 @@ test_that("wcna bootstrap errors with build_network (no stored data)", {
     C = sample(0:1, 30, replace = TRUE)
   )
 
-  expect_error(
-    bootstrap_network(build_network(df, method = "cna"), iter = 20, seed = 1),
-    "requires the original data"
-  )
+  boot <- bootstrap_network(build_network(df, method = "cna"),
+                            iter = 20, seed = 1)
+  expect_s3_class(boot, "net_bootstrap")
+  expect_equal(boot$method, "co_occurrence")
+  expect_true(any(boot$mean > 0))
 })
 
 test_that("wtna permutation test works via wtna()", {
@@ -362,7 +393,7 @@ test_that("wcna permutation test works via wtna()", {
   expect_equal(perm$method, "wtna_cooccurrence")
 })
 
-test_that("wcna permutation errors with build_network (no stored data)", {
+test_that("wcna permutation works via build_network one-hot data", {
   set.seed(42)
   df1 <- data.frame(
     A = sample(0:1, 20, replace = TRUE),
@@ -373,12 +404,11 @@ test_that("wcna permutation errors with build_network (no stored data)", {
     B = sample(0:1, 20, replace = TRUE)
   )
 
-  expect_error(
-    permutation(build_network(df1, method = "cna"),
-                build_network(df2, method = "cna"),
-                iter = 20, seed = 1),
-    "requires the original data"
-  )
+  perm <- permutation(build_network(df1, method = "cna"),
+                      build_network(df2, method = "cna"),
+                      iter = 20, seed = 1)
+  expect_s3_class(perm, "net_permutation")
+  expect_equal(perm$method, "co_occurrence")
 })
 
 

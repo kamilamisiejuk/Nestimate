@@ -8,6 +8,7 @@
   x,
   type = c("auto", "lines", "bars", "heatmap", "tradeoff", "facet"),
   abbrev = FALSE,
+  combined = TRUE,
   ...
 )
 }
@@ -22,10 +23,16 @@ shown on tick labels and point labels are shortened (e.g.
 \code{"hamming"} -> \code{"ham"}, \code{"ward.D2"} -> \code{"wD2"}).
 The legend shows the full canonical name. Default \code{FALSE}.}
 
-\item{...}{Additional arguments (ignored).}
+\item{combined}{Only meaningful for \code{type = "facet"}. When
+\code{TRUE} (default), all methods are shown in one ggplot via
+\code{facet_wrap(~ method)}. When \code{FALSE}, returns a named list
+of single-panel ggplots, one per method.}
+
+\item{...}{Unsupported. Supplying unused arguments raises an error.}
 }
 \value{
-A \code{ggplot} object, invisibly.
+A \code{ggplot} object, invisibly; for \code{type = "facet"}
+with \code{combined = FALSE}, a named list of ggplots.
 }
 \description{
 Six explicit chart types plus a smart \code{"auto"} default. The user

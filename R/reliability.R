@@ -424,9 +424,13 @@ summary.net_reliability <- function(object, ...) {
 #'
 #' @param x A \code{net_reliability} object.
 #' @param bins Integer. Number of histogram bins per panel (default 60).
+#' @param combined When \code{TRUE} (default), all four metrics are shown
+#'   in one ggplot via \code{facet_wrap(~ metric)}. When \code{FALSE},
+#'   returns a named list of four single-panel ggplots, one per metric.
 #' @param ... Additional arguments (ignored).
 #'
-#' @return A \code{ggplot} object (invisibly).
+#' @return A \code{ggplot} object (invisibly), or a named list of four
+#'   ggplots when \code{combined = FALSE}.
 #'
 #' @examples
 #' net <- build_network(data.frame(V1 = c("A","B","C","A"),
@@ -446,7 +450,8 @@ summary.net_reliability <- function(object, ...) {
 #' }
 #'
 #' @export
-plot.net_reliability <- function(x, bins = 60L, ...) {
+plot.net_reliability <- function(x, bins = 60L, combined = TRUE, ...) {
+  stopifnot(is.logical(combined), length(combined) == 1L)
   iters <- x$iterations
   models <- unique(iters$model)
   multi <- length(models) > 1L
@@ -478,36 +483,51 @@ plot.net_reliability <- function(x, bins = 60L, ...) {
   fill_vals <- palette[seq_along(models)]
   names(fill_vals) <- models
 
-  p <- ggplot2::ggplot(long, ggplot2::aes(x = .data$value)) +
-    ggplot2::geom_histogram(
-      ggplot2::aes(fill = .data$model),
-      bins = bins, alpha = 0.65, position = "identity",
-      color = NA
-    ) +
-    ggplot2::geom_vline(
-      data = means,
-      ggplot2::aes(xintercept = .data$value, color = .data$model),
-      linetype = "dashed", linewidth = 0.6,
-      show.legend = FALSE
-    ) +
-    ggplot2::geom_label(
-      data = means,
-      ggplot2::aes(x = .data$value, y = Inf, label = .data$label,
-                   color = .data$model),
-      vjust = 1.2, size = 3.3, label.size = 0.4,
-      fill = "white", show.legend = FALSE
-    ) +
-    ggplot2::scale_fill_manual(values = fill_vals, name = "Model") +
-    ggplot2::scale_color_manual(values = fill_vals, guide = "none") +
-    ggplot2::facet_wrap(~ metric, scales = "free", ncol = 2L) +
-    ggplot2::labs(x = "Metric Value", y = "Frequency",
-                  title = if (multi) "Split-Half Reliability" else NULL) +
-    ggplot2::theme_minimal(base_size = 12) +
-    ggplot2::theme(
-      legend.position = if (multi) "bottom" else "none",
-      strip.text = ggplot2::element_text(face = "bold", size = 12),
-      panel.grid.minor = ggplot2::element_blank()
-    )
+  base_p <- function(d, m_subset, ttl) {
+    ggplot2::ggplot(d, ggplot2::aes(x = .data$value)) +
+      ggplot2::geom_histogram(
+        ggplot2::aes(fill = .data$model),
+        bins = bins, alpha = 0.65, position = "identity",
+        color = NA
+      ) +
+      ggplot2::geom_vline(
+        data = m_subset,
+        ggplot2::aes(xintercept = .data$value, color = .data$model),
+        linetype = "dashed", linewidth = 0.6,
+        show.legend = FALSE
+      ) +
+      ggplot2::geom_label(
+        data = m_subset,
+        ggplot2::aes(x = .data$value, y = Inf, label = .data$label,
+                     color = .data$model),
+        vjust = 1.2, size = 3.3, label.size = 0.4,
+        fill = "white", show.legend = FALSE
+      ) +
+      ggplot2::scale_fill_manual(values = fill_vals, name = "Model") +
+      ggplot2::scale_color_manual(values = fill_vals, guide = "none") +
+      ggplot2::labs(x = "Metric Value", y = "Frequency", title = ttl) +
+      ggplot2::theme_minimal(base_size = 12) +
+      ggplot2::theme(
+        legend.position = if (multi) "bottom" else "none",
+        strip.text = ggplot2::element_text(face = "bold", size = 12),
+        panel.grid.minor = ggplot2::element_blank()
+      )
+  }
+
+  if (!combined) {
+    levs <- levels(long$metric)
+    plots <- lapply(levs, function(lv) {
+      sub_long  <- long[long$metric == lv, , drop = FALSE]
+      sub_means <- means[means$metric == lv, , drop = FALSE]
+      base_p(sub_long, sub_means, lv)
+    })
+    names(plots) <- levs
+    return(invisible(plots))
+  }
+
+  p <- base_p(long, means,
+              if (multi) "Split-Half Reliability" else NULL) +
+    ggplot2::facet_wrap(~ metric, scales = "free", ncol = 2L)
 
   print(p)
   invisible(p)

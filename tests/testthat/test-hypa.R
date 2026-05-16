@@ -42,12 +42,37 @@ test_that(".hypa_compute_scores returns correct format", {
 
   expect_true(is.data.frame(scores))
   expect_true(all(c("path", "from", "to", "observed", "expected",
-                     "ratio", "p_value", "anomaly") %in% names(scores)))
+                     "ratio", "p_value", "p_under", "p_over",
+                     "anomaly") %in% names(scores)))
   expect_equal(nrow(scores), sum(adj > 0))
 
   # HYPA scores should be in [0, 1]
   expect_true(all(scores$p_value >= 0))
   expect_true(all(scores$p_value <= 1))
+  expect_equal(scores$p_value, scores$p_under)
+  expect_true(all(scores$p_over >= 0))
+  expect_true(all(scores$p_over <= 1))
+})
+
+test_that(".hypa_compute_scores uses inclusive over-representation tail", {
+  adj <- matrix(c(0, 12, 5, 2,
+                  3, 0, 8, 1,
+                  6, 4, 0, 9,
+                  2, 7, 3, 0), 4, 4, byrow = TRUE,
+                dimnames = list(LETTERS[1:4], LETTERS[1:4]))
+  xi <- .hypa_fit_xi(adj)
+  scores <- .hypa_compute_scores(adj, xi)
+  edge <- scores[scores$from == "B" & scores$to == "C", , drop = FALSE]
+  K <- round(xi["B", "C"])
+  N_total <- round(sum(xi))
+  n_draws <- min(sum(adj), N_total)
+
+  expect_equal(edge$p_under,
+               stats::phyper(edge$observed, K, N_total - K, n_draws))
+  expect_equal(edge$p_over,
+               stats::phyper(edge$observed - 1, K, N_total - K, n_draws,
+                             lower.tail = FALSE))
+  expect_gt(edge$p_over, 1 - edge$p_under)
 })
 
 test_that(".hypa_compute_scores handles empty graph", {
@@ -155,6 +180,42 @@ test_that("summary.net_hypa works", {
   h <- build_hypa(trajs, k = 1L)
   out <- capture.output(summary(h))
   expect_true(any(grepl("HYPA", out)))
+})
+
+test_that("summary.net_hypa returns direction-specific tail probability", {
+  scores <- data.frame(
+    path = c("A -> B -> C", "D -> E -> F"),
+    observed = c(20, 1),
+    expected = c(3, 8),
+    ratio = c(20 / 3, 1 / 8),
+    p_value = c(0.99, 0.01),
+    p_under = c(0.99, 0.01),
+    p_over = c(0.001, 0.95),
+    p_adjusted_under = c(0.99, 0.01),
+    p_adjusted_over = c(0.001, 0.95),
+    anomaly = c("over", "under"),
+    stringsAsFactors = FALSE
+  )
+  h <- structure(list(
+    scores = scores,
+    over = scores[scores$anomaly == "over", , drop = FALSE],
+    under = scores[scores$anomaly == "under", , drop = FALSE],
+    k = 2L,
+    nodes = data.frame(label = LETTERS[1:6], stringsAsFactors = FALSE),
+    n_edges = nrow(scores),
+    alpha = 0.05,
+    p_adjust = "none",
+    n_anomalous = 2L,
+    n_over = 1L,
+    n_under = 1L
+  ), class = "net_hypa")
+
+  capture.output(over <- summary(h, type = "over"))
+  capture.output(under <- summary(h, type = "under"))
+
+  expect_equal(over$p_tail, scores$p_over[1])
+  expect_equal(under$p_tail, scores$p_under[2])
+  expect_false("p_value" %in% names(over))
 })
 
 
@@ -329,10 +390,9 @@ test_that("p_adjust='none' matches original behavior (no correction)", {
 
   expect_equal(h$p_adjust, "none")
 
-  # With p_adjust="none", p_adjusted_under should equal p_value
-  # and p_adjusted_over should equal 1 - p_value
-  expect_equal(h$scores$p_adjusted_under, h$scores$p_value)
-  expect_equal(h$scores$p_adjusted_over, 1 - h$scores$p_value)
+  # With p_adjust="none", adjusted values should equal the raw tails.
+  expect_equal(h$scores$p_adjusted_under, h$scores$p_under)
+  expect_equal(h$scores$p_adjusted_over, h$scores$p_over)
 })
 
 test_that("default BH adjustment produces p_adjusted columns in scores", {
@@ -348,6 +408,8 @@ test_that("default BH adjustment produces p_adjusted columns in scores", {
   expect_true("p_adjusted_under" %in% names(h$scores))
   expect_true("p_adjusted_over" %in% names(h$scores))
   expect_true("p_value" %in% names(h$scores))
+  expect_true("p_under" %in% names(h$scores))
+  expect_true("p_over" %in% names(h$scores))
 
   # Adjusted p-values should be in [0, 1]
   expect_true(all(h$scores$p_adjusted_under >= 0))
@@ -476,8 +538,8 @@ test_that("two-sided correction adjusts under and over separately", {
 
   # Verify that p_adjusted_under and p_adjusted_over are adjusted separately
   # by checking they equal p.adjust applied to the raw values
-  raw_p_under <- h$scores$p_value
-  raw_p_over <- 1 - h$scores$p_value
+  raw_p_under <- h$scores$p_under
+  raw_p_over <- h$scores$p_over
   expect_equal(h$scores$p_adjusted_under,
                stats::p.adjust(raw_p_under, method = "BH"))
   expect_equal(h$scores$p_adjusted_over,

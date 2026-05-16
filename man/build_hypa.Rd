@@ -34,14 +34,17 @@ p-values are adjusted separately (two-sided testing).}
 An object of class \code{net_hypa} with components:
 \describe{
 \item{scores}{Data frame with path, from, to, observed, expected,
-ratio, p_value, p_adjusted_under, p_adjusted_over, anomaly
+ratio, p_value, p_under, p_over, p_adjusted_under,
+p_adjusted_over, anomaly
 columns. The \code{path} column shows the full state sequence
 (e.g., "A -> B -> C"); \code{from} is the context (conditioning
 states); \code{to} is the next state; \code{ratio} is
-observed / expected; \code{p_value} is the raw hypergeometric
-CDF value; \code{p_adjusted_under} and \code{p_adjusted_over}
-are the corrected p-values for under- and over-representation
-tests respectively.}
+observed / expected; \code{p_value} is retained as an alias for
+\code{p_under}, the raw lower-tail hypergeometric CDF value;
+\code{p_over} is the inclusive upper-tail probability
+\code{P(X >= observed)}; \code{p_adjusted_under} and
+\code{p_adjusted_over} are the corrected p-values for under- and
+over-representation tests respectively.}
 \item{adjacency}{Weighted adjacency matrix of the De Bruijn graph.}
 \item{xi}{Fitted propensity matrix.}
 \item{k}{Order of the De Bruijn graph.}

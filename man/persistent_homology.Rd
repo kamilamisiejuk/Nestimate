@@ -19,14 +19,18 @@ A \code{persistent_homology} object with:
 \item{betti_curve}{Data frame: \code{threshold}, \code{dimension},
 \code{betti} at each filtration step.}
 \item{persistence}{Data frame of birth-death pairs:
-\code{dimension}, \code{birth}, \code{death}, \code{persistence}.}
+\code{dimension}, \code{birth}, \code{death}, \code{persistence}.
+These intervals summarize Betti-count changes across the sampled
+thresholds.}
 \item{thresholds}{Numeric vector of filtration thresholds.}
 }
 }
 \description{
-Computes persistent homology by building simplicial complexes at
-decreasing weight thresholds and tracking the birth/death of
-topological features.
+Builds clique complexes at decreasing inclusive weight thresholds and
+records the Betti curve. The returned persistence table is a heuristic
+pairing derived from changes in Betti counts across the threshold grid; it
+is not a full boundary-matrix persistent homology decomposition of
+individual homology classes.
 }
 \examples{
 mat <- matrix(c(0,.6,.5,.6,0,.4,.5,.4,0), 3, 3)

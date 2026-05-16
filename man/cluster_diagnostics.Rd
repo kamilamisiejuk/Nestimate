@@ -14,7 +14,7 @@ cluster_diagnostics(x, ...)
 (with \code{attr(, "clustering")} attached by \code{cluster_network()}
 or \code{cluster_mmm()}), or \code{net_mmm_clustering}.}
 
-\item{...}{Reserved for future extensions.}
+\item{...}{Unsupported. Supplying unused arguments raises an error.}
 
 \item{row.names, optional}{Standard \code{as.data.frame} arguments
 (ignored).}

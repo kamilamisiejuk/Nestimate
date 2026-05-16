@@ -4,15 +4,22 @@
 \alias{plot.simplicial_complex}
 \title{Plot a Simplicial Complex}
 \usage{
-\method{plot}{simplicial_complex}(x, ...)
+\method{plot}{simplicial_complex}(x, combined = TRUE, ...)
 }
 \arguments{
 \item{x}{A \code{simplicial_complex} object.}
 
+\item{combined}{When \code{TRUE} (default), the four panels are stitched into
+a 2x2 gtable via \code{gridExtra::arrangeGrob} and drawn. When \code{FALSE},
+returns a named list of the four ggplots (\code{f_vector}, \code{betti},
+\code{degree}, \code{degree_heatmap}) so each can be printed, saved, or
+re-laid-out independently.}
+
 \item{...}{Ignored.}
 }
 \value{
-A grid grob (invisibly).
+A grid grob (invisibly) when \code{combined = TRUE}; a named list of
+four ggplots when \code{combined = FALSE}.
 }
 \description{
 Produces a multi-panel summary: f-vector, simplicial degree ranking,

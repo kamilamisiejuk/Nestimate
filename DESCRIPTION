@@ -29,14 +29,15 @@ Imports:
     glasso,
     data.table,
     cluster,
-    scales
+    scales,
+    brglm2,
+    nnet
 Suggests:
     testthat (>= 3.0.0),
     igraph,
     glmnet,
     lavaan,
     stringdist,
-    nnet,
     gridExtra,
     lme4,
     corpcor,

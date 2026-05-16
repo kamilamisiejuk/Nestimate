@@ -47,6 +47,88 @@ test_that("build_mmm models are netobjects", {
   expect_equal(mmm$models[[1]]$nodes$label, mmm$states)
 })
 
+test_that("build_mmm stores full data once and cluster data per component", {
+  data <- .make_mmm_data()
+  mmm <- build_mmm(data, k = 2, n_starts = 3, max_iter = 30, seed = 1)
+  sizes <- tabulate(mmm$assignments, nbins = mmm$k)
+
+  expect_equal(mmm$data, data)
+  expect_equal(unname(vapply(mmm$models, function(x) nrow(x$data), integer(1L))),
+               sizes)
+  expect_false(identical(mmm$models[[1L]]$data, mmm$models[[2L]]$data))
+})
+
+test_that("build_mmm warns when hard assignments collapse a component", {
+  data <- data.frame(
+    V1 = rep("A", 20), V2 = rep("B", 20),
+    V3 = rep("A", 20), V4 = rep("B", 20),
+    stringsAsFactors = FALSE
+  )
+
+  expect_warning(
+    mmm <- build_mmm(data, k = 2, n_starts = 5, max_iter = 50, seed = 1),
+    "empty hard-assignment cluster"
+  )
+  expect_equal(tabulate(mmm$assignments, nbins = mmm$k), c(0L, 20L))
+})
+
+test_that("build_mmm is deterministic when seed is supplied", {
+  data <- .make_mmm_data(n_per_group = 20, n_cols = 8, seed = 12)
+  mmm1 <- build_mmm(data, k = 2, n_starts = 3, max_iter = 30, seed = 9)
+  mmm2 <- build_mmm(data, k = 2, n_starts = 3, max_iter = 30, seed = 9)
+
+  expect_equal(mmm1$assignments, mmm2$assignments)
+  expect_equal(mmm1$posterior, mmm2$posterior, tolerance = 1e-12)
+  expect_equal(mmm1$models[[1L]]$weights, mmm2$models[[1L]]$weights,
+               tolerance = 1e-12)
+  expect_equal(mmm1$models[[2L]]$weights, mmm2$models[[2L]]$weights,
+               tolerance = 1e-12)
+})
+
+test_that("cluster_mmm returns per-cluster data without losing full clustering data", {
+  data <- .make_mmm_data()
+  grp <- cluster_mmm(data, k = 2, n_starts = 3, max_iter = 30, seed = 1)
+  cl <- attr(grp, "clustering")
+  sizes <- tabulate(cl$assignments, nbins = cl$k)
+
+  expect_s3_class(grp, "netobject_group")
+  expect_equal(cl$data, data)
+  expect_equal(unname(vapply(grp, function(x) nrow(x$data), integer(1L))), sizes)
+  expect_false(identical(grp[[1L]]$data, grp[[2L]]$data))
+})
+
+test_that("cluster_mmm rejects unsupported extra arguments", {
+  data <- .make_mmm_data()
+  expect_error(
+    cluster_mmm(data, k = 2, n_starts = 1, max_iter = 5,
+                dissimilarity = "hamming"),
+    "unsupported argument: dissimilarity"
+  )
+})
+
+test_that("build_network.net_mmm preserves per-cluster data and full metadata", {
+  data <- .make_mmm_data()
+  mmm <- build_mmm(data, k = 2, n_starts = 3, max_iter = 30, seed = 1)
+  grp <- build_network(mmm)
+  cl <- attr(grp, "clustering")
+  sizes <- tabulate(mmm$assignments, nbins = mmm$k)
+
+  expect_s3_class(grp, "netobject_group")
+  expect_equal(cl$data, data)
+  expect_equal(unname(vapply(grp, function(x) nrow(x$data), integer(1L))), sizes)
+  expect_false(identical(grp[[1L]]$data, grp[[2L]]$data))
+})
+
+test_that("build_network.net_mmm rejects unused relative-branch dots", {
+  data <- .make_mmm_data()
+  mmm <- build_mmm(data, k = 2, n_starts = 2, max_iter = 20, seed = 12)
+
+  expect_error(
+    build_network(mmm, typo_arg = TRUE),
+    "Unsupported argument"
+  )
+})
+
 test_that("build_mmm transition matrices are row-normalized", {
   data <- .make_mmm_data()
   mmm <- build_mmm(data, k = 2, n_starts = 2, seed = 1)
@@ -160,6 +242,28 @@ test_that("build_mmm errors on too few sequences", {
   expect_error(build_mmm(data, k = 2), "sequences")
 })
 
+test_that("build_mmm rejects silently truncated numeric controls", {
+  data <- .make_mmm_data()
+
+  expect_error(build_mmm(data, k = 2.9, n_starts = 1, max_iter = 5),
+               "'k' must be a whole finite")
+  expect_error(build_mmm(data, k = NA_real_, n_starts = 1, max_iter = 5),
+               "'k' must be a whole finite")
+  expect_error(build_mmm(data, k = 2, n_starts = 1.9, max_iter = 5),
+               "'n_starts' must be a positive whole")
+  expect_error(build_mmm(data, k = 2, n_starts = NA_real_, max_iter = 5),
+               "'n_starts' must be a positive whole")
+  expect_error(build_mmm(data, k = 2, n_starts = 1, max_iter = 5.5),
+               "'max_iter' must be a positive whole")
+  expect_error(build_mmm(data, k = 2, n_starts = 1, max_iter = Inf),
+               "'max_iter' must be a positive whole")
+  expect_error(build_mmm(data, k = 2, n_starts = 1, max_iter = 5, tol = 0),
+               "'tol' must be a finite positive")
+  expect_error(build_mmm(data, k = 2, n_starts = 1, max_iter = 5,
+                         smooth = -0.01),
+               "'smooth' must be a finite non-negative")
+})
+
 test_that("build_mmm works with netobject input", {
   data <- .make_mmm_data()
   net <- build_network(data, method = "relative")
@@ -210,7 +314,40 @@ test_that("compare_mmm(return_fits = TRUE) attaches fits keyed by k", {
 test_that("compare_mmm rejects non-logical return_fits", {
   data <- .make_mmm_data()
   expect_error(compare_mmm(data, k = 2, n_starts = 1, return_fits = "yes"),
-               "must be a single logical")
+               "must be TRUE or FALSE")
+  expect_error(compare_mmm(data, k = 2, n_starts = 1, return_fits = NA),
+               "must be TRUE or FALSE")
+})
+
+test_that("compare_mmm rejects non-whole k before fitting", {
+  data <- .make_mmm_data()
+  expect_error(compare_mmm(data, k = c(2, 2.9), n_starts = 1),
+               "'k' must be a non-empty vector of whole finite")
+  expect_error(compare_mmm(data, k = NA_real_, n_starts = 1),
+               "'k' must be a non-empty vector of whole finite")
+  expect_error(compare_mmm(data, k = 1, n_starts = 1),
+               "'k' must be a non-empty vector of whole finite")
+})
+
+test_that("compare_mmm rows equal retained direct fits", {
+  data <- .make_mmm_data()
+  comp <- compare_mmm(data, k = 2:3, n_starts = 2, max_iter = 30,
+                      seed = 33, return_fits = TRUE)
+  fits <- attr(comp, "fits")
+
+  row_matches <- vapply(seq_len(nrow(comp)), function(i) {
+    fit <- fits[[as.character(comp$k[i])]]
+    isTRUE(all.equal(
+      unname(c(comp$log_likelihood[i], comp$AIC[i], comp$BIC[i],
+               comp$ICL[i], comp$AvePP[i], comp$Entropy[i],
+               comp$converged[i])),
+      unname(c(fit$log_likelihood, fit$AIC, fit$BIC, fit$ICL,
+               fit$quality$avepp_overall, fit$quality$entropy,
+               fit$converged)),
+      tolerance = 1e-12
+    ))
+  }, logical(1))
+  expect_true(all(row_matches))
 })
 
 # ============================================
@@ -234,12 +371,36 @@ test_that("summary.net_mmm shows transition matrices", {
   expect_output(summary(mmm), "Cluster 2")
 })
 
+test_that("net_mmm methods reject unsupported dots", {
+  data <- .make_mmm_data()
+  mmm <- build_mmm(data, k = 2, n_starts = 2, seed = 1)
+
+  expect_error(print(mmm, typo_arg = TRUE),
+               "unsupported argument: typo_arg")
+  expect_error(summary(mmm, typo_arg = TRUE),
+               "unsupported argument: typo_arg")
+  expect_error(plot(mmm, typo_arg = TRUE),
+               "unsupported argument: typo_arg")
+})
+
 test_that("print.mmm_compare produces output", {
   data <- .make_mmm_data()
   comp <- compare_mmm(data, k = 2:3, n_starts = 2, seed = 1)
 
   expect_output(print(comp), "MMM Model Comparison")
   expect_output(print(comp), "BIC")
+})
+
+test_that("mmm_compare methods reject unsupported dots", {
+  data <- .make_mmm_data()
+  comp <- compare_mmm(data, k = 2:3, n_starts = 2, seed = 1)
+
+  expect_error(print(comp, typo_arg = TRUE),
+               "unsupported argument: typo_arg")
+  expect_error(summary(comp, typo_arg = TRUE),
+               "unsupported argument: typo_arg")
+  expect_error(plot(comp, typo_arg = TRUE),
+               "unsupported argument: typo_arg")
 })
 
 # ============================================
@@ -444,8 +605,11 @@ test_that("build_mmm with k=2 covariate Newton step runs without error", {
 
 test_that("build_mmm with k=3 runs general covariate Newton step", {
   sim <- .make_mmm_cov_data(n = 90, seed = 21)
-  mmm <- build_mmm(sim$data, k = 3, n_starts = 2, seed = 21,
-                    covariates = "Age")
+  expect_warning(
+    mmm <- build_mmm(sim$data, k = 3, n_starts = 2, seed = 21,
+                     covariates = "Age"),
+    "empty hard-assignment cluster"
+  )
   expect_s3_class(mmm, "net_mmm")
   expect_equal(mmm$k, 3L)
   expect_true(!is.null(mmm$covariates))

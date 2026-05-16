@@ -9,7 +9,7 @@
 \arguments{
 \item{object}{An \code{mcml} object.}
 
-\item{...}{Additional arguments (ignored).}
+\item{...}{Unsupported. Supplying unused arguments raises an error.}
 }
 \value{
 A tidy data frame with one row per cluster and columns
@@ -17,7 +17,7 @@ A tidy data frame with one row per cluster and columns
 \code{between_in}. For undirected macro networks the in/out split is
 not meaningful, so \code{between_out} reports total incident weight
 and \code{between_in} is \code{NA}. The data frame is returned
-silently \emph{without} printing the full object — call
+silently \emph{without} printing the full object -- call
 \code{print(object)} explicitly if you want the verbose dump.
 }
 \description{

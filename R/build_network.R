@@ -22,6 +22,13 @@
 #'   \code{list(format = "wide")} for transition methods). This is the key
 #'   composability feature: downstream functions like bootstrap or grid search
 #'   can store and replay the full params list without knowing method internals.
+#'   Transition estimators accept tna-style sequence options such as
+#'   \code{weighted}, \code{begin_state}, \code{end_state}, and \code{concat}.
+#'   Column-like entries in \code{params} (\code{action}, \code{id},
+#'   \code{id_col}, \code{time}, \code{session}, \code{order}, \code{codes},
+#'   and \code{group}) are resolved before format detection and must name
+#'   existing columns. If the same column role is supplied both directly and
+#'   through \code{params}, the names must agree.
 #' @param labels Optional name -> label remap applied after construction.
 #'   Accepts a 2-column data.frame \code{(name, label)}, a named character
 #'   vector \code{c(name = "label")}, or a named list. Rewrites
@@ -110,6 +117,7 @@
 #' The function works as follows:
 #' \enumerate{
 #'   \item Resolves method aliases to canonical names.
+#'   \item Validates explicit column arguments before any format guessing.
 #'   \item Retrieves the estimator function from the global registry.
 #'   \item For association methods with \code{level} specified, decomposes
 #'     the data (between-person means or within-person centering).
@@ -117,6 +125,12 @@
 #'   \item Applies scaling and thresholding to the result matrix.
 #'   \item Extracts edges and constructs the \code{netobject}.
 #' }
+#'
+#' For long-format transition data, supplying \code{action} without
+#' \code{actor} is allowed and treats all rows as one sequence in row/time
+#' order. The function warns because a one-sequence transition network is not
+#' recommended and cannot be validated by bootstrap or other confirmatory
+#' tests.
 #'
 #' @examples
 #' seqs <- data.frame(V1 = c("A","B","C","A"), V2 = c("B","C","A","B"))
@@ -186,13 +200,13 @@ build_network <- function(data,
   if (inherits(data, "net_mmm")) {
     if (missing(method)) method <- data$network_method %||% "relative"
     resolved <- .resolve_method_alias(method)
+    dots <- list(...)
     if (resolved != "relative") {
       # Re-build per-component networks from hard assignments using requested method
-      raw_data    <- data$models[[1L]]$data
+      raw_data    <- data$data %||% data$models[[1L]]$data
       assignments <- data$assignments
       k_comp      <- data$k
       # Merge stored build_args with caller's ...; caller takes precedence
-      dots      <- list(...)
       call_args <- if (!is.null(data$build_args)) modifyList(data$build_args, dots) else dots
       nets <- lapply(seq_len(k_comp), function(m) {
         sub <- raw_data[assignments == m, , drop = FALSE]
@@ -207,12 +221,22 @@ build_network <- function(data,
       class(nets) <- "netobject_group"
       return(.attach_mmm_clustering(nets, data, full_data = raw_data))
     }
+    if (length(dots)) {
+      stop(
+        "Unsupported argument(s) for build_network(net_mmm) with the ",
+        "pre-built relative MMM networks: ",
+        paste(names(dots), collapse = ", "), ". ",
+        "Use a non-relative `method` to rebuild per-cluster networks, or ",
+        "set these options before fitting the MMM.",
+        call. = FALSE
+      )
+    }
     # Default: wrap pre-built "relative" models (retain $initial from EM)
     nets <- data$models
     if (is.null(names(nets))) names(nets) <- paste0("Cluster ", seq_along(nets))
     class(nets) <- "netobject_group"
     return(.attach_mmm_clustering(nets, data,
-                                  full_data = data$models[[1L]]$data))
+                                  full_data = data$data %||% data$models[[1L]]$data))
   }
 
   stopifnot(is.character(method), length(method) == 1)
@@ -259,38 +283,30 @@ build_network <- function(data,
   # Resolve method aliases early (needed for format detection)
   method <- .resolve_method_alias(method)
 
-  # ---- Group dispatch: per-group networks ----
-  if (!is.null(group)) {
-    stopifnot(is.character(group), all(group %in% names(data)))
-    if (length(group) == 1L) {
-      grp_key <- data[[group]]
-    } else {
-      grp_key <- interaction(data[, group, drop = FALSE], sep = "-",
-                             drop = TRUE)
-    }
-    grp_levels <- unique(grp_key)
-    # Drop group column(s) from sub-data so they don't become state cols
-    drop_cols <- intersect(group, names(data))
-    nets <- lapply(grp_levels, function(g) {
-      sub <- data[grp_key == g, , drop = FALSE]
-      if (length(drop_cols) > 0L) {
-        sub <- sub[, setdiff(names(sub), drop_cols), drop = FALSE]
-      }
-      build_network(
-        sub, method = method, actor = actor, action = action,
-        time = time, session = session, order = order, codes = codes,
-        group = NULL, format = format, window_size = window_size,
-        mode = mode, scaling = scaling, threshold = threshold,
-        level = level, time_threshold = time_threshold,
-        predictability = predictability,
-        state_cols = state_cols, metadata_cols = metadata_cols,
-        params = params, ...
-      )
-    })
-    names(nets) <- as.character(grp_levels)
-    attr(nets, "group_col") <- group
-    class(nets) <- "netobject_group"
-    return(nets)
+  if (is.data.frame(data)) {
+    canonical <- .canonicalize_build_network_params(
+      params,
+      actor = actor, action = action, time = time, session = session,
+      order = order, codes = codes, group = group, format = format
+    )
+    actor <- canonical$actor
+    action <- canonical$action
+    time <- canonical$time
+    session <- canonical$session
+    order <- canonical$order
+    codes <- canonical$codes
+    group <- canonical$group
+    format <- canonical$format
+
+    .validate_build_network_columns(
+      data,
+      actor = actor, action = action, time = time, session = session,
+      order = order, codes = codes, group = group,
+      state_cols = state_cols, metadata_cols = metadata_cols
+    )
+    .validate_build_network_params(data, params, actor = actor,
+                                   action = action, time = time,
+                                   codes = codes)
   }
 
   # ---- Auto-match standard column names (case-insensitive) ----
@@ -305,8 +321,63 @@ build_network <- function(data,
     if (is.null(session)) session <- .match1("session") %||% .match1("session_id")
   }
 
+  # ---- Group dispatch: per-group networks ----
+  if (!is.null(group)) {
+    stopifnot(is.character(group))
+    transition_methods <- c("relative", "frequency", "co_occurrence", "attention")
+    if (method %in% transition_methods && is.data.frame(data) &&
+        is.null(.param_get(params, "alphabet"))) {
+      if (!is.null(action) && action %in% names(data)) {
+        vals <- .clean_states(as.character(data[[action]]))
+      } else {
+        exclude <- c(group, actor, session)
+        state_names <- setdiff(names(data), exclude)
+        vals <- .clean_states(as.character(unlist(data[, state_names, drop = FALSE])))
+      }
+      params$alphabet <- sort(unique(c(
+        vals[!is.na(vals)],
+        .param_get(params, "begin_state"),
+        .param_get(params, "end_state")
+      )))
+    }
+    if (length(group) == 1L) {
+      grp_key <- data[[group]]
+    } else {
+      grp_key <- interaction(data[, group, drop = FALSE], sep = "-",
+                             drop = TRUE)
+    }
+    grp_levels <- unique(grp_key)
+    # Drop group column(s) from sub-data so they don't become state cols
+    drop_cols <- intersect(group, names(data))
+    # Strip group from params so the recursive per-group call does not
+    # try to re-canonicalize a `group` column that has been dropped from
+    # `sub`. The parent call already consumed it.
+    child_params <- if (is.list(params)) params[setdiff(names(params), "group")] else params
+    nets <- lapply(grp_levels, function(g) {
+      sub <- data[grp_key == g, , drop = FALSE]
+      if (length(drop_cols) > 0L) {
+        sub <- sub[, setdiff(names(sub), drop_cols), drop = FALSE]
+      }
+      build_network(
+        sub, method = method, actor = actor, action = action,
+        time = time, session = session, order = order, codes = codes,
+        group = NULL, format = format, window_size = window_size,
+        mode = mode, scaling = scaling, threshold = threshold,
+        level = level, time_threshold = time_threshold,
+        predictability = predictability,
+        state_cols = state_cols, metadata_cols = metadata_cols,
+        params = child_params, ...
+      )
+    })
+    names(nets) <- as.character(grp_levels)
+    attr(nets, "group_col") <- group
+    class(nets) <- "netobject_group"
+    return(nets)
+  }
+
   # ---- Auto-detect input format ----
   is_onehot <- FALSE
+  onehot_codes <- NULL
   if (format == "auto" && is.data.frame(data)) {
     if (!is.null(codes)) {
       # Explicit codes = one-hot
@@ -335,6 +406,13 @@ build_network <- function(data,
   # ---- Long format: prepare event log data ----
   if (format == "long" && !is.null(action) && is.data.frame(data) &&
       action %in% names(data)) {
+    if (is.null(actor)) {
+      warning(
+        "A network with one long sequence is not recommended and can't be ",
+        "validated using bootstrap and other confirmatory testings.",
+        call. = FALSE
+      )
+    }
     prep_args <- list(data = data, action = action)
     if (!is.null(actor)) prep_args$actor <- actor
     if (!is.null(time)) prep_args$time <- time
@@ -374,6 +452,7 @@ build_network <- function(data,
     }
 
     params$codes <- resolved_codes
+    onehot_codes <- resolved_codes
     params$window_size <- window_size
     params$mode <- mode
     if (!is.null(grp_col)) params$actor <- grp_col
@@ -408,7 +487,8 @@ build_network <- function(data,
   }
 
   # ---- Multilevel decomposition ----
-  id_col <- params$id %||% actor
+  id_col <- .param_get(params, "id") %||% .param_get(params, "id_col") %||%
+    actor
 
   # Validate level parameter
   if (!is.null(level)) {
@@ -477,7 +557,11 @@ build_network <- function(data,
 
   # Apply scaling
   if (!is.null(scaling)) {
-    net_matrix <- .apply_scaling(net_matrix, scaling)
+    net_matrix <- .apply_scaling(
+      net_matrix, scaling,
+      include_zeros = method %in% c("relative", "frequency", "co_occurrence",
+                                    "attention")
+    )
   }
 
   # Apply threshold
@@ -502,7 +586,13 @@ build_network <- function(data,
   if (is.data.frame(raw_data)) {
     # If the user passed explicit overrides that name columns present in
     # raw_data, those take priority over the values-in-nodes heuristic.
-    user_state <- intersect(state_cols,    names(raw_data))
+    auto_onehot_state <- if (is.null(state_cols)) {
+      intersect(onehot_codes, names(raw_data))
+    } else {
+      character(0)
+    }
+    user_state <- union(intersect(state_cols, names(raw_data)),
+                        auto_onehot_state)
     user_meta  <- intersect(metadata_cols, names(raw_data))
 
     if (length(user_state) > 0L) {
@@ -597,6 +687,175 @@ build_network <- function(data,
   result <- structure(result, class = c("netobject", "cograph_network"))
   if (!is.null(labels)) result <- .apply_node_labels(result, labels)
   result
+}
+
+
+#' @noRd
+.canonicalize_build_network_params <- function(params,
+                                               actor = NULL,
+                                               action = NULL,
+                                               time = NULL,
+                                               session = NULL,
+                                               order = NULL,
+                                               codes = NULL,
+                                               group = NULL,
+                                               format = "auto") {
+  .take_param <- function(current, param_name, formal_name = param_name) {
+    value <- .param_get(params, param_name)
+    if (is.null(value)) {
+      return(current)
+    }
+    if (is.null(current)) {
+      return(value)
+    }
+    if (!identical(as.character(current), as.character(value))) {
+      stop(
+        "'", formal_name, "' and 'params$", param_name,
+        "' specify different columns: ",
+        paste(as.character(current), collapse = ", "), " vs ",
+        paste(as.character(value), collapse = ", "),
+        call. = FALSE
+      )
+    }
+    current
+  }
+
+  params_format <- .param_get(params, "format")
+  if (!is.null(params_format)) {
+    if (!is.character(params_format) || length(params_format) != 1L) {
+      stop("'params$format' must be a single character value.", call. = FALSE)
+    }
+    params_format <- match.arg(params_format, c("auto", "wide", "long", "onehot"))
+    if (!identical(format, "auto") && !identical(format, params_format)) {
+      stop(
+        "'format' and 'params$format' specify different values: ",
+        format, " vs ", params_format,
+        call. = FALSE
+      )
+    }
+    if (identical(format, "auto")) {
+      format <- params_format
+    }
+  }
+
+  list(
+    actor = .take_param(.take_param(actor, "id", formal_name = "actor"),
+                        "actor"),
+    action = .take_param(action, "action"),
+    time = .take_param(time, "time"),
+    session = .take_param(session, "session"),
+    order = .take_param(order, "order"),
+    codes = .take_param(codes, "codes"),
+    group = .take_param(group, "group"),
+    format = format
+  )
+}
+
+
+#' @noRd
+.param_get <- function(params, name, default = NULL) {
+  if (!is.list(params) || !name %in% names(params)) {
+    return(default)
+  }
+  params[[name]]
+}
+
+
+#' @noRd
+.validate_build_network_columns <- function(data, ...) {
+  args <- list(...)
+  cols <- names(data)
+
+  missing_by_arg <- lapply(names(args), function(arg) {
+    value <- args[[arg]]
+    if (is.null(value)) {
+      return(character(0))
+    }
+    if (!is.character(value)) {
+      stop("'", arg, "' must be a character vector of column name(s).",
+           call. = FALSE)
+    }
+    setdiff(value, cols)
+  })
+  names(missing_by_arg) <- names(args)
+
+  missing_by_arg <- missing_by_arg[lengths(missing_by_arg) > 0L]
+  if (length(missing_by_arg) == 0L) {
+    return(invisible(TRUE))
+  }
+
+  first_arg <- names(missing_by_arg)[1L]
+  missing_cols <- missing_by_arg[[1L]]
+  available <- paste(cols, collapse = ", ")
+  stop(
+    "'", first_arg, "' column",
+    if (length(missing_cols) == 1L) " " else "s ",
+    "not found in data: ", paste(missing_cols, collapse = ", "),
+    ". Available columns: ", available,
+    call. = FALSE
+  )
+}
+
+
+#' @noRd
+.validate_build_network_params <- function(data, params,
+                                           actor = NULL,
+                                           action = NULL,
+                                           time = NULL,
+                                           codes = NULL) {
+  column_params <- intersect(
+    names(params),
+    c("action", "id", "time", "cols", "codes", "actor", "id_col",
+      "session", "order", "group")
+  )
+  missing_by_arg <- lapply(column_params, function(arg) {
+    value <- params[[arg]]
+    if (is.null(value)) {
+      return(character(0))
+    }
+    if (!is.character(value)) {
+      stop("'params$", arg, "' must be a character vector of column name(s).",
+           call. = FALSE)
+    }
+    setdiff(value, names(data))
+  })
+  names(missing_by_arg) <- column_params
+  missing_by_arg <- missing_by_arg[lengths(missing_by_arg) > 0L]
+  if (length(missing_by_arg) > 0L) {
+    first_arg <- names(missing_by_arg)[1L]
+    missing_cols <- missing_by_arg[[1L]]
+    stop(
+      "'params$", first_arg, "' column",
+      if (length(missing_cols) == 1L) " " else "s ",
+      "not found in data: ", paste(missing_cols, collapse = ", "),
+      ". Available columns: ", paste(names(data), collapse = ", "),
+      call. = FALSE
+    )
+  }
+
+  .check_param_conflict <- function(formal_value, param_name,
+                                    formal_name = param_name) {
+    if (is.null(formal_value) || is.null(params[[param_name]])) {
+      return(invisible(TRUE))
+    }
+    if (!identical(as.character(formal_value), as.character(params[[param_name]]))) {
+      stop(
+        "'", formal_name, "' and 'params$", param_name,
+        "' specify different columns: ",
+        paste(as.character(formal_value), collapse = ", "), " vs ",
+        paste(as.character(params[[param_name]]), collapse = ", "),
+        call. = FALSE
+      )
+    }
+    invisible(TRUE)
+  }
+
+  .check_param_conflict(action, "action")
+  .check_param_conflict(time, "time")
+  .check_param_conflict(codes, "codes")
+  .check_param_conflict(actor, "actor")
+  .check_param_conflict(actor, "id", formal_name = "actor")
+  .check_param_conflict(actor, "id_col", formal_name = "actor")
 }
 
 

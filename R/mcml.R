@@ -7,6 +7,38 @@
 # tidy summary instead of dumping every named element of the list.
 # Field access (`$weights`, `$inits`, `$labels`, `$data`) is unchanged.
 .mcml_layer <- function(weights, inits, labels, data = NULL) {
+  if (!is.matrix(weights) || !is.numeric(weights)) {
+    stop("'weights' must be a numeric matrix.", call. = FALSE)
+  }
+  if (nrow(weights) != ncol(weights)) {
+    stop("'weights' must be a square matrix.", call. = FALSE)
+  }
+  .validate_mcml_matrix(weights)
+  if (!is.character(labels) || length(labels) != nrow(weights) ||
+      any(is.na(labels)) || any(!nzchar(labels))) {
+    stop("'labels' must be a non-missing character vector with one value per node.",
+         call. = FALSE)
+  }
+  if (anyDuplicated(labels)) {
+    stop("'labels' must be unique.", call. = FALSE)
+  }
+  if (!is.null(inits)) {
+    if (!is.numeric(inits) || length(inits) != length(labels) ||
+        any(is.na(inits) | !is.finite(inits))) {
+      stop("'inits' must be a finite numeric vector with one value per node.",
+           call. = FALSE)
+    }
+    if (!is.null(names(inits))) {
+      missing_inits <- setdiff(labels, names(inits))
+      extra_inits <- setdiff(names(inits), labels)
+      if (length(missing_inits) > 0L || length(extra_inits) > 0L) {
+        stop("'inits' names must match layer labels.", call. = FALSE)
+      }
+      inits <- inits[labels]
+    } else {
+      names(inits) <- labels
+    }
+  }
   obj <- list(weights = weights, inits = inits, labels = labels, data = data)
   class(obj) <- "mcml_layer"
   obj
@@ -24,6 +56,7 @@
 #' @return The input, invisibly.
 #' @export
 print.mcml_layer <- function(x, ...) {
+  .mcml_check_unused_dots("print.mcml_layer", ...)
   w  <- x$weights
   if (is.null(w) || nrow(w) == 0L) {
     cat("MCML layer  [empty]\n"); return(invisible(x))
@@ -86,10 +119,12 @@ print.mcml_layer <- function(x, ...) {
 #' Aggregates a vector of edge weights using various methods.
 #' Compatible with igraph's edge.attr.comb parameter.
 #'
-#' @param w Numeric vector of edge weights
-#' @param method Aggregation method: "sum", "mean", "median", "max", "min",
-#'   "prod", "density", "geomean"
-#' @param n_possible Number of possible edges (for density calculation)
+#' @param w Numeric vector of finite edge weights. \code{NA} and zero weights
+#'   are excluded before aggregation.
+#' @param method Single aggregation method: "sum", "mean", "median", "max",
+#'   "min", "prod", "density", or "geomean".
+#' @param n_possible Optional single finite numeric number of possible edges
+#'   for density calculation.
 #' @return Single aggregated value
 #' @export
 #' @examples
@@ -99,6 +134,27 @@ print.mcml_layer <- function(x, ...) {
 #' net_aggregate_weights(w, "max")   # 0.9
 #' net_aggregate_weights(w, "density", n_possible = 9)  # 2.5 / 9
 net_aggregate_weights <- function(w, method = "sum", n_possible = NULL) {
+  if (!is.numeric(w)) {
+    stop("'w' must be a numeric vector.", call. = FALSE)
+  }
+  if (any(!is.na(w) & !is.finite(w))) {
+    stop("'w' must contain only finite values or NA.", call. = FALSE)
+  }
+  if (!is.character(method) || length(method) != 1L || is.na(method)) {
+    stop("'method' must be a single non-missing character value.", call. = FALSE)
+  }
+  valid_methods <- c("sum", "mean", "median", "max", "min",
+                     "prod", "density", "geomean")
+  if (!method %in% valid_methods) {
+    stop("Unknown method: ", method, call. = FALSE)
+  }
+  if (!is.null(n_possible) &&
+      (!is.numeric(n_possible) || length(n_possible) != 1L ||
+       is.na(n_possible) || !is.finite(n_possible))) {
+    stop("'n_possible' must be a single finite numeric value or NULL.",
+         call. = FALSE)
+  }
+
   # Remove NA and zero weights
   w <- w[!is.na(w) & w != 0]
   if (length(w) == 0) return(0)
@@ -354,6 +410,13 @@ cluster_summary <- function(x,
                                        "min", "density", "geomean"),
                             directed = TRUE,
                             compute_within = TRUE) {
+  if (!is.logical(directed) || length(directed) != 1L || is.na(directed)) {
+    stop("'directed' must be TRUE or FALSE.", call. = FALSE)
+  }
+  if (!is.logical(compute_within) || length(compute_within) != 1L ||
+      is.na(compute_within)) {
+    stop("'compute_within' must be TRUE or FALSE.", call. = FALSE)
+  }
 
   # If already an mcml object, return as-is
   if (inherits(x, "mcml")) {
@@ -388,6 +451,7 @@ cluster_summary <- function(x,
   if (nrow(mat) != ncol(mat)) {
     stop("x must be a square matrix", call. = FALSE)
   }
+  .validate_mcml_matrix(mat)
 
   # Symmetrize matrix when treating it as undirected, matching the docstring
   # contract. Without this, callers passing `directed = FALSE` got the same
@@ -525,6 +589,35 @@ cluster_summary <- function(x,
   result
 }
 
+.validate_mcml_matrix <- function(mat) {
+  if (any(is.na(mat) | !is.finite(mat))) {
+    stop("x matrix must contain finite non-missing weights.", call. = FALSE)
+  }
+  row_names <- rownames(mat)
+  col_names <- colnames(mat)
+  has_row_names <- !is.null(row_names)
+  has_col_names <- !is.null(col_names)
+  if (has_row_names && (any(is.na(row_names)) || any(!nzchar(row_names)))) {
+    stop("x matrix row names must not contain missing or empty values.",
+         call. = FALSE)
+  }
+  if (has_col_names && (any(is.na(col_names)) || any(!nzchar(col_names)))) {
+    stop("x matrix column names must not contain missing or empty values.",
+         call. = FALSE)
+  }
+  if (has_row_names && anyDuplicated(row_names)) {
+    stop("x matrix row names must be unique.", call. = FALSE)
+  }
+  if (has_col_names && anyDuplicated(col_names)) {
+    stop("x matrix column names must be unique.", call. = FALSE)
+  }
+  if (has_row_names && has_col_names && !identical(row_names, col_names)) {
+    stop("x matrix row and column names must be identical and in the same order.",
+         call. = FALSE)
+  }
+  invisible(TRUE)
+}
+
 
 # ==============================================================================
 # 2b. Build MCML from Raw Transition Data
@@ -584,12 +677,15 @@ cluster_summary <- function(x,
 #'   "median", "max", "min", "density", "geomean". Default "sum". For raw
 #'   sequence/event-log inputs the function is counting observed transitions,
 #'   so \code{"sum"} is the only interpretation that preserves the count
-#'   semantics — the other methods are useful when aggregating
+#'   semantics -- the other methods are useful when aggregating
 #'   weighted edge lists or pre-existing weight matrices, where each row
 #'   already represents a measurement rather than a single observation.
 #' @param type Post-processing: "tna" (row-normalize), "cooccurrence"
 #'   (symmetrize), "semi_markov", or "raw". Default "tna".
-#' @param directed Logical. Treat as directed network? Default TRUE.
+#' @param directed Logical. If \code{TRUE} (default), treat transitions as
+#'   directed. If \code{FALSE}, symmetrize sequence- and edge-derived weights
+#'   before returning raw/frequency weights or before row-normalizing
+#'   transition probabilities.
 #' @param compute_within Logical. Compute within-cluster matrices? Default TRUE.
 #' @param actor,action,time,order,session,time_threshold Long-format event-log
 #'   shortcut. When \code{action} is supplied on a data.frame input, the data
@@ -646,6 +742,13 @@ build_mcml <- function(x,
                        session = NULL,
                        time_threshold = 900,
                        labels = NULL) {
+  if (!is.logical(directed) || length(directed) != 1L || is.na(directed)) {
+    stop("'directed' must be TRUE or FALSE.", call. = FALSE)
+  }
+  if (!is.logical(compute_within) || length(compute_within) != 1L ||
+      is.na(compute_within)) {
+    stop("'compute_within' must be TRUE or FALSE.", call. = FALSE)
+  }
 
   # If already an mcml object, return as-is
   if (inherits(x, "mcml")) {
@@ -764,9 +867,14 @@ build_mcml <- function(x,
     col_names <- tolower(names(x))
     from_cols <- c("from", "source", "src", "v1", "node1", "i")
     to_cols <- c("to", "target", "tgt", "v2", "node2", "j")
+    weight_cols <- c("weight", "w", "value", "strength")
     has_from <- any(from_cols %in% col_names)
     has_to <- any(to_cols %in% col_names)
-    if (has_from && has_to) return("edgelist")
+    has_weight <- any(weight_cols %in% col_names)
+    if ((has_from || has_to || has_weight) && ncol(x) >= 2L) return("edgelist")
+    if (ncol(x) == 2L && !.mcml_has_time_step_names(names(x))) {
+      return("edgelist")
+    }
     return("sequence")
   }
 
@@ -776,6 +884,13 @@ build_mcml <- function(x,
   }
 
   "unknown"
+}
+
+.mcml_has_time_step_names <- function(nms) {
+  if (is.null(nms) || any(is.na(nms)) || any(!nzchar(nms))) {
+    return(FALSE)
+  }
+  all(grepl("^(t|time|step)[0-9]+$", tolower(nms)))
 }
 
 #' Auto-detect clusters from netobject
@@ -790,6 +905,7 @@ build_mcml <- function(x,
     for (col in cluster_cols) {
       if (col %in% names(x$nodes)) {
         clusters <- x$nodes[[col]]
+        .validate_auto_clusters(clusters, "x$nodes")
         break
       }
     }
@@ -828,10 +944,35 @@ build_mcml <- function(x,
              "Add the column or pass clusters explicitly as a named list ",
              "or vector.", call. = FALSE)
       }
-      lookup <- setNames(as.character(ng[[cluster_col[1L]]]),
-                         as.character(ng[[node_col[1L]]]))
+      node_values <- as.character(ng[[node_col[1L]]])
+      cluster_values <- as.character(ng[[cluster_col[1L]]])
+      if (any(is.na(node_values) | !nzchar(node_values))) {
+        stop("'node_groups' node column must not contain missing or empty values.",
+             call. = FALSE)
+      }
+      .validate_auto_clusters(cluster_values, "node_groups")
+      duplicated_nodes <- unique(node_values[duplicated(node_values)])
+      if (length(duplicated_nodes) > 0L) {
+        stop("'node_groups' assigns duplicate rows to node(s): ",
+             paste(utils::head(duplicated_nodes, 5L), collapse = ", "),
+             call. = FALSE)
+      }
+      lookup <- setNames(cluster_values, node_values)
     } else if (is.atomic(ng) && !is.null(names(ng))) {
-      lookup <- setNames(as.character(ng), names(ng))
+      node_values <- names(ng)
+      cluster_values <- as.character(ng)
+      if (any(is.na(node_values) | !nzchar(node_values))) {
+        stop("'node_groups' names must not contain missing or empty values.",
+             call. = FALSE)
+      }
+      .validate_auto_clusters(cluster_values, "node_groups")
+      duplicated_nodes <- unique(node_values[duplicated(node_values)])
+      if (length(duplicated_nodes) > 0L) {
+        stop("'node_groups' assigns duplicate rows to node(s): ",
+             paste(utils::head(duplicated_nodes, 5L), collapse = ", "),
+             call. = FALSE)
+      }
+      lookup <- setNames(cluster_values, node_values)
     } else {
       stop("'node_groups' must be a data.frame with node + cluster ",
            "columns, or a named atomic vector keyed by node label. ",
@@ -859,6 +1000,15 @@ build_mcml <- function(x,
   clusters
 }
 
+.validate_auto_clusters <- function(clusters, source) {
+  clusters <- as.character(clusters)
+  if (any(is.na(clusters) | !nzchar(clusters))) {
+    stop(source, " cluster assignments must not contain missing or empty values.",
+         call. = FALSE)
+  }
+  invisible(TRUE)
+}
+
 #' Build node-to-cluster lookup from cluster specification
 #' @keywords internal
 .build_cluster_lookup <- function(clusters, all_nodes) {
@@ -872,6 +1022,7 @@ build_mcml <- function(x,
 
   if (is.list(clusters) && !is.data.frame(clusters)) {
     # Named list: cluster_name -> node vector
+    .validate_cluster_partition(clusters, all_nodes)
     lookup <- character(0)
     for (cl_name in names(clusters)) {
       nodes <- clusters[[cl_name]]
@@ -941,6 +1092,61 @@ build_mcml <- function(x,
                                      cluster_lookup, cluster_list,
                                      method, type, directed,
                                      compute_within, data = NULL) {
+  if (!is.character(from_nodes) || !is.character(to_nodes)) {
+    stop("'from_nodes' and 'to_nodes' must be character vectors.",
+         call. = FALSE)
+  }
+  if (length(from_nodes) != length(to_nodes) ||
+      length(from_nodes) != length(weights)) {
+    stop("'from_nodes', 'to_nodes', and 'weights' must have the same length.",
+         call. = FALSE)
+  }
+  if (any(is.na(from_nodes) | !nzchar(from_nodes) |
+          is.na(to_nodes) | !nzchar(to_nodes))) {
+    stop("'from_nodes' and 'to_nodes' must not contain missing or empty values.",
+         call. = FALSE)
+  }
+  if (!is.numeric(weights) || any(is.na(weights) | !is.finite(weights))) {
+    stop("'weights' must be a finite non-missing numeric vector.",
+         call. = FALSE)
+  }
+  if (any(weights < 0)) {
+    stop("'weights' must not contain negative values.", call. = FALSE)
+  }
+  if (!is.list(cluster_list) || is.data.frame(cluster_list)) {
+    stop("'cluster_list' must be a named list.", call. = FALSE)
+  }
+  cluster_nodes <- sort(unique(unlist(cluster_list, use.names = FALSE)))
+  .validate_cluster_partition(cluster_list, cluster_nodes)
+  if (!is.character(cluster_lookup) || is.null(names(cluster_lookup))) {
+    stop("'cluster_lookup' must be a named character vector.", call. = FALSE)
+  }
+  if (any(is.na(names(cluster_lookup)) | !nzchar(names(cluster_lookup))) ||
+      any(is.na(cluster_lookup) | !nzchar(cluster_lookup))) {
+    stop("'cluster_lookup' names and values must not be missing or empty.",
+         call. = FALSE)
+  }
+  if (anyDuplicated(names(cluster_lookup))) {
+    stop("'cluster_lookup' names must be unique.", call. = FALSE)
+  }
+  missing_lookup <- setdiff(unique(c(from_nodes, to_nodes)),
+                            names(cluster_lookup))
+  if (length(missing_lookup) > 0L) {
+    stop("'cluster_lookup' is missing node(s): ",
+         paste(utils::head(missing_lookup, 5L), collapse = ", "),
+         call. = FALSE)
+  }
+  unknown_clusters <- setdiff(unique(unname(cluster_lookup)),
+                              names(cluster_list))
+  if (length(unknown_clusters) > 0L) {
+    stop("'cluster_lookup' contains unknown cluster(s): ",
+         paste(utils::head(unknown_clusters, 5L), collapse = ", "),
+         call. = FALSE)
+  }
+  if (!is.logical(compute_within) || length(compute_within) != 1L ||
+      is.na(compute_within)) {
+    stop("'compute_within' must be TRUE or FALSE.", call. = FALSE)
+  }
 
   # Sort clusters alphabetically (TNA convention)
   cluster_list <- cluster_list[order(names(cluster_list))]
@@ -989,7 +1195,9 @@ build_mcml <- function(x,
   # use the empirical first-state distribution (matches tna::tna()'s inits);
   # otherwise (edgelist or no data) we fall back to the column-sum proxy
   # documented earlier -- there is no first-state to read off an edgelist.
-  is_seq_for_inits <- is.data.frame(data) && !any(tolower(names(data)) %in%
+  is_edgelist_data <- identical(attr(data, "source"), "edgelist")
+  is_seq_for_inits <- is.data.frame(data) && !is_edgelist_data &&
+    !any(tolower(names(data)) %in%
     c("from", "source", "src", "v1", "node1", "i",
       "to", "target", "tgt", "v2", "node2", "j"))
   between_inits <- if (is_seq_for_inits) {
@@ -1028,7 +1236,8 @@ build_mcml <- function(x,
   #     is the correct bootstrap at the edge level.
   between_seq_data <- NULL
   within_seq_data_list <- NULL
-  is_seq <- is.data.frame(data) && !any(tolower(names(data)) %in%
+  is_seq <- is.data.frame(data) && !is_edgelist_data &&
+    !any(tolower(names(data)) %in%
     c("from", "source", "src", "v1", "node1", "i",
       "to", "target", "tgt", "v2", "node2", "j"))
 
@@ -1183,7 +1392,7 @@ build_mcml <- function(x,
   )
 
   # ---- Assemble result ----
-  all_nodes <- sort(unique(c(from_nodes, to_nodes)))
+  all_nodes <- sort(unique(unlist(cluster_list, use.names = FALSE)))
   n_nodes <- length(all_nodes)
 
   structure(
@@ -1216,11 +1425,16 @@ build_mcml <- function(x,
   # Detect from/to columns
   from_col <- which(col_names %in% c("from", "source", "src",
                                        "v1", "node1", "i"))[1]
-  if (is.na(from_col)) from_col <- 1L
-
   to_col <- which(col_names %in% c("to", "target", "tgt",
                                      "v2", "node2", "j"))[1]
-  if (is.na(to_col)) to_col <- 2L
+  if (is.na(from_col)) from_col <- 1L
+  if (is.na(to_col)) {
+    to_col <- setdiff(seq_len(ncol(df)), from_col)[1L]
+  }
+  if (is.na(to_col) || from_col == to_col) {
+    stop("Edge-list input must include at least two endpoint columns.",
+         call. = FALSE)
+  }
 
   # Detect weight column
   weight_col <- which(col_names %in% c("weight", "w", "value", "strength"))[1]
@@ -1228,13 +1442,28 @@ build_mcml <- function(x,
 
   from_vals <- as.character(df[[from_col]])
   to_vals <- as.character(df[[to_col]])
-  weights <- if (has_weight) as.numeric(df[[weight_col]]) else rep(1, nrow(df))
+  if (any(is.na(from_vals) | !nzchar(from_vals) |
+          is.na(to_vals) | !nzchar(to_vals))) {
+    stop("Edge-list source and target columns must not contain missing or empty values.",
+         call. = FALSE)
+  }
 
-  # Remove rows with NA in from/to
-  valid <- !is.na(from_vals) & !is.na(to_vals)
-  from_vals <- from_vals[valid]
-  to_vals <- to_vals[valid]
-  weights <- weights[valid]
+  if (has_weight) {
+    weights <- df[[weight_col]]
+    if (!is.numeric(weights)) {
+      stop("Edge-list weight column must be numeric.", call. = FALSE)
+    }
+    if (any(is.na(weights) | !is.finite(weights))) {
+      stop("Edge-list weight column must contain finite non-missing values.",
+           call. = FALSE)
+    }
+    if (any(weights < 0)) {
+      stop("Edge-list weight column must not contain negative values.",
+           call. = FALSE)
+    }
+  } else {
+    weights <- rep(1, nrow(df))
+  }
 
   all_nodes <- sort(unique(c(from_vals, to_vals)))
 
@@ -1242,17 +1471,27 @@ build_mcml <- function(x,
   if (is.character(clusters) && length(clusters) == 1 &&
       clusters %in% names(df)) {
     # Column name: build lookup from both from+group and to+group
-    group_col <- df[[clusters]]
-    group_col <- as.character(group_col[valid])
+    group_col <- as.character(df[[clusters]])
+    if (any(is.na(group_col) | !nzchar(group_col))) {
+      stop("Edge-list cluster column must not contain missing or empty values.",
+           call. = FALSE)
+    }
 
-    # Build mapping from from-side
-    from_map <- setNames(group_col, from_vals)
-    # Build mapping from to-side
-    to_map <- setNames(group_col, to_vals)
-    # Merge (from takes priority if conflicting, but shouldn't)
-    full_map <- c(to_map, from_map)
-    # Keep unique node -> cluster mapping
-    full_map <- full_map[!duplicated(names(full_map))]
+    node_group <- data.frame(
+      node = c(from_vals, to_vals),
+      group = c(group_col, group_col),
+      stringsAsFactors = FALSE
+    )
+    node_group <- unique(node_group)
+    conflicts <- unique(node_group$node[duplicated(node_group$node)])
+    if (length(conflicts) > 0L) {
+      stop("Edge-list cluster column assigns nodes to multiple groups: ",
+           paste(utils::head(conflicts, 5L), collapse = ", "),
+           ". Pass clusters as a named list or node-group data.frame instead.",
+           call. = FALSE)
+    }
+
+    full_map <- setNames(node_group$group, node_group$node)
 
     # Build cluster_list
     cluster_list <- split(names(full_map), unname(full_map))
@@ -1276,6 +1515,8 @@ build_mcml <- function(x,
 
     cluster_lookup <- .build_cluster_lookup(cluster_list, all_nodes)
   }
+
+  attr(df, "source") <- "edgelist"
 
   .build_from_transitions(from_vals, to_vals, weights,
                             cluster_lookup, cluster_list,
@@ -1312,7 +1553,9 @@ build_mcml <- function(x,
   to_vals <- pairs$to[valid]
   weights <- rep(1, length(from_vals))
 
-  all_nodes <- sort(unique(c(from_vals, to_vals)))
+  observed_nodes <- as.character(unlist(df, use.names = FALSE))
+  observed_nodes <- observed_nodes[!is.na(observed_nodes)]
+  all_nodes <- sort(unique(observed_nodes))
 
   if (is.null(clusters)) {
     stop("clusters argument is required for sequence data", call. = FALSE)
@@ -1335,13 +1578,34 @@ build_mcml <- function(x,
 #' Process weights based on type
 #' @keywords internal
 .process_weights <- function(raw_weights, type, directed = TRUE) {
+  if (!is.matrix(raw_weights) || !is.numeric(raw_weights)) {
+    stop("'raw_weights' must be a numeric matrix.", call. = FALSE)
+  }
+  if (nrow(raw_weights) != ncol(raw_weights)) {
+    stop("'raw_weights' must be a square matrix.", call. = FALSE)
+  }
+  if (!is.character(type) || length(type) != 1L || is.na(type)) {
+    stop("'type' must be a single non-missing character value.", call. = FALSE)
+  }
+  valid_types <- c("raw", "frequency", "cooccurrence", "tna", "semi_markov")
+  if (!type %in% valid_types) {
+    stop("'type' must be one of: ",
+         paste(valid_types, collapse = ", "), call. = FALSE)
+  }
+  if (!is.logical(directed) || length(directed) != 1L || is.na(directed)) {
+    stop("'directed' must be TRUE or FALSE.", call. = FALSE)
+  }
+
+  if (!isTRUE(directed) || type == "cooccurrence") {
+    raw_weights <- (raw_weights + t(raw_weights)) / 2
+  }
+
   if (type == "raw" || type == "frequency") {
     return(raw_weights)
   }
 
   if (type == "cooccurrence") {
-    # Symmetrize
-    return((raw_weights + t(raw_weights)) / 2)
+    return(raw_weights)
   }
 
   if (type == "tna" || type == "semi_markov") {
@@ -1352,7 +1616,6 @@ build_mcml <- function(x,
     return(processed)
   }
 
-  # Default: return as-is
   raw_weights # nocov
 }
 
@@ -1503,13 +1766,48 @@ as_tna.mcml <- function(x) {
 #' @noRd
 .wrap_netobject <- function(mat, data = NULL, method = "relative",
                             directed = TRUE, inits = NULL) {
+  if (!is.matrix(mat) || !is.numeric(mat)) {
+    stop("'mat' must be a numeric matrix.", call. = FALSE)
+  }
+  if (nrow(mat) != ncol(mat)) {
+    stop("'mat' must be a square matrix.", call. = FALSE)
+  }
+  .validate_mcml_matrix(mat)
+  if (!is.character(method) || length(method) != 1L || is.na(method) ||
+      !nzchar(method)) {
+    stop("'method' must be a single non-missing character value.",
+         call. = FALSE)
+  }
+  if (!is.logical(directed) || length(directed) != 1L || is.na(directed)) {
+    stop("'directed' must be TRUE or FALSE.", call. = FALSE)
+  }
   states <- rownames(mat)
+  if (is.null(states)) {
+    states <- as.character(seq_len(nrow(mat)))
+    dimnames(mat) <- list(states, states)
+  }
   edges <- .extract_edges_from_matrix(mat, directed = directed)
   nodes_df <- data.frame(
     id = seq_along(states), label = states, name = states,
     x = NA_real_, y = NA_real_, stringsAsFactors = FALSE
   )
-  if (!is.null(inits)) inits <- inits[states]
+  if (!is.null(inits)) {
+    if (!is.numeric(inits) || length(inits) != length(states) ||
+        any(is.na(inits) | !is.finite(inits))) {
+      stop("'inits' must be a finite numeric vector with one value per state.",
+           call. = FALSE)
+    }
+    if (!is.null(names(inits))) {
+      missing_inits <- setdiff(states, names(inits))
+      extra_inits <- setdiff(names(inits), states)
+      if (length(missing_inits) > 0L || length(extra_inits) > 0L) {
+        stop("'inits' names must match matrix state names.", call. = FALSE)
+      }
+      inits <- inits[states]
+    } else {
+      names(inits) <- states
+    }
+  }
 
   structure(
     list(
@@ -1550,28 +1848,34 @@ as_tna.default <- function(x) {
 .normalize_clusters <- function(clusters, node_names) {
   if (is.data.frame(clusters)) {
     # Data frame with node and group columns
-    stopifnot(ncol(clusters) >= 2)
+    if (ncol(clusters) < 2L) {
+      stop("clusters data.frame must have at least two columns.",
+           call. = FALSE)
+    }
     nodes <- as.character(clusters[[1]])
     groups <- as.character(clusters[[2]])
+    if (any(is.na(nodes) | !nzchar(nodes))) {
+      stop("clusters data.frame node column must not contain missing or empty values.",
+           call. = FALSE)
+    }
+    if (any(is.na(groups) | !nzchar(groups))) {
+      stop("clusters data.frame group column must not contain missing or empty values.",
+           call. = FALSE)
+    }
     clusters <- split(nodes, groups)
   }
 
   if (is.list(clusters)) {
     # Already a list - validate node names
-    all_nodes <- unlist(clusters)
-    if (!all(all_nodes %in% node_names)) {
-      missing <- setdiff(all_nodes, node_names)
-      stop("Unknown nodes in clusters: ",
-           paste(utils::head(missing, 5), collapse = ", "), call. = FALSE)
-    }
+    .validate_cluster_partition(clusters, node_names)
     return(clusters)
   }
 
   if (is.vector(clusters) && (is.numeric(clusters) || is.integer(clusters))) {
     # Membership vector
-    if (length(clusters) != length(node_names)) {
-      stop("Membership vector length (", length(clusters),
-           ") must equal number of nodes (", length(node_names), ")",
+    clusters <- .align_cluster_membership(clusters, node_names)
+    if (any(is.na(clusters) | !is.finite(clusters))) {
+      stop("Membership vector must not contain missing or non-finite values.",
            call. = FALSE)
     }
     # Convert to list
@@ -1585,10 +1889,12 @@ as_tna.default <- function(x) {
 
   if (is.factor(clusters) || is.character(clusters)) {
     # Named membership
-    if (length(clusters) != length(node_names)) {
-      stop("Membership vector length must equal number of nodes", call. = FALSE)
-    }
+    clusters <- .align_cluster_membership(clusters, node_names)
     clusters <- as.character(clusters)
+    if (any(is.na(clusters) | !nzchar(clusters))) {
+      stop("Membership vector must not contain missing or empty values.",
+           call. = FALSE)
+    }
     unique_clusters <- unique(clusters)
     cluster_list <- lapply(unique_clusters, function(k) {
       node_names[clusters == k]
@@ -1600,6 +1906,78 @@ as_tna.default <- function(x) {
   stop("clusters must be a list, numeric vector, or factor", call. = FALSE)
 }
 
+.align_cluster_membership <- function(clusters, node_names) {
+  if (length(clusters) != length(node_names)) {
+    stop("Membership vector length (", length(clusters),
+         ") must equal number of nodes (", length(node_names), ")",
+         call. = FALSE)
+  }
+  nm <- names(clusters)
+  if (is.null(nm)) {
+    return(clusters)
+  }
+  if (any(is.na(nm) | !nzchar(nm))) {
+    stop("Named membership vector names must not contain missing or empty values.",
+         call. = FALSE)
+  }
+  if (anyDuplicated(nm)) {
+    stop("Named membership vector names must be unique.", call. = FALSE)
+  }
+  missing_nodes <- setdiff(node_names, nm)
+  extra_nodes <- setdiff(nm, node_names)
+  if (length(missing_nodes) > 0L || length(extra_nodes) > 0L) {
+    stop("Named membership vector names must match node names exactly.",
+         call. = FALSE)
+  }
+  clusters[node_names]
+}
+
+.validate_cluster_partition <- function(clusters, node_names) {
+  if (!is.list(clusters) || is.data.frame(clusters)) {
+    stop("clusters must be a named list.", call. = FALSE)
+  }
+  cluster_names <- names(clusters)
+  if (is.null(cluster_names) || any(!nzchar(cluster_names)) ||
+      any(is.na(cluster_names))) {
+    stop("clusters list must have non-empty cluster names.", call. = FALSE)
+  }
+  cluster_sizes <- vapply(clusters, length, integer(1L))
+  if (any(cluster_sizes == 0L)) {
+    stop("clusters list contains empty clusters: ",
+         paste(names(clusters)[cluster_sizes == 0L], collapse = ", "),
+         call. = FALSE)
+  }
+
+  nodes <- unlist(clusters, use.names = FALSE)
+  nodes <- as.character(nodes)
+  if (any(is.na(nodes)) || any(!nzchar(nodes))) {
+    stop("clusters list contains missing or empty node names.",
+         call. = FALSE)
+  }
+
+  unknown <- setdiff(nodes, node_names)
+  if (length(unknown) > 0L) {
+    stop("Unknown nodes in clusters: ",
+         paste(utils::head(unknown, 5L), collapse = ", "), call. = FALSE)
+  }
+
+  duplicated_nodes <- unique(nodes[duplicated(nodes)])
+  if (length(duplicated_nodes) > 0L) {
+    stop("Nodes assigned to multiple clusters: ",
+         paste(utils::head(duplicated_nodes, 5L), collapse = ", "),
+         call. = FALSE)
+  }
+
+  unmapped <- setdiff(node_names, nodes)
+  if (length(unmapped) > 0L) {
+    stop("Unmapped nodes: ",
+         paste(utils::head(unmapped, 5L), collapse = ", "),
+         call. = FALSE)
+  }
+
+  invisible(TRUE)
+}
+
 # ==============================================================================
 # S3 Methods
 # ==============================================================================
@@ -1607,7 +1985,7 @@ as_tna.default <- function(x) {
 #' Print Method for mcml
 #'
 #' @param x An \code{mcml} object.
-#' @param ... Additional arguments (ignored).
+#' @param ... Unsupported. Supplying unused arguments raises an error.
 #'
 #' @return The input object, invisibly.
 #'
@@ -1628,6 +2006,7 @@ as_tna.default <- function(x) {
 #'
 #' @export
 print.mcml <- function(x, ...) {
+  .mcml_check_unused_dots("print.mcml", ...)
   n_clusters <- x$meta$n_clusters
   n_nodes <- x$meta$n_nodes
   cluster_sizes <- x$meta$cluster_sizes
@@ -1664,14 +2043,14 @@ print.mcml <- function(x, ...) {
 #' Summary Method for mcml
 #'
 #' @param object An \code{mcml} object.
-#' @param ... Additional arguments (ignored).
+#' @param ... Unsupported. Supplying unused arguments raises an error.
 #'
 #' @return A tidy data frame with one row per cluster and columns
 #'   \code{cluster}, \code{size}, \code{within_total}, \code{between_out},
 #'   \code{between_in}. For undirected macro networks the in/out split is
 #'   not meaningful, so \code{between_out} reports total incident weight
 #'   and \code{between_in} is \code{NA}. The data frame is returned
-#'   silently \emph{without} printing the full object — call
+#'   silently \emph{without} printing the full object -- call
 #'   \code{print(object)} explicitly if you want the verbose dump.
 #'
 #' @examples
@@ -1691,6 +2070,7 @@ print.mcml <- function(x, ...) {
 #'
 #' @export
 summary.mcml <- function(object, ...) {
+  .mcml_check_unused_dots("summary.mcml", ...)
   as_mat <- function(x) {
     if (is.null(x)) return(NULL)
     if (is.matrix(x) && is.numeric(x)) return(x)
@@ -1738,5 +2118,20 @@ summary.mcml <- function(object, ...) {
     between_in   = as.numeric(between_in),
     stringsAsFactors = FALSE,
     row.names    = NULL
+  )
+}
+
+.mcml_check_unused_dots <- function(method, ...) {
+  dots <- list(...)
+  if (!length(dots)) {
+    return(invisible(TRUE))
+  }
+  dot_names <- names(dots)
+  dot_names[!nzchar(dot_names)] <- paste0("..", which(!nzchar(dot_names)))
+  stop(
+    method, "() got unsupported argument",
+    if (length(dots) == 1L) ": " else "s: ",
+    paste(dot_names, collapse = ", "),
+    call. = FALSE
   )
 }

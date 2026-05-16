@@ -9,7 +9,7 @@
 \arguments{
 \item{object}{An \code{mmm_compare} object (a data.frame subclass).}
 
-\item{...}{Additional arguments (ignored).}
+\item{...}{Unsupported. Supplying unused arguments raises an error.}
 }
 \value{
 A tidy data frame with one row per \code{k}, plus a \code{best}

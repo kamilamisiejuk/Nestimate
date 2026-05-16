@@ -25,7 +25,7 @@
   }
   # --- net_mmm (from build_mmm) ---
   else if (inherits(x, "net_mmm")) {
-    data <- x$models[[1L]]$data
+    data <- x$data %||% x$models[[1L]]$data
     if (is.null(group)) group <- x$assignments
     # No distance matrix in MMM; clustering info for reference only
     clustering <- list(assignments = x$assignments, k = x$k)
@@ -159,6 +159,13 @@
 #' @param y_label,ylab Y-axis label (distribution only). \code{ylab} alias.
 #' @param tick Show every Nth x-axis label. \code{NULL} = auto.
 #' @param ncol,nrow Facet grid dimensions (index + distribution).
+#'   Ignored when \code{combined = FALSE}.
+#' @param combined Index and distribution types only. When \code{TRUE}
+#'   (default), groups are arranged on one figure via
+#'   \code{graphics::layout()}. When \code{FALSE}, each group is drawn
+#'   on its own page (one full-size figure per group, with its own
+#'   legend). Single-group calls (\code{G == 1}) ignore this argument.
+#'   Heatmap is always single-figure.
 #' @param legend Legend position: \code{"bottom"}, \code{"right"}, or
 #'   \code{"none"}. Default varies by type.
 #' @param legend_size Legend text size. \code{NULL} (default) auto-scales
@@ -212,6 +219,7 @@ sequence_plot <- function(x,
                           tick             = NULL,
                           ncol             = NULL,
                           nrow             = NULL,
+                          combined         = TRUE,
                           legend           = NULL,
                           legend_size      = NULL,
                           legend_title     = NULL,
@@ -221,6 +229,7 @@ sequence_plot <- function(x,
 
   type <- match.arg(type)
   sort <- match.arg(sort)
+  stopifnot(is.logical(combined), length(combined) == 1L)
   if (is.null(legend)) legend <- "right"
   legend <- match.arg(legend, c("bottom", "right", "none"))
   if (!is.null(xlab)) time_label <- xlab
@@ -246,7 +255,7 @@ sequence_plot <- function(x,
       frame = frame,
       main = main, show_n = show_n,
       time_label = time_label, y_label = y_label, ylab = ylab,
-      tick = tick, ncol = ncol, nrow = nrow,
+      tick = tick, ncol = ncol, nrow = nrow, combined = combined,
       legend = legend, legend_size = legend_size,
       legend_title = legend_title, legend_ncol = legend_ncol,
       legend_border = legend_border, legend_bty = legend_bty))
@@ -264,7 +273,7 @@ sequence_plot <- function(x,
   .sequence_plot_index(
     x, sort, group, row_gap,
     state_colors, na_color, cell_border, frame,
-    main, show_n, time_label, tick, ncol, nrow,
+    main, show_n, time_label, tick, ncol, nrow, combined,
     legend, legend_size, legend_title, legend_ncol,
     legend_border, legend_bty)
 }
@@ -395,6 +404,7 @@ sequence_plot <- function(x,
 .sequence_plot_index <- function(x, sort, group, row_gap,
                                  state_colors, na_color, cell_border, frame,
                                  main, show_n, time_label, tick, ncol, nrow,
+                                 combined,
                                  legend, legend_size, legend_title,
                                  legend_ncol, legend_border, legend_bty) {
 
@@ -445,7 +455,8 @@ sequence_plot <- function(x,
   graphics::par(oma = c(if (legend == "bottom") oma[["oma_b"]] else 0.3,
                         0.3, 0.3,
                         if (legend == "right")  oma[["oma_r"]] else 0.3))
-  if (nrow * ncol > 1L) {
+  use_layout <- combined && nrow * ncol > 1L
+  if (use_layout) {
     lm <- matrix(c(seq_len(G), integer(nrow * ncol - G)),
                  nrow = nrow, ncol = ncol, byrow = TRUE)
     graphics::layout(lm)
@@ -461,6 +472,11 @@ sequence_plot <- function(x,
     sub  <- codes[ord, , drop = FALSE]
     nN   <- nrow(sub)
 
+    if (!combined && g_idx > 1L) {
+      graphics::par(oma = c(if (legend == "bottom") oma[["oma_b"]] else 0.3,
+                            0.3, 0.3,
+                            if (legend == "right")  oma[["oma_r"]] else 0.3))
+    }
     graphics::par(mar = c(mar_bottom, 2, mar_top, 1))
     graphics::plot.new()
     graphics::plot.window(xlim = c(0.5, n_cols + 0.5),
@@ -499,13 +515,17 @@ sequence_plot <- function(x,
       graphics::mtext(panel_title, side = 3, line = 0.5, font = 2,
                       cex = if (G > 1L) 0.9 else 1)
     }
+    if (!combined && legend != "none") {
+      .draw_legend_in_oma(levels_all, palette, legend, legend_size,
+                          legend_ncol, legend_title, legend_border, legend_bty)
+    }
   }))
-  if (G > 1L && !is.null(main)) {
+  if (combined && G > 1L && !is.null(main)) {
     graphics::mtext(main, side = 3, line = 1.5, font = 2,
                     outer = TRUE, cex = 1)
   }
 
-  if (legend != "none") {
+  if (combined && legend != "none") {
     .draw_legend_in_oma(levels_all, palette, legend, legend_size,
                         legend_ncol, legend_title, legend_border, legend_bty)
   }

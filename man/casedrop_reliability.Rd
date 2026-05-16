@@ -32,7 +32,7 @@ casedrop_reliability(
 
 \method{print}{summary.net_casedrop_reliability_group}(x, ...)
 
-\method{plot}{net_casedrop_reliability}(x, ...)
+\method{plot}{net_casedrop_reliability}(x, combined = TRUE, ...)
 
 \method{plot}{net_casedrop_reliability_group}(
   x,
@@ -71,6 +71,10 @@ edge vector. Default \code{FALSE}.}
 
 \item{object}{A \code{net_casedrop_reliability_group}.}
 
+\item{combined}{When \code{TRUE} (default), all four metrics are shown in
+one ggplot via \code{facet_wrap(~ metric)}. When \code{FALSE}, returns a named
+list of four single-panel ggplots, one per metric.}
+
 \item{metric}{Which metric to plot. One of \code{"correlation"}
 (default), \code{"mean_abs_dev"}, \code{"median_abs_dev"}, \code{"max_abs_dev"}.}
 }
@@ -95,7 +99,8 @@ A data frame with one row per network containing
 \code{cor}, \code{mean_abs_dev}, \code{median_abs_dev}, \code{max_abs_dev} formatted as
 "mean +/- sd".
 
-A \code{ggplot} object.
+A \code{ggplot} object, or a named list of four ggplots when
+\code{combined = FALSE}.
 
 A \code{ggplot} object.
 }

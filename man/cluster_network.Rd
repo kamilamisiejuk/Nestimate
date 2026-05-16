@@ -18,14 +18,16 @@ cluster_network(data, k, cluster_by = "pam", dissimilarity = "hamming", ...)
 \code{"single"}, \code{"mcquitty"}, \code{"median"}, \code{"centroid"}),
 or \code{"mmm"} for Mixed Markov Model clustering. Default: \code{"pam"}.}
 
-\item{dissimilarity}{Character. Distance metric for sequence clustering
-(ignored when \code{cluster_by = "mmm"}). Default: \code{"hamming"}.}
+\item{dissimilarity}{Character. Distance metric for sequence clustering.
+Only valid when \code{cluster_by != "mmm"}. Default: \code{"hamming"}.}
 
 \item{...}{Routed to two stages. For distance clustering
 (\code{cluster_by != "mmm"}), \code{\link{build_clusters}} arguments
 \code{na_syms}, \code{weighted}, \code{lambda}, \code{seed}, \code{q},
 \code{p}, and \code{covariates} are intercepted and forwarded to the
-clusterer; everything else flows to \code{\link{build_network}}. When
+clusterer; recognised network-estimation arguments flow to
+\code{\link{build_network}}. Unknown arguments error before either stage
+is run. When
 \code{cluster_by = "mmm"}, the recognised \code{\link{build_mmm}}
 arguments (\code{n_starts}, \code{max_iter}, \code{tol}, \code{smooth},
 \code{seed}, \code{covariates}) are intercepted instead, and the rest

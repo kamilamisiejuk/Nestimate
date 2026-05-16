@@ -35,12 +35,14 @@
 #' Compute hypergeometric p-values for each edge
 #'
 #' For each edge (v,w) with observed weight f, computes:
-#'   \code{HYPA(v,w) = P(X <= f)} where \code{X ~ Hypergeometric(N, K, n)},
+#'   \code{p_under = P(X <= f)} and \code{p_over = P(X >= f)}
+#'   where \code{X ~ Hypergeometric(N, K, n)},
 #'   \code{N = round(sum(Xi))}, \code{K = round(Xi[v,w])}, \code{n = sum(adj)}
 #'
 #' @param adj Adjacency matrix (edge weights = path frequencies).
 #' @param xi Fitted propensity matrix.
-#' @return Data frame with from, to, observed, expected, p_value, anomaly.
+#' @return Data frame with from, to, observed, expected, ratio, p_value,
+#'   p_under, p_over, and anomaly.
 #' @noRd
 .hypa_compute_scores <- function(adj, xi) {
   n <- nrow(adj)
@@ -56,7 +58,8 @@
     return(data.frame(path = character(0L), from = character(0L),
                       to = character(0L), observed = integer(0L),
                       expected = numeric(0L), ratio = numeric(0L),
-                      p_value = numeric(0L), anomaly = character(0L),
+                      p_value = numeric(0L), p_under = numeric(0L),
+                      p_over = numeric(0L), anomaly = character(0L),
                       stringsAsFactors = FALSE))
   }
 
@@ -71,8 +74,10 @@
     K <- max(K, 0L)
     n_clamp <- min(n_draws, N_total)
 
-    # Hypergeometric CDF: P(X <= f_obs)
-    p_value <- stats::phyper(f_obs, K, N_total - K, n_clamp)
+    # Inclusive hypergeometric tails.
+    p_under <- stats::phyper(f_obs, K, N_total - K, n_clamp)
+    p_over <- stats::phyper(f_obs - 1, K, N_total - K, n_clamp,
+                            lower.tail = FALSE)
 
     # Expected value: n * K / N
     expected <- if (N_total > 0) n_draws * K / N_total else 0
@@ -92,16 +97,17 @@
       observed = as.integer(f_obs),
       expected = expected,
       ratio = ratio,
-      p_value = p_value,
+      p_value = p_under,
+      p_under = p_under,
+      p_over = p_over,
       stringsAsFactors = FALSE
     )
   })
 
   result <- do.call(rbind, results)
   # Classify anomalies
-  result$anomaly <- vapply(result$p_value, function(s) {
-    if (s < 0.05) "under" else if (s > 0.95) "over" else "normal"
-  }, character(1L))
+  result$anomaly <- ifelse(result$p_under < 0.05, "under",
+                           ifelse(result$p_over < 0.05, "over", "normal"))
 
   result
 }
@@ -138,14 +144,17 @@
 #' @return An object of class \code{net_hypa} with components:
 #'   \describe{
 #'     \item{scores}{Data frame with path, from, to, observed, expected,
-#'       ratio, p_value, p_adjusted_under, p_adjusted_over, anomaly
+#'       ratio, p_value, p_under, p_over, p_adjusted_under,
+#'       p_adjusted_over, anomaly
 #'       columns. The \code{path} column shows the full state sequence
 #'       (e.g., "A -> B -> C"); \code{from} is the context (conditioning
 #'       states); \code{to} is the next state; \code{ratio} is
-#'       observed / expected; \code{p_value} is the raw hypergeometric
-#'       CDF value; \code{p_adjusted_under} and \code{p_adjusted_over}
-#'       are the corrected p-values for under- and over-representation
-#'       tests respectively.}
+#'       observed / expected; \code{p_value} is retained as an alias for
+#'       \code{p_under}, the raw lower-tail hypergeometric CDF value;
+#'       \code{p_over} is the inclusive upper-tail probability
+#'       \code{P(X >= observed)}; \code{p_adjusted_under} and
+#'       \code{p_adjusted_over} are the corrected p-values for under- and
+#'       over-representation tests respectively.}
 #'     \item{adjacency}{Weighted adjacency matrix of the De Bruijn graph.}
 #'     \item{xi}{Fitted propensity matrix.}
 #'     \item{k}{Order of the De Bruijn graph.}
@@ -175,27 +184,74 @@
 #' }
 #'
 #' @export
-build_hypa <- function(data, k = 3L, alpha = 0.05, min_count = 5L,
-                       p_adjust = "BH") {
-  # --- Coerce tna/netobject to labeled data.frame ---
-  data <- .coerce_sequence_input(data)
+.hypa_one_order <- function(trajectories, ord, alpha, min_count, p_adjust) {
+  kg <- .mogen_count_kgrams(trajectories, ord)
+  if (nrow(kg$edges) == 0L) {
+    return(NULL)
+  }
+  nodes <- kg$nodes
+  n <- length(nodes)
+  adj <- matrix(0, nrow = n, ncol = n, dimnames = list(nodes, nodes))
+  idx <- cbind(match(kg$edges$from, nodes), match(kg$edges$to, nodes))
+  adj[idx] <- kg$edges$weight
 
-  k <- as.integer(k)
+  xi <- .hypa_fit_xi(adj)
+  scores <- .hypa_compute_scores(adj, xi)
+
+  if (p_adjust != "none" && nrow(scores) > 0L) {
+    scores$p_adjusted_under <- stats::p.adjust(scores$p_under, method = p_adjust)
+    scores$p_adjusted_over  <- stats::p.adjust(scores$p_over,  method = p_adjust)
+  } else {
+    scores$p_adjusted_under <- scores$p_under
+    scores$p_adjusted_over  <- scores$p_over
+  }
+
+  scores$anomaly <- ifelse(
+    scores$observed < min_count, "normal",
+    ifelse(scores$p_adjusted_under < alpha, "under",
+           ifelse(scores$p_adjusted_over < alpha, "over", "normal"))
+  )
+  scores$order <- ord
+
+  anom_over  <- scores[scores$anomaly == "over",  , drop = FALSE]
+  anom_under <- scores[scores$anomaly == "under", , drop = FALSE]
+  normal     <- scores[scores$anomaly == "normal", , drop = FALSE]
+  anom_over  <- anom_over[order(-anom_over$ratio),  , drop = FALSE]
+  anom_under <- anom_under[order(anom_under$ratio), , drop = FALSE]
+  scores <- rbind(anom_over, anom_under, normal)
+  rownames(scores) <- NULL
+
+  cg <- .ho_cograph_fields(adj, nodes, method = "hypa")
+  list(
+    scores = scores, over = anom_over, under = anom_under,
+    adjacency = adj, weights = cg$weights, xi = xi,
+    edges = cg$edges, nodes = cg$nodes, meta = cg$meta,
+    n_over = nrow(anom_over), n_under = nrow(anom_under),
+    n_edges = nrow(scores), order = ord
+  )
+}
+
+#' @export
+build_hypa <- function(data, order = 2L, alpha = 0.05, min_count = 5L,
+                       p_adjust = "BH", k = NULL) {
+  if (!is.null(k)) {
+    .Deprecated(msg = "'k' is deprecated; use 'order' instead.")
+    order <- k
+  }
+  data <- .coerce_sequence_input(data)
+  order <- as.integer(order)
   min_count <- as.integer(min_count)
 
-  # Validate p_adjust method
   valid_methods <- c(stats::p.adjust.methods, "none")
   if (!is.character(p_adjust) || length(p_adjust) != 1L ||
       !p_adjust %in% valid_methods) {
     stop(sprintf("'p_adjust' must be one of: %s",
-                 paste(valid_methods, collapse = ", ")),
-         call. = FALSE)
+                 paste(valid_methods, collapse = ", ")), call. = FALSE)
   }
-
   stopifnot(
     "'data' must be a data.frame or list" =
       is.data.frame(data) || is.list(data),
-    "'k' must be >= 1" = k >= 1L,
+    "'order' must contain only integers >= 1" = all(order >= 1L),
     "'alpha' must be in (0, 0.5)" = alpha > 0 && alpha < 0.5,
     "'min_count' must be >= 1" = min_count >= 1L
   )
@@ -205,82 +261,47 @@ build_hypa <- function(data, k = 3L, alpha = 0.05, min_count = 5L,
     stop("No valid trajectories (each must have at least 2 states)")
   }
 
-  # Build k-th order De Bruijn graph (reuse MOGen infrastructure)
-  kg <- .mogen_count_kgrams(trajectories, k)
-
-  if (nrow(kg$edges) == 0L) {
-    stop(sprintf("No edges at order %d (paths too short or too few)", k))
+  per_order <- lapply(order, function(o) {
+    .hypa_one_order(trajectories, o, alpha, min_count, p_adjust)
+  })
+  names(per_order) <- as.character(order)
+  per_order <- Filter(Negate(is.null), per_order)
+  if (length(per_order) == 0L) {
+    stop("No edges at any requested order (paths too short or too few)")
   }
 
-  # Build adjacency matrix (weighted, NOT normalized)
-  nodes <- kg$nodes
-  n <- length(nodes)
-  adj <- matrix(0, nrow = n, ncol = n, dimnames = list(nodes, nodes))
-  idx <- cbind(match(kg$edges$from, nodes), match(kg$edges$to, nodes))
-  adj[idx] <- kg$edges$weight
+  scores_all <- do.call(rbind, lapply(per_order, `[[`, "scores"))
+  over_all   <- do.call(rbind, lapply(per_order, `[[`, "over"))
+  under_all  <- do.call(rbind, lapply(per_order, `[[`, "under"))
+  rownames(scores_all) <- NULL
+  if (!is.null(over_all))  rownames(over_all)  <- NULL
+  if (!is.null(under_all)) rownames(under_all) <- NULL
 
-  # Compute Xi (propensity matrix)
-  xi <- .hypa_fit_xi(adj)
-
-  # Compute HYPA scores
-  scores <- .hypa_compute_scores(adj, xi)
-
-  # Two-sided p-value correction: p_value = P(X <= obs) from hypergeometric CDF
-  if (p_adjust != "none" && nrow(scores) > 0L) {
-    scores$p_adjusted_under <- stats::p.adjust(scores$p_value,
-                                               method = p_adjust)
-    scores$p_adjusted_over <- stats::p.adjust(1 - scores$p_value,
-                                              method = p_adjust)
-  } else {
-    scores$p_adjusted_under <- scores$p_value
-    scores$p_adjusted_over <- 1 - scores$p_value
-  }
-
-  # Classify anomalies: must exceed alpha AND min_count
-  scores$anomaly <- ifelse(
-    scores$observed < min_count, "normal",
-    ifelse(scores$p_adjusted_under < alpha, "under",
-           ifelse(scores$p_adjusted_over < alpha, "over", "normal"))
-  )
-
-  # Pre-sort: anomalous first (over by ratio desc, then under by ratio asc),
-  # then normal
-  anom_over  <- scores[scores$anomaly == "over", , drop = FALSE]
-  anom_under <- scores[scores$anomaly == "under", , drop = FALSE]
-  normal     <- scores[scores$anomaly == "normal", , drop = FALSE]
-  anom_over  <- anom_over[order(-anom_over$ratio), , drop = FALSE]
-  anom_under <- anom_under[order(anom_under$ratio), , drop = FALSE]
-  scores <- rbind(anom_over, anom_under, normal)
-  rownames(scores) <- NULL
-
-  n_over <- nrow(anom_over)
-  n_under <- nrow(anom_under)
-
-  # cograph-compatible fields
-  cg <- .ho_cograph_fields(adj, nodes, method = "hypa")
-
+  # Primary cograph slot = network of the lowest order requested
+  primary <- per_order[[1L]]
   result <- list(
-    scores = scores,
-    ho_edges = scores,
-    edges = cg$edges,
-    over = anom_over,
-    under = anom_under,
-    adjacency = adj,
-    weights = cg$weights,
-    xi = xi,
-    k = k,
+    scores = scores_all,
+    ho_edges = scores_all,
+    edges = primary$edges,
+    over = over_all,
+    under = under_all,
+    adjacency = primary$adjacency,
+    weights = primary$weights,
+    xi = primary$xi,
+    by_order = per_order,
+    order = order,
+    k = order,  # back-compat alias; prefer $order
     alpha = alpha,
     p_adjust = p_adjust,
-    n_anomalous = n_over + n_under,
-    n_over = n_over,
-    n_under = n_under,
-    n_edges = nrow(scores),
-    nodes = cg$nodes,
+    n_anomalous = sum(vapply(per_order, function(x) x$n_over + x$n_under, integer(1))),
+    n_over  = sum(vapply(per_order, `[[`, integer(1), "n_over")),
+    n_under = sum(vapply(per_order, `[[`, integer(1), "n_under")),
+    n_edges = sum(vapply(per_order, `[[`, integer(1), "n_edges")),
+    nodes = primary$nodes,
     directed = TRUE,
-    meta = cg$meta,
+    meta = primary$meta,
     node_groups = NULL
   )
-
   class(result) <- c("net_hypa", "cograph_network")
   result
 }
@@ -314,13 +335,22 @@ build_hypa <- function(data, k = 3L, alpha = 0.05, min_count = 5L,
 #'
 #' @export
 print.net_hypa <- function(x, ...) {
+  ord_str <- paste(x$order, collapse = ", ")
   cat("HYPA: Path Anomaly Detection\n")
-  cat(sprintf("  Order k:      %d\n", x$k))
+  cat(sprintf("  Order(s):     %s\n", ord_str))
   cat(sprintf("  Edges:        %d\n", x$n_edges))
   cat(sprintf("  Anomalous:    %d (alpha=%.2f, p_adjust=%s)\n",
               x$n_anomalous, x$alpha, x$p_adjust %||% "none"))
   cat(sprintf("    Over-repr:  %d\n", x$n_over))
   cat(sprintf("    Under-repr: %d\n", x$n_under))
+  if (length(x$order) > 1L) {
+    per <- vapply(x$by_order, function(po)
+      sprintf("order %d: %d edges (%d over, %d under)",
+              po$order, po$n_edges, po$n_over, po$n_under),
+      character(1))
+    cat("  Per-order:\n")
+    for (line in per) cat(sprintf("    %s\n", line))
+  }
   invisible(x)
 }
 
@@ -331,9 +361,14 @@ print.net_hypa <- function(x, ...) {
 #'   (default: 10).
 #' @param type Character. Which anomalies to show: \code{"all"} (default),
 #'   \code{"over"}, or \code{"under"}.
+#' @param order_by Character. Ranking used within each anomaly direction:
+#'   \code{"sig"} ranks by the active tail probability, \code{"freq"} by
+#'   observed count, \code{"ratio"} by observed/expected ratio, and
+#'   \code{"path"} alphabetically.
 #' @param ... Additional arguments (ignored).
 #'
-#' @return The input object, invisibly.
+#' @return A data frame with path, observed, expected, ratio, p_tail, and
+#'   direction columns.
 #'
 #' @examples
 #' seqs <- list(c("A","B","C"), c("B","C","A"), c("A","C","B"), c("A","B","C"))
@@ -354,29 +389,62 @@ print.net_hypa <- function(x, ...) {
 #'
 #' @export
 summary.net_hypa <- function(object, n = 10L,
-                             type = c("all", "over", "under"), ...) {
+                             type = c("all", "over", "under"),
+                             order_by = c("sig", "freq", "frequency",
+                                          "ratio", "path"),
+                             ...) {
   type <- match.arg(type)
+  order_by <- match.arg(order_by)
+  if (order_by == "frequency") order_by <- "freq"
+
+  reorder_df <- function(df, dir) {
+    if (is.null(df) || nrow(df) == 0L) return(df)
+    # p_value is the hypergeometric CDF P(X <= obs): close to 1 for
+    # over-represented paths, close to 0 for under-represented. So "by
+    # sig" picks the tail extremeness in each direction.
+    idx <- switch(order_by,
+      ratio = if (dir == "over") order(-df$ratio) else order(df$ratio),
+      sig   = if (dir == "over") order(df$p_over) else order(df$p_under),
+      freq  = order(-df$observed),
+      path  = order(df$path)
+    )
+    df[idx, , drop = FALSE]
+  }
+
+  over_sorted  <- reorder_df(object$over,  "over")
+  under_sorted <- reorder_df(object$under, "under")
+
   cat("HYPA Summary\n\n")
-  cat(sprintf("  Order: %d | Nodes: %d | Edges: %d\n",
-              object$k, nrow(object$nodes), object$n_edges))
+  cat(sprintf("  Order(s): %s | Edges: %d\n",
+              paste(object$order, collapse = ", "), object$n_edges))
   cat(sprintf("  Alpha: %.2f | p_adjust: %s\n",
               object$alpha, object$p_adjust %||% "none"))
-  cat(sprintf("  Anomalous: %d (over: %d, under: %d)\n\n",
-              object$n_anomalous, object$n_over, object$n_under))
+  cat(sprintf("  Anomalous: %d (over: %d, under: %d) | order_by: %s\n\n",
+              object$n_anomalous, object$n_over, object$n_under, order_by))
 
-  show_cols <- c("path", "observed", "expected", "ratio", "p_value")
+  display_df <- function(df, dir) {
+    if (is.null(df) || nrow(df) == 0L) return(df)
+    out <- df
+    out$p_tail <- if (dir == "over") out$p_over else out$p_under
+    out
+  }
+
+  show_cols <- c("order", "path", "observed", "expected", "ratio", "p_tail")
+  if (length(object$order) == 1L) show_cols <- setdiff(show_cols, "order")
 
   if (type %in% c("all", "over") && object$n_over > 0L) {
     cat("  Over-represented (top", min(n, object$n_over), "):\n")
-    top_over <- utils::head(object$over[, show_cols, drop = FALSE], n)
-    print(top_over, row.names = FALSE)
+    over_display <- display_df(over_sorted, "over")
+    print(utils::head(over_display[, show_cols, drop = FALSE], n),
+          row.names = FALSE)
     cat("\n")
   }
 
   if (type %in% c("all", "under") && object$n_under > 0L) {
     cat("  Under-represented (top", min(n, object$n_under), "):\n")
-    top_under <- utils::head(object$under[, show_cols, drop = FALSE], n)
-    print(top_under, row.names = FALSE)
+    under_display <- display_df(under_sorted, "under")
+    print(utils::head(under_display[, show_cols, drop = FALSE], n),
+          row.names = FALSE)
     cat("\n")
   }
 
@@ -384,29 +452,39 @@ summary.net_hypa <- function(object, n = 10L,
     cat("  No anomalous paths detected.\n")
   }
 
-  over <- object$over
-  under <- object$under
-  cols <- c("path", "observed", "expected", "ratio", "p_value")
   pick <- function(df, dir) {
     if (is.null(df) || nrow(df) == 0L) return(NULL)
-    out <- df[, intersect(cols, names(df)), drop = FALSE]
+    out <- display_df(df, dir)
+    cols <- c("order", "path", "observed", "expected", "ratio", "p_tail")
+    out <- out[, intersect(cols, names(out)), drop = FALSE]
     out$direction <- dir
-    out
+    utils::head(out, n)
   }
-  combined <- do.call(rbind, Filter(Negate(is.null),
-                                    list(pick(over, "over"),
-                                         pick(under, "under"))))
+  parts <- switch(type,
+    all   = list(pick(over_sorted, "over"), pick(under_sorted, "under")),
+    over  = list(pick(over_sorted, "over")),
+    under = list(pick(under_sorted, "under"))
+  )
+  combined <- do.call(rbind, Filter(Negate(is.null), parts))
   if (is.null(combined)) {
     combined <- data.frame(path = character(0L),
                            observed = numeric(0L),
                            expected = numeric(0L),
                            ratio = numeric(0L),
-                           p_value = numeric(0L),
+                           p_tail = numeric(0L),
                            direction = character(0L),
                            stringsAsFactors = FALSE)
   } else {
+    if (type == "all" && nrow(combined) > 0L) {
+      idx <- switch(order_by,
+        sig   = order(combined$p_tail),
+        ratio = order(-abs(log(combined$ratio))),
+        freq  = order(-combined$observed),
+        path  = order(combined$path)
+      )
+      combined <- combined[idx, , drop = FALSE]
+    }
     row.names(combined) <- NULL
   }
   combined
 }
-

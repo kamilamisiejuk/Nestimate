@@ -99,6 +99,18 @@ test_that("permutation works with method='relative'", {
                      "weight_x", "weight_y") %in% names(perm$summary)))
 })
 
+test_that("permutation warns for one-sequence transition networks", {
+  long <- data.frame(action = c("A", "B", "C", "A"),
+                     stringsAsFactors = FALSE)
+  net <- suppressWarnings(build_tna(long, action = "action"))
+
+  expect_warning(
+    perm <- permutation(net, net, iter = 2L, seed = 1),
+    "one long sequence is not recommended"
+  )
+  expect_s3_class(perm, "net_permutation")
+})
+
 test_that("permutation works with method='frequency'", {
   w1 <- .make_perm_wide(n = 50, seed = 1)
   w2 <- .make_perm_wide(n = 50, seed = 2)
@@ -110,6 +122,86 @@ test_that("permutation works with method='frequency'", {
   expect_s3_class(perm, "net_permutation")
   expect_equal(perm$method, "frequency")
   expect_true(all(perm$p_values >= 0 & perm$p_values <= 1))
+})
+
+test_that("permutation onehot frequency uses wtna per-sequence counts", {
+  df1 <- data.frame(
+    actor = rep(c("s1", "s2", "s3"), each = 4),
+    A = c(1L, 0L, 1L, 0L, 0L, 1L, 0L, 1L, 1L, 0L, 0L, 1L),
+    B = c(0L, 1L, 0L, 1L, 1L, 0L, 1L, 0L, 0L, 1L, 1L, 0L),
+    C = c(0L, 0L, 1L, 0L, 0L, 1L, 0L, 0L, 1L, 0L, 0L, 1L)
+  )
+  df2 <- data.frame(
+    actor = rep(c("s4", "s5", "s6"), each = 4),
+    A = c(0L, 1L, 0L, 1L, 1L, 0L, 1L, 0L, 0L, 1L, 1L, 0L),
+    B = c(1L, 0L, 1L, 0L, 0L, 1L, 0L, 1L, 1L, 0L, 0L, 1L),
+    C = c(0L, 1L, 0L, 0L, 1L, 0L, 0L, 1L, 0L, 0L, 1L, 0L)
+  )
+  codes <- c("A", "B", "C")
+  net1 <- suppressWarnings(build_network(
+    df1, method = "frequency", format = "onehot", codes = codes,
+    actor = "actor", window_size = 1L
+  ))
+  net2 <- suppressWarnings(build_network(
+    df2, method = "frequency", format = "onehot", codes = codes,
+    actor = "actor", window_size = 1L
+  ))
+
+  resampling_data <- Nestimate:::.resampling_transition_data(
+    net1$data, net1$metadata, net1$params
+  )
+  pre1 <- Nestimate:::.precompute_per_sequence(
+    resampling_data, net1$method, net1$params, net1$nodes$label
+  )
+  counts1 <- matrix(colSums(pre1), nrow = 3L, byrow = TRUE,
+                    dimnames = list(codes, codes))
+  perm <- permutation(net1, net2, iter = 20L, seed = 1)
+
+  expect_equal(counts1, net1$weights)
+  expect_s3_class(perm, "net_permutation")
+  expect_equal(perm$method, "frequency")
+  expect_true(all(perm$p_values >= 0 & perm$p_values <= 1))
+})
+
+test_that("permutation dispatches for wtna_mixed and matches components", {
+  df1 <- data.frame(
+    A = c(1L, 0L, 1L, 0L, 1L, 0L),
+    B = c(0L, 1L, 0L, 1L, 0L, 1L),
+    C = c(1L, 1L, 0L, 0L, 1L, 0L)
+  )
+  df2 <- data.frame(
+    A = c(0L, 1L, 0L, 1L, 0L, 1L),
+    B = c(1L, 0L, 1L, 0L, 1L, 0L),
+    C = c(0L, 1L, 1L, 0L, 0L, 1L)
+  )
+  mixed1 <- wtna(df1, method = "both")
+  mixed2 <- wtna(df2, method = "both")
+
+  mixed_perm <- permutation(mixed1, mixed2, iter = 20L, seed = 1)
+  tran_ref <- permutation(mixed1$transition, mixed2$transition,
+                          iter = 20L, seed = 1)
+  co_ref <- permutation(mixed1$cooccurrence, mixed2$cooccurrence,
+                        iter = 20L, seed = 1)
+
+  expect_s3_class(mixed_perm, "wtna_perm_mixed")
+  expect_equal(mixed_perm$transition$p_values, tran_ref$p_values)
+  expect_equal(mixed_perm$cooccurrence$p_values, co_ref$p_values)
+  expect_equal(mixed_perm$transition$diff, tran_ref$diff)
+  expect_equal(mixed_perm$cooccurrence$diff, co_ref$diff)
+})
+
+test_that("wtna_mixed permutation print and summary methods work", {
+  df1 <- data.frame(A = c(1L, 0L, 1L, 0L), B = c(0L, 1L, 0L, 1L))
+  df2 <- data.frame(A = c(0L, 1L, 0L, 1L), B = c(1L, 0L, 1L, 0L))
+  perm <- permutation(wtna(df1, method = "both"),
+                      wtna(df2, method = "both"),
+                      iter = 10L, seed = 1)
+
+  out <- capture.output(print(perm))
+  expect_true(any(grepl("Mixed WTNA Permutation", out)))
+  s <- summary(perm)
+  expect_true(is.list(s))
+  expect_true(all(c("transition", "cooccurrence") %in% names(s)))
 })
 
 test_that("permutation works with method='co_occurrence'", {
@@ -496,4 +588,37 @@ test_that("permutation works with two mcml objects", {
   for (nm in names(perm)) {
     expect_s3_class(perm[[nm]], "net_permutation")
   }
+})
+
+test_that("permutation mcml dispatch matches explicit as_tna group dispatch", {
+  set.seed(42)
+  clusters <- list(G1 = c("A", "B", "C"), G2 = c("D", "E", "F"))
+  seqs1 <- data.frame(
+    T1 = sample(LETTERS[1:6], 30, TRUE),
+    T2 = sample(LETTERS[1:6], 30, TRUE),
+    T3 = sample(LETTERS[1:6], 30, TRUE),
+    T4 = sample(LETTERS[1:6], 30, TRUE),
+    stringsAsFactors = FALSE
+  )
+  seqs2 <- data.frame(
+    T1 = sample(LETTERS[1:6], 30, TRUE),
+    T2 = sample(LETTERS[1:6], 30, TRUE),
+    T3 = sample(LETTERS[1:6], 30, TRUE),
+    T4 = sample(LETTERS[1:6], 30, TRUE),
+    stringsAsFactors = FALSE
+  )
+  cs1 <- build_mcml(seqs1, clusters, type = "tna")
+  cs2 <- build_mcml(seqs2, clusters, type = "tna")
+
+  perm_mc <- permutation(cs1, cs2, iter = 5, seed = 1)
+  perm_grp <- permutation(as_tna(cs1), as_tna(cs2), iter = 5, seed = 1)
+
+  expect_identical(class(perm_mc), class(perm_grp))
+  expect_identical(names(perm_mc), names(perm_grp))
+  expect_identical(
+    vapply(perm_mc, function(x) class(x)[1L], character(1L)),
+    vapply(perm_grp, function(x) class(x)[1L], character(1L))
+  )
+  expect_equal(perm_mc$macro$diff, perm_grp$macro$diff,
+               tolerance = 1e-12)
 })

@@ -424,12 +424,17 @@ print.summary.net_casedrop_reliability_group <- function(x, ...) {
 #' line at the user's `threshold` (default 0.7).
 #'
 #' @param x A `net_casedrop_reliability` object from [casedrop_reliability()].
+#' @param combined When `TRUE` (default), all four metrics are shown in
+#'   one ggplot via `facet_wrap(~ metric)`. When `FALSE`, returns a named
+#'   list of four single-panel ggplots, one per metric.
 #' @param ... Additional arguments (ignored).
 #'
-#' @return A `ggplot` object.
+#' @return A `ggplot` object, or a named list of four ggplots when
+#'   `combined = FALSE`.
 #' @rdname casedrop_reliability
 #' @export
-plot.net_casedrop_reliability <- function(x, ...) {
+plot.net_casedrop_reliability <- function(x, combined = TRUE, ...) {
+  stopifnot(is.logical(combined), length(combined) == 1L)
   df <- x$summary
   df$metric <- factor(df$metric,
                       levels = c("correlation", "mean_abs_dev",
@@ -439,38 +444,62 @@ plot.net_casedrop_reliability <- function(x, ...) {
                                  "Median |diff| (MAD)",
                                  "Max |diff|"))
 
-  ggplot2::ggplot(df,
-                  ggplot2::aes(x = .data$drop_prop,
-                               y = .data$mean)) +
-    ggplot2::geom_ribbon(
-      ggplot2::aes(ymin = .data$mean - .data$sd,
-                   ymax = .data$mean + .data$sd),
-      fill = "#2196F3", alpha = 0.2
-    ) +
-    ggplot2::geom_line(color = "#0D47A1", linewidth = 0.8) +
-    ggplot2::geom_point(color = "#0D47A1", size = 1.5) +
-    ggplot2::geom_hline(
-      data = data.frame(metric = factor("Correlation",
-                                         levels = levels(df$metric)),
-                        yint = x$threshold),
-      ggplot2::aes(yintercept = .data$yint),
-      linetype = "dashed", color = "grey40"
-    ) +
-    ggplot2::facet_wrap(~ .data$metric, scales = "free_y") +
-    ggplot2::labs(
-      x = "Proportion of cases dropped",
-      y = "Mean \u00b1 SD across iterations",
-      title = sprintf("Edge-weight reliability (CS = %.2f, %d iter, %d edges)",
-                      x$cs, x$iter, x$n_edges),
-      subtitle = sprintf("Case-dropping on %d cases, %s correlation",
-                         x$n_cases, x$method)
-    ) +
-    ggplot2::theme_minimal(base_size = 12) +
-    ggplot2::theme(
-      plot.title    = ggplot2::element_text(face = "bold"),
-      plot.subtitle = ggplot2::element_text(color = "grey40"),
-      strip.text    = ggplot2::element_text(face = "bold")
-    )
+  base_p <- function(d, ttl, sub_title, hline_df) {
+    p <- ggplot2::ggplot(d,
+                          ggplot2::aes(x = .data$drop_prop,
+                                       y = .data$mean)) +
+      ggplot2::geom_ribbon(
+        ggplot2::aes(ymin = .data$mean - .data$sd,
+                     ymax = .data$mean + .data$sd),
+        fill = "#2196F3", alpha = 0.2
+      ) +
+      ggplot2::geom_line(color = "#0D47A1", linewidth = 0.8) +
+      ggplot2::geom_point(color = "#0D47A1", size = 1.5) +
+      ggplot2::labs(
+        x = "Proportion of cases dropped",
+        y = "Mean \u00b1 SD across iterations",
+        title = ttl,
+        subtitle = sub_title
+      ) +
+      ggplot2::theme_minimal(base_size = 12) +
+      ggplot2::theme(
+        plot.title    = ggplot2::element_text(face = "bold"),
+        plot.subtitle = ggplot2::element_text(color = "grey40"),
+        strip.text    = ggplot2::element_text(face = "bold")
+      )
+    if (NROW(hline_df) > 0L) {
+      p <- p + ggplot2::geom_hline(
+        data = hline_df,
+        ggplot2::aes(yintercept = .data$yint),
+        linetype = "dashed", color = "grey40"
+      )
+    }
+    p
+  }
+
+  ttl <- sprintf("Edge-weight reliability (CS = %.2f, %d iter, %d edges)",
+                 x$cs, x$iter, x$n_edges)
+  sub_title <- sprintf("Case-dropping on %d cases, %s correlation",
+                       x$n_cases, x$method)
+
+  if (!combined) {
+    levs <- levels(df$metric)
+    plots <- lapply(levs, function(lv) {
+      sub <- df[df$metric == lv, , drop = FALSE]
+      hline <- if (lv == "Correlation")
+        data.frame(yint = x$threshold) else data.frame()
+      base_p(sub, sprintf("%s -- %s", ttl, lv), sub_title, hline)
+    })
+    names(plots) <- levs
+    return(invisible(plots))
+  }
+
+  hline_df <- data.frame(
+    metric = factor("Correlation", levels = levels(df$metric)),
+    yint = x$threshold
+  )
+  base_p(df, ttl, sub_title, hline_df) +
+    ggplot2::facet_wrap(~ .data$metric, scales = "free_y")
 }
 
 #' Plot method for grouped edge-stability result

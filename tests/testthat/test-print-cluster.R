@@ -166,6 +166,31 @@ test_that("print.net_mmm_clustering: header + cluster table", {
   expect_true(grepl("AvePP", out[hdr]))
 })
 
+test_that("net_mmm_clustering methods reject unsupported dots and bad digits", {
+  d <- .make_clust_data()
+  grp <- cluster_mmm(d, k = 2, n_starts = 1, max_iter = 20, seed = 1)
+  cl <- attr(grp, "clustering")
+
+  expect_error(print(cl, typo_arg = TRUE),
+               "unsupported argument: typo_arg")
+  expect_error(plot(cl, typo_arg = TRUE),
+               "unsupported argument: typo_arg")
+  expect_error(print(cl, digits = NA_real_),
+               "'digits' must be a single non-negative whole")
+  expect_error(print(cl, digits = 2.5),
+               "'digits' must be a single non-negative whole")
+})
+
+test_that("net_mmm_clustering print sizes match component member data", {
+  d <- .make_clust_data()
+  grp <- cluster_mmm(d, k = 2, n_starts = 1, max_iter = 20, seed = 1)
+  cl <- attr(grp, "clustering")
+
+  assignment_sizes <- as.integer(tabulate(cl$assignments, nbins = cl$k))
+  component_rows <- as.integer(vapply(grp, function(x) nrow(x$data), integer(1L)))
+  expect_equal(assignment_sizes, component_rows)
+})
+
 test_that("cluster_mmm stashes full sequence data on the clustering attribute", {
   d <- .make_clust_data()
   grp <- cluster_mmm(d, k = 2, n_starts = 1, max_iter = 20, seed = 1)
@@ -379,4 +404,39 @@ test_that("cluster_data() forwards to build_clusters() with a deprecation warnin
   expect_true(saw)
   expect_s3_class(cl, "net_clustering")
   expect_equal(cl$k, 2L)
+})
+
+test_that("cluster_data() is equivalent to direct build_clusters()", {
+  d <- .make_clust_data()
+
+  muffled_cluster_data <- function(...) {
+    withCallingHandlers(
+      cluster_data(...),
+      deprecatedWarning = function(w) invokeRestart("muffleWarning")
+    )
+  }
+
+  alias <- muffled_cluster_data(d, k = 2, method = "ward.D2",
+                                dissimilarity = "hamming", seed = 7)
+  ref <- build_clusters(d, k = 2, method = "ward.D2",
+                        dissimilarity = "hamming", seed = 7)
+
+  expect_identical(class(alias), class(ref))
+  expect_identical(unname(alias$assignments), unname(ref$assignments))
+  expect_identical(alias$sizes, ref$sizes)
+  expect_equal(alias$silhouette, ref$silhouette, tolerance = 1e-12)
+  expect_equal(as.matrix(alias$distance), as.matrix(ref$distance),
+               tolerance = 1e-12)
+})
+
+test_that("cluster_data() inherits build_clusters strict argument rejection", {
+  d <- .make_clust_data()
+
+  expect_error(
+    withCallingHandlers(
+      cluster_data(d, k = 2, typo_arg = TRUE),
+      deprecatedWarning = function(w) invokeRestart("muffleWarning")
+    ),
+    "build_clusters\\(\\) got unsupported argument: typo_arg"
+  )
 })

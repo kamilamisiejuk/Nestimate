@@ -281,7 +281,8 @@ test_that("prepare_onehot basic conversion", {
   expect_equal(nrow(result), 1)
   # Row 1 time 1: A active
   expect_equal(result[[1]], "A")
-  expect_true(attr(result, "windowed") == FALSE)
+  expect_true(attr(result, "windowed"))
+  expect_equal(attr(result, "window_span"), 2L)
 })
 
 test_that("prepare_onehot with actor grouping", {
@@ -319,6 +320,16 @@ test_that("prepare_onehot aggregate within windows", {
 test_that("prepare_onehot errors on missing cols", {
   d <- data.frame(A = c(1, 0))
   expect_error(prepare_onehot(d, cols = c("A", "Z")), "cols")
+})
+
+test_that("prepare_onehot preserves simultaneous active states", {
+  d <- data.frame(A = c(1, 0), B = c(1, 1), C = c(0, 0))
+  # Pinned to size 1 (the original default) — this test asserts shape
+  # under the pre-2026-05-10 default. New default is 3L.
+  result <- prepare_onehot(d, cols = c("A", "B", "C"), window_size = 1L)
+  expect_equal(sum(!is.na(as.matrix(result))), 3L)
+  expect_equal(result[1, c("W0_T1", "W0_T2", "W1_T2")],
+               data.frame(W0_T1 = "A", W0_T2 = "B", W1_T2 = "B"))
 })
 
 test_that("prepare_onehot codes attribute set", {

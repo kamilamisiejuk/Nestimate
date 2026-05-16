@@ -172,6 +172,23 @@ test_that("single-state matrix with self-loop", {
   expect_equal(nrow(edges_no), 0)
 })
 
+test_that("extract_edges rejects invalid controls", {
+  m <- make_mat()
+
+  expect_error(extract_edges(m, threshold = NA_real_),
+               "'threshold' must be a single finite numeric")
+  expect_error(extract_edges(m, threshold = c(0, 1)),
+               "'threshold' must be a single finite numeric")
+  expect_error(extract_edges(m, include_self = NA),
+               "'include_self' must be TRUE or FALSE")
+  expect_error(extract_edges(m, include_self = c(TRUE, FALSE)),
+               "'include_self' must be TRUE or FALSE")
+  expect_error(extract_edges(m, sort_by = "bad"),
+               "'sort_by' must be one of")
+  expect_error(extract_edges(m, sort_by = NA_character_),
+               "'sort_by' must be one of")
+})
+
 
 # == extract_initial_probs: additional paths ================================
 

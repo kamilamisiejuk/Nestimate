@@ -4,17 +4,22 @@
 \alias{plot.net_reliability}
 \title{Plot Method for net_reliability}
 \usage{
-\method{plot}{net_reliability}(x, bins = 60L, ...)
+\method{plot}{net_reliability}(x, bins = 60L, combined = TRUE, ...)
 }
 \arguments{
 \item{x}{A \code{net_reliability} object.}
 
 \item{bins}{Integer. Number of histogram bins per panel (default 60).}
 
+\item{combined}{When \code{TRUE} (default), all four metrics are shown
+in one ggplot via \code{facet_wrap(~ metric)}. When \code{FALSE},
+returns a named list of four single-panel ggplots, one per metric.}
+
 \item{...}{Additional arguments (ignored).}
 }
 \value{
-A \code{ggplot} object (invisibly).
+A \code{ggplot} object (invisibly), or a named list of four
+ggplots when \code{combined = FALSE}.
 }
 \description{
 Density plots of split-half metrics faceted by metric type.

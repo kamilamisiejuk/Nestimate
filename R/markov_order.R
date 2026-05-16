@@ -433,14 +433,22 @@ summary.net_markov_order <- function(object, ...) {
 #' @param x A \code{net_markov_order} object.
 #' @param panel Which panel(s) to render: \code{"both"}, \code{"ic"},
 #'   or \code{"permutation"}. Default \code{"both"}.
+#' @param combined When \code{panel = "both"} and \code{combined = TRUE}
+#'   (default), the two panels are stitched side-by-side via
+#'   \code{gridExtra::grid.arrange}. When \code{FALSE}, returns a named
+#'   list (\code{ic}, \code{permutation}) of ggplots. Ignored when
+#'   \code{panel != "both"}.
 #' @param ... Ignored.
-#' @return A ggplot (single panel) or a gridExtra-arranged grob (both).
+#' @return A ggplot (single panel), a gridExtra-arranged grob (both,
+#'   combined), or a named list of two ggplots (both, not combined).
 #' @inherit markov_order_test examples
 #' @export
 plot.net_markov_order <- function(x,
                                    panel = c("both", "ic", "permutation"),
+                                   combined = TRUE,
                                    ...) {
   panel <- match.arg(panel)
+  stopifnot(is.logical(combined), length(combined) == 1L)
   pal <- c(reject = "#D55E00", accept = "#0072B2",
            ic_ll = "#009E73", ic_aic = "#E69F00", ic_bic = "#56B4E9",
            selected = "#D55E00")
@@ -541,6 +549,8 @@ plot.net_markov_order <- function(x,
 
   if (panel == "ic") return(p_ic)
   if (panel == "permutation") return(p_perm)
+
+  if (!combined) return(invisible(list(ic = p_ic, permutation = p_perm)))
 
   if (requireNamespace("gridExtra", quietly = TRUE)) {
     gridExtra::grid.arrange(p_ic, p_perm, ncol = 2)

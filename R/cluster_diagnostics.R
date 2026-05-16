@@ -49,7 +49,7 @@
 #' @param x A \code{net_clustering}, \code{net_mmm}, \code{netobject_group}
 #'   (with \code{attr(, "clustering")} attached by \code{cluster_network()}
 #'   or \code{cluster_mmm()}), or \code{net_mmm_clustering}.
-#' @param ... Reserved for future extensions.
+#' @param ... Unsupported. Supplying unused arguments raises an error.
 #' @return A \code{net_cluster_diagnostics} object.
 #' @seealso \code{\link{print.net_cluster_diagnostics}},
 #'   \code{\link{plot.net_cluster_diagnostics}},
@@ -71,6 +71,7 @@ cluster_diagnostics <- function(x, ...) {
 
 #' @export
 cluster_diagnostics.default <- function(x, ...) {
+  .cluster_diag_check_unused_dots(...)
   stop("cluster_diagnostics() has no method for class '",
        paste(class(x), collapse = "/"), "'. Supported inputs: ",
        "net_clustering (from build_clusters), net_mmm (from build_mmm), ",
@@ -85,6 +86,7 @@ cluster_diagnostics.default <- function(x, ...) {
 
 #' @export
 cluster_diagnostics.net_clustering <- function(x, ...) {
+  .cluster_diag_check_unused_dots(...)
   k <- as.integer(x$k)
   assignments <- as.integer(x$assignments)
   sizes <- as.integer(x$sizes %||% tabulate(assignments, nbins = k))
@@ -158,6 +160,7 @@ cluster_diagnostics.net_clustering <- function(x, ...) {
 
 #' @export
 cluster_diagnostics.net_mmm <- function(x, ...) {
+  .cluster_diag_check_unused_dots(...)
   k <- as.integer(x$k)
   assignments <- as.integer(x$assignments)
   sizes <- as.integer(tabulate(assignments, nbins = k))
@@ -229,8 +232,9 @@ cluster_diagnostics.net_mmm <- function(x, ...) {
 
 #' @export
 cluster_diagnostics.net_mmm_clustering <- function(x, ...) {
+  .cluster_diag_check_unused_dots(...)
   shadow <- structure(unclass(x), class = "net_mmm")
-  out <- cluster_diagnostics.net_mmm(shadow, ...)
+  out <- cluster_diagnostics.net_mmm(shadow)
   # Keep the source pointing at the actual input class so plot delegation
   # routes through plot.net_mmm_clustering rather than plot.net_mmm.
   out$source <- x
@@ -243,6 +247,7 @@ cluster_diagnostics.net_mmm_clustering <- function(x, ...) {
 
 #' @export
 cluster_diagnostics.netobject_group <- function(x, ...) {
+  .cluster_diag_check_unused_dots(...)
   cl <- attr(x, "clustering")
   if (is.null(cl)) {
     stop("cluster_diagnostics() requires a clustering attribute on the ",
@@ -250,7 +255,22 @@ cluster_diagnostics.netobject_group <- function(x, ...) {
          "(or attach an existing net_clustering / net_mmm_clustering as ",
          "attr(grp, \"clustering\")).", call. = FALSE)
   }
-  cluster_diagnostics(cl, ...)
+  cluster_diagnostics(cl)
+}
+
+.cluster_diag_check_unused_dots <- function(...) {
+  dots <- list(...)
+  if (!length(dots)) {
+    return(invisible(TRUE))
+  }
+  dot_names <- names(dots)
+  dot_names[!nzchar(dot_names)] <- paste0("..", which(!nzchar(dot_names)))
+  stop(
+    "cluster_diagnostics() got unsupported argument",
+    if (length(dots) == 1L) ": " else "s: ",
+    paste(dot_names, collapse = ", "),
+    call. = FALSE
+  )
 }
 
 # ---------------------------------------------------------------------------
@@ -266,10 +286,18 @@ cluster_diagnostics.netobject_group <- function(x, ...) {
 #' @param x A \code{net_cluster_diagnostics} object.
 #' @param digits Integer. Decimal places for floating-point statistics.
 #'   Default \code{3L}.
-#' @param ... Additional arguments (ignored).
+#' @param ... Unsupported. Supplying unused arguments raises an error.
 #' @return The input object, invisibly.
 #' @export
 print.net_cluster_diagnostics <- function(x, digits = 3L, ...) {
+  dots <- list(...)
+  if (length(dots)) {
+    dot_names <- names(dots)
+    dot_names[!nzchar(dot_names)] <- paste0("..", which(!nzchar(dot_names)))
+    stop("print.net_cluster_diagnostics() got unsupported argument",
+         if (length(dots) == 1L) ": " else "s: ",
+         paste(dot_names, collapse = ", "), call. = FALSE)
+  }
   digits <- as.integer(digits)
   k <- x$k
   n <- x$n
@@ -379,5 +407,13 @@ plot.net_cluster_diagnostics <- function(x, type = NULL, ...) {
 #' @export
 as.data.frame.net_cluster_diagnostics <- function(x, row.names = NULL,
                                                    optional = FALSE, ...) {
+  dots <- list(...)
+  if (length(dots)) {
+    dot_names <- names(dots)
+    dot_names[!nzchar(dot_names)] <- paste0("..", which(!nzchar(dot_names)))
+    stop("as.data.frame.net_cluster_diagnostics() got unsupported argument",
+         if (length(dots) == 1L) ": " else "s: ",
+         paste(dot_names, collapse = ", "), call. = FALSE)
+  }
   x$per_cluster
 }

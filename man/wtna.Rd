@@ -9,7 +9,7 @@ wtna(
   method = c("transition", "cooccurrence", "both"),
   type = c("frequency", "relative"),
   codes = NULL,
-  window_size = 1L,
+  window_size = 3L,
   mode = c("non-overlapping", "overlapping"),
   actor = NULL
 )

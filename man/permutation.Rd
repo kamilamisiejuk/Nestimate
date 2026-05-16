@@ -71,6 +71,10 @@ shuffles group labels and computes group-wise \code{colSums}.
 For association methods (\code{"cor"}, \code{"pcor"}, \code{"glasso"},
 and custom estimators), the full estimator is called on each permuted
 group split.
+
+If either transition network contains only one sequence, the function warns
+that such a network is not recommended for permutation or other
+confirmatory testing.
 }
 \examples{
 s1 <- data.frame(V1 = c("A","B","C"), V2 = c("B","C","A"))

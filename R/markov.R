@@ -420,6 +420,10 @@ summary.net_markov_stability <- function(object, ...) {
 #'   \code{"persistence"}, \code{"stationary_prob"}, \code{"return_time"},
 #'   \code{"sojourn_time"}, \code{"avg_time_to_others"},
 #'   \code{"avg_time_from_others"}. Default: all six.
+#' @param combined When \code{TRUE} (default), all selected metrics are
+#'   shown in one ggplot via \code{facet_wrap(~ metric)}. When \code{FALSE},
+#'   returns a named list of single-panel ggplots, one per metric, so each
+#'   can be printed, saved, or re-laid-out independently.
 #' @rdname markov_stability
 #' @export
 plot.net_markov_stability <- function(x,
@@ -429,9 +433,11 @@ plot.net_markov_stability <- function(x,
                                                    "sojourn_time",
                                                    "avg_time_to_others",
                                                    "avg_time_from_others"),
+                                       combined = TRUE,
                                        ...) {
   df <- x$stability
   metrics <- match.arg(metrics, several.ok = TRUE)
+  stopifnot(is.logical(combined), length(combined) == 1L)
 
   labels <- c(
     persistence          = "Persistence",
@@ -460,18 +466,28 @@ plot.net_markov_stability <- function(x,
   plot_df <- do.call(rbind, plot_rows)
   plot_df$metric <- factor(plot_df$metric, levels = labels[metrics])
 
-  ggplot2::ggplot(plot_df,
-    ggplot2::aes(x = state, y = value, fill = state)) +
-    ggplot2::geom_col(show.legend = TRUE) +
-    ggplot2::scale_fill_manual(values = state_colors, name = NULL) +
-    ggplot2::facet_wrap(~ metric, scales = "free_x", ncol = 2) +
-    ggplot2::coord_flip() +
-    ggplot2::labs(x = NULL, y = NULL,
-                  title = "Markov Stability Metrics") +
-    ggplot2::theme_minimal(base_size = 12) +
-    ggplot2::theme(
-      panel.grid.minor = ggplot2::element_blank(),
-      plot.title       = ggplot2::element_text(face = "bold"),
-      legend.position  = "bottom"
-    )
+  base_plot <- function(d, ttl) {
+    ggplot2::ggplot(d, ggplot2::aes(x = state, y = value, fill = state)) +
+      ggplot2::geom_col(show.legend = TRUE) +
+      ggplot2::scale_fill_manual(values = state_colors, name = NULL) +
+      ggplot2::coord_flip() +
+      ggplot2::labs(x = NULL, y = NULL, title = ttl) +
+      ggplot2::theme_minimal(base_size = 12) +
+      ggplot2::theme(
+        panel.grid.minor = ggplot2::element_blank(),
+        plot.title       = ggplot2::element_text(face = "bold"),
+        legend.position  = "bottom"
+      )
+  }
+  if (!combined) {
+    levs <- levels(plot_df$metric)
+    plots <- lapply(levs, function(lv) {
+      sub <- plot_df[plot_df$metric == lv, , drop = FALSE]
+      base_plot(sub, lv)
+    })
+    names(plots) <- as.character(metrics)
+    return(invisible(plots))
+  }
+  base_plot(plot_df, "Markov Stability Metrics") +
+    ggplot2::facet_wrap(~ metric, scales = "free_x", ncol = 2)
 }

@@ -52,6 +52,47 @@ test_that("bootstrap_network works with method='frequency'", {
   expect_true(all(boot$mean >= 0))
 })
 
+test_that("bootstrap_network warns for one-sequence transition networks", {
+  long <- data.frame(action = c("A", "B", "C", "A"),
+                     stringsAsFactors = FALSE)
+  net <- suppressWarnings(build_tna(long, action = "action"))
+
+  expect_warning(
+    boot <- bootstrap_network(net, iter = 2L, seed = 1),
+    "one long sequence is not recommended"
+  )
+  expect_s3_class(boot, "net_bootstrap")
+})
+
+test_that("bootstrap_network onehot frequency uses wtna per-sequence counts", {
+  df <- data.frame(
+    actor = rep(c("s1", "s2", "s3"), each = 4),
+    A = c(1L, 0L, 1L, 0L, 0L, 1L, 0L, 1L, 1L, 0L, 0L, 1L),
+    B = c(0L, 1L, 0L, 1L, 1L, 0L, 1L, 0L, 0L, 1L, 1L, 0L),
+    C = c(0L, 0L, 1L, 0L, 0L, 1L, 0L, 0L, 1L, 0L, 0L, 1L)
+  )
+  codes <- c("A", "B", "C")
+  net <- suppressWarnings(build_network(
+    df, method = "frequency", format = "onehot", codes = codes,
+    actor = "actor", window_size = 1L
+  ))
+
+  resampling_data <- Nestimate:::.resampling_transition_data(
+    net$data, net$metadata, net$params
+  )
+  pre <- Nestimate:::.precompute_per_sequence(
+    resampling_data, net$method, net$params, net$nodes$label
+  )
+  counts <- matrix(colSums(pre), nrow = 3L, byrow = TRUE,
+                   dimnames = list(codes, codes))
+  boot <- bootstrap_network(net, iter = 20L, seed = 1)
+
+  expect_equal(counts, net$weights)
+  expect_s3_class(boot, "net_bootstrap")
+  expect_equal(boot$method, "frequency")
+  expect_true(any(boot$mean > 0))
+})
+
 test_that("bootstrap_network works with method='co_occurrence'", {
   wide <- .make_boot_wide()
   boot <- bootstrap_network(build_network(wide, method = "co_occurrence"),
@@ -513,6 +554,32 @@ test_that("bootstrap_network works with mcml objects", {
   for (nm in cluster_boots) {
     expect_s3_class(boot[[nm]], "net_bootstrap")
   }
+})
+
+test_that("bootstrap_network mcml dispatch matches explicit as_tna group dispatch", {
+  set.seed(42)
+  seqs <- data.frame(
+    T1 = sample(LETTERS[1:6], 30, TRUE),
+    T2 = sample(LETTERS[1:6], 30, TRUE),
+    T3 = sample(LETTERS[1:6], 30, TRUE),
+    T4 = sample(LETTERS[1:6], 30, TRUE),
+    stringsAsFactors = FALSE
+  )
+  clusters <- list(G1 = c("A", "B", "C"), G2 = c("D", "E", "F"))
+  cs <- build_mcml(seqs, clusters, type = "tna")
+
+  boot_mc <- bootstrap_network(cs, iter = 10, seed = 1)
+  boot_grp <- bootstrap_network(as_tna(cs), iter = 10, seed = 1)
+
+  expect_identical(class(boot_mc), class(boot_grp))
+  expect_identical(names(boot_mc), names(boot_grp))
+  expect_identical(
+    vapply(boot_mc, function(x) class(x)[1L], character(1L)),
+    vapply(boot_grp, function(x) class(x)[1L], character(1L))
+  )
+  expect_identical(boot_mc$macro$iter, boot_grp$macro$iter)
+  expect_equal(boot_mc$macro$summary, boot_grp$macro$summary,
+               tolerance = 1e-12)
 })
 
 # ---- Branch-matrix coverage (task #17) ----

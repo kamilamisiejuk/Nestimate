@@ -264,6 +264,22 @@ extract_edges <- function(model,
                           threshold = 0,
                           include_self = FALSE,
                           sort_by = "weight") {
+  if (!is.numeric(threshold) || length(threshold) != 1L ||
+      !is.finite(threshold)) {
+    stop("'threshold' must be a single finite numeric value.", call. = FALSE)
+  }
+  if (!is.logical(include_self) || length(include_self) != 1L ||
+      is.na(include_self)) {
+    stop("'include_self' must be TRUE or FALSE.", call. = FALSE)
+  }
+  if (!is.null(sort_by) &&
+      (!is.character(sort_by) || length(sort_by) != 1L ||
+       is.na(sort_by) ||
+       !sort_by %in% c("weight", "from", "to"))) {
+    stop("'sort_by' must be one of 'weight', 'from', 'to', or NULL.",
+         call. = FALSE)
+  }
+
   # mcml dispatch: return named list of edge data frames per layer
   if (inherits(model, "mcml")) {
     result <- list(macro = extract_edges(model$macro, threshold = threshold,

@@ -174,7 +174,7 @@ remove_estimator <- function(name) {
   register_estimator("wtna", .estimator_wtna,
                      "Window-based TNA transitions (one-hot)", directed = TRUE)
   register_estimator("wtna_cooccurrence",
-                     function(data, codes = NULL, window_size = 1L,
+                     function(data, codes = NULL, window_size = 3L,
                               mode = "non-overlapping", actor = NULL,
                               type = "frequency", ...) {
                        .estimator_wtna_core(data, codes = codes,

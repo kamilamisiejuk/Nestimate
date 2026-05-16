@@ -4,7 +4,12 @@
 \alias{plot.net_mmm_clustering}
 \title{Plot Method for MMM Clustering Attribute}
 \usage{
-\method{plot}{net_mmm_clustering}(x, type = c("posterior", "covariates", "predictors"), ...)
+\method{plot}{net_mmm_clustering}(
+  x,
+  type = c("posterior", "covariates", "predictors"),
+  combined = TRUE,
+  ...
+)
 }
 \arguments{
 \item{x}{A \code{net_mmm_clustering} object.}
@@ -14,7 +19,7 @@ max posterior probability per sequence, coloured by cluster),
 \code{"covariates"} or its alias \code{"predictors"} (covariate
 forest plot when \code{cluster_mmm()} was run with \code{covariates}).}
 
-\item{...}{Currently unused.}
+\item{...}{Unsupported. Supplying unused arguments raises an error.}
 }
 \value{
 A \code{ggplot} object, invisibly.

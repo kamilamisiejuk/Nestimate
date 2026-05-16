@@ -12,7 +12,7 @@
 \item{digits}{Integer. Decimal places for floating-point columns.
 Default \code{3L}.}
 
-\item{...}{Additional arguments (ignored).}
+\item{...}{Unsupported. Supplying unused arguments raises an error.}
 }
 \value{
 The input object, invisibly.

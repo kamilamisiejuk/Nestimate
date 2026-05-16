@@ -4,7 +4,7 @@
 \alias{plot.net_markov_order}
 \title{Plot Method for net_markov_order}
 \usage{
-\method{plot}{net_markov_order}(x, panel = c("both", "ic", "permutation"), ...)
+\method{plot}{net_markov_order}(x, panel = c("both", "ic", "permutation"), combined = TRUE, ...)
 }
 \arguments{
 \item{x}{A \code{net_markov_order} object.}
@@ -12,10 +12,17 @@
 \item{panel}{Which panel(s) to render: \code{"both"}, \code{"ic"},
 or \code{"permutation"}. Default \code{"both"}.}
 
+\item{combined}{When \code{panel = "both"} and \code{combined = TRUE}
+(default), the two panels are stitched side-by-side via
+\code{gridExtra::grid.arrange}. When \code{FALSE}, returns a named
+list (\code{ic}, \code{permutation}) of ggplots. Ignored when
+\code{panel != "both"}.}
+
 \item{...}{Ignored.}
 }
 \value{
-A ggplot (single panel) or a gridExtra-arranged grob (both).
+A ggplot (single panel), a gridExtra-arranged grob (both,
+combined), or a named list of two ggplots (both, not combined).
 }
 \description{
 Two-panel professional visualization:

@@ -505,16 +505,23 @@ print.net_comparison <- function(x, ...) {
 #'   `"weight_dist"` (overlaid distributions of |x| and |y| edge weights),
 #'   or `"all"` (2 by 2 grid of all four panels; requires the gridExtra
 #'   package).
+#' @param combined When `type = "all"` and `combined = TRUE` (default),
+#'   the four panels are stitched into a 2x2 gtable. When `FALSE`, returns
+#'   a named list of the four ggplots so each can be printed, saved, or
+#'   re-laid-out independently. Ignored for other `type` values.
 #' @param ... Ignored.
-#' @return A `ggplot` object, or for `type = "all"` a `gtable` arranged
-#'   2 by 2.
+#' @return A `ggplot` object; for `type = "all"` with `combined = TRUE`
+#'   a `gtable` arranged 2 by 2; for `type = "all"` with `combined = FALSE`
+#'   a named list of four ggplots.
 #' @export
 plot.net_comparison <- function(x,
                                 type = c("scatter", "heatmap",
                                          "diff_hist", "weight_dist",
                                          "all"),
+                                combined = TRUE,
                                 ...) {
   type <- match.arg(type)
+  stopifnot(is.logical(combined), length(combined) == 1L)
   if (!requireNamespace("ggplot2", quietly = TRUE)) {
     stop("ggplot2 is required for plot.net_comparison().", call. = FALSE)
   }
@@ -523,31 +530,38 @@ plot.net_comparison <- function(x,
     heatmap     = .plot_comparison_heatmap(x),
     diff_hist   = .plot_comparison_diff_hist(x),
     weight_dist = .plot_comparison_weight_dist(x),
-    all         = .plot_comparison_all(x)
+    all         = .plot_comparison_all(x, combined = combined)
   )
 }
 
 # 2x2 grid of all four panels, stripped of titles so the layout reads as
 # a single figure. Uses gridExtra::arrangeGrob (already in Suggests).
-.plot_comparison_all <- function(x) {
-  if (!requireNamespace("gridExtra", quietly = TRUE)) {
-    stop("type = 'all' requires the gridExtra package.", call. = FALSE)
-  }
+# combined = FALSE returns the four ggplots as a named list instead of
+# stitching them — useful when each panel needs its own device or the
+# user wants to save them separately.
+.plot_comparison_all <- function(x, combined = TRUE) {
   strip <- function(p, label) {
     p +
       ggplot2::labs(title = label, subtitle = NULL) +
       ggplot2::theme(plot.title = ggplot2::element_text(size = 11,
                                                         face = "bold"))
   }
-  combined <- gridExtra::arrangeGrob(
-    strip(.plot_comparison_scatter(x),     "Scatter"),
-    strip(.plot_comparison_heatmap(x),     "Heatmap (x - y)"),
-    strip(.plot_comparison_diff_hist(x),   "|x - y|"),
-    strip(.plot_comparison_weight_dist(x), "Weight distributions"),
-    nrow = 2L, ncol = 2L
+  panels <- list(
+    scatter     = strip(.plot_comparison_scatter(x),     "Scatter"),
+    heatmap     = strip(.plot_comparison_heatmap(x),     "Heatmap (x - y)"),
+    diff_hist   = strip(.plot_comparison_diff_hist(x),   "|x - y|"),
+    weight_dist = strip(.plot_comparison_weight_dist(x), "Weight distributions")
   )
-  grid::grid.draw(combined)
-  invisible(combined)
+  if (!combined) return(invisible(panels))
+  if (!requireNamespace("gridExtra", quietly = TRUE)) {
+    stop("type = 'all' with combined = TRUE requires the gridExtra package.",
+         call. = FALSE)
+  }
+  combined_grob <- gridExtra::arrangeGrob(panels$scatter, panels$heatmap,
+                                          panels$diff_hist, panels$weight_dist,
+                                          nrow = 2L, ncol = 2L)
+  grid::grid.draw(combined_grob)
+  invisible(combined_grob)
 }
 
 # Edge-weight scatter with diagonal, OLS line, and correlation annotations.

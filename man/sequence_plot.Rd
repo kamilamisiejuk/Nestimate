@@ -34,6 +34,7 @@ sequence_plot(
   tick = NULL,
   ncol = NULL,
   nrow = NULL,
+  combined = TRUE,
   legend = NULL,
   legend_size = NULL,
   legend_title = NULL,
@@ -118,7 +119,15 @@ instead.}
 
 \item{tick}{Show every Nth x-axis label. \code{NULL} = auto.}
 
-\item{ncol, nrow}{Facet grid dimensions (index + distribution).}
+\item{ncol, nrow}{Facet grid dimensions (index + distribution).
+Ignored when \code{combined = FALSE}.}
+
+\item{combined}{Index and distribution types only. When \code{TRUE}
+(default), groups are arranged on one figure via
+\code{graphics::layout()}. When \code{FALSE}, each group is drawn
+on its own page (one full-size figure per group, with its own
+legend). Single-group calls (\code{G == 1}) ignore this argument.
+Heatmap is always single-figure.}
 
 \item{legend}{Legend position: \code{"bottom"}, \code{"right"}, or
 \code{"none"}. Default varies by type.}

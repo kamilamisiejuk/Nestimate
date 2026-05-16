@@ -38,6 +38,110 @@
   }
 }
 
+#' Prepare wide sequence data with tna-compatible sequence options
+#' @noRd
+.prepare_sequence_wide <- function(data, id = NULL, cols = NULL,
+                                   alphabet = NULL, concat = 1L,
+                                   begin_state = NULL, end_state = NULL) {
+  state_cols <- .select_state_cols(data, id, cols)
+  missing_cols <- setdiff(state_cols, names(data))
+  if (length(missing_cols) > 0) {
+    stop("Columns not found: ", paste(missing_cols, collapse = ", "))
+  }
+  if (length(state_cols) < 1L) {
+    stop("At least 1 state column is required for wide format.")
+  }
+
+  mat <- as.matrix(data[, state_cols, drop = FALSE])
+  mat[] <- .clean_states(mat)
+
+  if (!is.null(alphabet)) {
+    alphabet <- as.character(alphabet)
+  } else {
+    vals <- as.vector(mat)
+    alphabet <- sort(unique(vals[!is.na(vals)]))
+  }
+
+  concat <- as.integer(concat %||% 1L)
+  if (length(concat) != 1L || is.na(concat) || concat < 1L) {
+    stop("'concat' must be a positive integer.", call. = FALSE)
+  }
+  if (concat > 1L && nrow(mat) > 0L) {
+    n <- nrow(mat)
+    k <- ncol(mat)
+    m <- n %/% concat
+    extra <- n %% concat
+    out <- matrix(NA_character_, nrow = m + as.integer(extra > 0L),
+                  ncol = concat * k)
+    if (m > 0L) {
+      idx <- rep(seq_len(m), each = concat)
+      block <- split(seq_len(m * concat), idx)
+      out[seq_len(m), ] <- do.call(rbind, lapply(block, function(ii) {
+        as.vector(t(mat[ii, , drop = FALSE]))
+      }))
+    }
+    if (extra > 0L) {
+      rows <- seq.int(m * concat + 1L, n)
+      out[m + 1L, seq_len(length(rows) * k)] <- as.vector(t(mat[rows, , drop = FALSE]))
+    }
+    mat <- out
+  }
+
+  if (!is.null(begin_state)) {
+    begin_state <- as.character(begin_state)[1L]
+    mat <- cbind(begin_state, mat)
+    alphabet <- c(begin_state, alphabet)
+  }
+  if (!is.null(end_state) && nrow(mat) > 0L) {
+    end_state <- as.character(end_state)[1L]
+    last_obs <- max.col(!is.na(mat), ties.method = "last")
+    mat <- cbind(mat, NA_character_)
+    has_obs <- rowSums(!is.na(mat[, -ncol(mat), drop = FALSE])) > 0L
+    idx <- cbind(which(has_obs), last_obs[has_obs] + 1L)
+    mat[idx] <- end_state
+    alphabet <- c(alphabet, end_state)
+  }
+
+  alphabet <- unique(alphabet)
+  list(matrix = mat, states = alphabet)
+}
+
+#' Validate or transform matrix input for transition estimators
+#' @noRd
+.transition_matrix_input <- function(data, type = c("relative", "frequency",
+                                                    "co_occurrence")) {
+  type <- match.arg(type)
+  x <- try(data.matrix(data), silent = TRUE)
+  if (inherits(x, "try-error")) {
+    stop("'data' must be coercible to a numeric matrix.", call. = FALSE)
+  }
+  if (nrow(x) != ncol(x) || nrow(x) < 1L) {
+    stop("'data' must be a square matrix.", call. = FALSE)
+  }
+  if (is.null(colnames(x))) {
+    dimnames(x) <- list(as.character(seq_len(ncol(x))),
+                        as.character(seq_len(ncol(x))))
+  } else if (is.null(rownames(x))) {
+    rownames(x) <- colnames(x)
+  }
+  if (type == "relative") {
+    rs <- rowSums(x)
+    if (!all(rs > 0)) {
+      stop("At least one element of each row of 'data' must be positive.",
+           call. = FALSE)
+    }
+    x <- x / rs
+  } else {
+    xi <- as.integer(x)
+    if (!all(x == xi) || any(x < 0)) {
+      stop("All elements of 'data' must be non-negative integers.",
+           call. = FALSE)
+    }
+    x[] <- xi
+  }
+  x
+}
+
 
 # ---- Core transition counting engine ----
 
@@ -60,7 +164,12 @@
                                action = "Action",
                                id = NULL,
                                time = "Time",
-                               cols = NULL) {
+                               cols = NULL,
+                               alphabet = NULL,
+                               weighted = FALSE,
+                               concat = 1L,
+                               begin_state = NULL,
+                               end_state = NULL) {
   stopifnot(is.data.frame(data))
 
   if (format == "auto") {
@@ -68,9 +177,16 @@
   }
 
   if (format == "wide") {
-    .count_transitions_wide(data, id = id, cols = cols)
+    .count_transitions_wide(
+      data, id = id, cols = cols, alphabet = alphabet,
+      weighted = weighted, concat = concat,
+      begin_state = begin_state, end_state = end_state
+    )
   } else {
-    .count_transitions_long(data, action = action, id = id, time = time)
+    .count_transitions_long(
+      data, action = action, id = id, time = time, alphabet = alphabet,
+      weighted = weighted, begin_state = begin_state, end_state = end_state
+    )
   }
 }
 
@@ -81,46 +197,114 @@
 #' Uses matrix slicing + tabulate for speed.
 #'
 #' @noRd
-.count_transitions_wide <- function(data, id = NULL, cols = NULL) {
-  state_cols <- .select_state_cols(data, id, cols)
-
-  missing_cols <- setdiff(state_cols, names(data))
-  if (length(missing_cols) > 0) {
-    stop("Columns not found: ", paste(missing_cols, collapse = ", "))
-  }
+.count_transitions_wide <- function(data, id = NULL, cols = NULL,
+                                    alphabet = NULL, weighted = FALSE,
+                                    concat = 1L, begin_state = NULL,
+                                    end_state = NULL) {
+  prepared <- .prepare_sequence_wide(
+    data, id = id, cols = cols, alphabet = alphabet, concat = concat,
+    begin_state = begin_state, end_state = end_state
+  )
+  mat <- prepared$matrix
+  all_states <- prepared$states
+  state_cols <- seq_len(ncol(mat))
+  windowed <- isTRUE(attr(data, "windowed"))
+  window_size <- attr(data, "window_size")
+  window_span <- attr(data, "window_span")
   if (length(state_cols) < 2L) {
-    stop("At least 2 state columns are required for wide format.")
+    n_states <- length(all_states)
+    return(matrix(0L, nrow = n_states, ncol = n_states,
+                  dimnames = list(all_states, all_states)))
   }
-
-  mat <- as.matrix(data[, state_cols, drop = FALSE])
-  mat[] <- .clean_states(mat)
   nc <- ncol(mat)
 
   # from = all columns except last, to = all columns except first
-  from_vec <- as.vector(mat[, -nc, drop = FALSE])
-  to_vec <- as.vector(mat[, -1L, drop = FALSE])
-
-  # Remove pairs where either is NA
-  valid <- !is.na(from_vec) & !is.na(to_vec)
-  from_vec <- from_vec[valid]
-  to_vec <- to_vec[valid]
-
-  # Integer encode + tabulate
-  all_states <- sort(unique(c(from_vec, to_vec)))
   n_states <- length(all_states)
-
   if (n_states == 0L) {
     return(matrix(0L, 0, 0))
   }
 
+  if (windowed) {
+    window_size <- if (is.null(window_size)) 2L else as.integer(window_size)
+    window_span <- if (is.null(window_span)) 1L else as.integer(window_span)
+    effective_window <- window_size * window_span
+    divides <- nc %% effective_window == 0L
+    q <- nc %/% effective_window - as.integer(divides)
+    out <- if (isTRUE(weighted)) {
+      matrix(0, nrow = n_states, ncol = n_states,
+             dimnames = list(all_states, all_states))
+    } else {
+      matrix(0L, nrow = n_states, ncol = n_states,
+             dimnames = list(all_states, all_states))
+    }
+    if (q <= 0L) return(out)
+    # Per-row weights mirror the non-windowed branch: each transition
+    # observed in a sequence of length L gets weight 1/L. seq_lengths is
+    # computed once for the whole matrix so the windowed and non-windowed
+    # paths agree on row weight when the same row is fed through either.
+    if (isTRUE(weighted)) {
+      seq_lengths <- rowSums(!is.na(mat))
+    }
+    nbins <- n_states * n_states
+
+    for (i in seq_len(q)) {
+      j_idx <- seq((i - 1L) * effective_window + 1L,
+                   i * effective_window)
+      k_idx <- seq(i * effective_window + 1L,
+                   min(nc, (i + 1L) * effective_window))
+      for (j in j_idx) {
+        for (k in k_idx) {
+          from <- mat[, j]
+          to <- mat[, k]
+          valid <- !is.na(from) & !is.na(to)
+          if (!any(valid)) next
+          from_int <- match(from[valid], all_states)
+          to_int <- match(to[valid], all_states)
+          pair_idx <- (from_int - 1L) * n_states + to_int
+          if (isTRUE(weighted)) {
+            w <- (1 / seq_lengths)[valid]
+            add <- rowsum(w, pair_idx, reorder = FALSE)
+            tmp <- numeric(nbins)
+            tmp[as.integer(rownames(add))] <- add[, 1L]
+            out <- out + matrix(tmp, nrow = n_states, ncol = n_states,
+                                byrow = TRUE)
+          } else {
+            counts <- tabulate(pair_idx, nbins = nbins)
+            out <- out + matrix(counts, nrow = n_states, ncol = n_states,
+                                byrow = TRUE)
+          }
+        }
+      }
+    }
+    return(out)
+  }
+
+  from_mat <- mat[, -nc, drop = FALSE]
+  to_mat <- mat[, -1L, drop = FALSE]
+  valid <- !is.na(from_mat) & !is.na(to_mat)
+  if (!any(valid)) {
+    return(matrix(0L, nrow = n_states, ncol = n_states,
+                  dimnames = list(all_states, all_states)))
+  }
+  from_vec <- as.vector(from_mat[valid])
+  to_vec <- as.vector(to_mat[valid])
   from_int <- match(from_vec, all_states)
   to_int <- match(to_vec, all_states)
   pair_idx <- (from_int - 1L) * n_states + to_int
-
-  counts <- tabulate(pair_idx, nbins = n_states * n_states)
+  if (isTRUE(weighted)) {
+    seq_lengths <- rowSums(!is.na(mat))
+    w_mat <- matrix(1 / seq_lengths, nrow = nrow(mat), ncol = nc - 1L)
+    weights <- as.vector(w_mat[valid])
+    counts <- rowsum(weights, pair_idx, reorder = FALSE)
+    out <- numeric(n_states * n_states)
+    out[as.integer(rownames(counts))] <- counts[, 1L]
+    counts <- out
+  } else {
+    counts <- tabulate(pair_idx, nbins = n_states * n_states)
+  }
 
   matrix(
-    as.integer(counts),
+    counts,
     nrow = n_states,
     ncol = n_states,
     byrow = TRUE,
@@ -136,7 +320,9 @@
 #' @importFrom data.table setDT setorderv
 #' @noRd
 .count_transitions_long <- function(data, action = "Action", id = NULL,
-                                    time = "Time") {
+                                    time = "Time", alphabet = NULL,
+                                    weighted = FALSE, begin_state = NULL,
+                                    end_state = NULL) {
   if (!action %in% names(data)) {
     stop("Action column '", action, "' not found in data.")
   }
@@ -165,10 +351,12 @@
   if (is.null(id)) {
     # Single sequence: consecutive pairs from all rows
     actions <- dt[[action_col]]
+    if (!is.null(begin_state)) actions <- c(as.character(begin_state)[1L], actions)
+    if (!is.null(end_state)) actions <- c(actions, as.character(end_state)[1L])
     n <- length(actions)
     if (n < 2L) {
-      all_vals <- unique(actions[!is.na(actions)])
-      all_states <- sort(all_vals)
+      all_states <- alphabet %||% sort(unique(c(actions[!is.na(actions)],
+                                                begin_state, end_state)))
       n_states <- length(all_states)
       return(matrix(0L, nrow = n_states, ncol = n_states,
                     dimnames = list(all_states, all_states)))
@@ -195,43 +383,56 @@
     # NAs are kept in position; pairs with NA on either side are filtered out
     pairs <- dt[, {
       a <- get(action_col)
+      if (!is.null(begin_state)) a <- c(as.character(begin_state)[1L], a)
+      if (!is.null(end_state)) a <- c(a, as.character(end_state)[1L])
       n <- length(a)
       if (n < 2L) {
-        list(from = character(0), to = character(0))
+        list(from = character(0), to = character(0), weight = numeric(0))
       } else {
         f <- a[-n]
         t <- a[-1L]
         ok <- !is.na(f) & !is.na(t)
-        list(from = f[ok], to = t[ok])
+        w <- if (isTRUE(weighted)) rep(1 / sum(!is.na(a)), sum(ok)) else rep(1, sum(ok))
+        list(from = f[ok], to = t[ok], weight = w)
       }
     }, by = grp_col]
 
     from_vec <- pairs$from
     to_vec <- pairs$to
+    pair_weights <- pairs$weight
   }
 
   if (length(from_vec) == 0L) {
     # Collect all states to set matrix dimensions
-    all_vals <- unique(dt[[action_col]])
-    all_vals <- all_vals[!is.na(all_vals)]
-    all_states <- sort(all_vals)
+    all_states <- alphabet %||% sort(unique(c(dt[[action_col]][!is.na(dt[[action_col]])],
+                                              begin_state, end_state)))
     n_states <- length(all_states)
     return(matrix(0L, nrow = n_states, ncol = n_states,
                   dimnames = list(all_states, all_states)))
   }
 
   # Integer encode + tabulate
-  all_states <- sort(unique(c(from_vec, to_vec)))
+  all_states <- alphabet %||% sort(unique(c(from_vec, to_vec,
+                                            begin_state, end_state)))
   n_states <- length(all_states)
 
   from_int <- match(from_vec, all_states)
   to_int <- match(to_vec, all_states)
   pair_idx <- (from_int - 1L) * n_states + to_int
 
-  counts <- tabulate(pair_idx, nbins = n_states * n_states)
+  if (isTRUE(weighted)) {
+    if (!exists("pair_weights")) {
+      pair_weights <- rep(1 / sum(!is.na(actions)), length(pair_idx))
+    }
+    rs <- rowsum(pair_weights, pair_idx, reorder = FALSE)
+    counts <- numeric(n_states * n_states)
+    counts[as.integer(rownames(rs))] <- rs[, 1L]
+  } else {
+    counts <- tabulate(pair_idx, nbins = n_states * n_states)
+  }
 
   matrix(
-    as.integer(counts),
+    counts,
     nrow = n_states,
     ncol = n_states,
     byrow = TRUE,
@@ -263,11 +464,16 @@
                                     action = "Action",
                                     id = NULL,
                                     time = "Time",
-                                    cols = NULL) {
+                                    cols = NULL,
+                                    concat = 1L,
+                                    begin_state = NULL,
+                                    end_state = NULL) {
   if (format == "wide") {
-    state_cols <- .select_state_cols(data, id, cols)
-    mat <- as.matrix(data[, state_cols, drop = FALSE])
-    mat[] <- .clean_states(mat)
+    prepared <- .prepare_sequence_wide(
+      data, id = id, cols = cols, alphabet = states, concat = concat,
+      begin_state = begin_state, end_state = end_state
+    )
+    mat <- prepared$matrix
     first_states <- apply(mat, 1L, function(r) {
       r <- r[!is.na(r)]
       if (length(r)) r[[1L]] else NA_character_
@@ -280,6 +486,8 @@
     data.table::setorderv(dt, order_cols)
     if (is.null(id)) {
       vals <- dt[[action]]
+      if (!is.null(begin_state)) vals <- c(as.character(begin_state)[1L], vals)
+      if (!is.null(end_state)) vals <- c(vals, as.character(end_state)[1L])
       vals <- vals[!is.na(vals)]
       first_states <- if (length(vals)) vals[[1L]] else character(0)
     } else {
@@ -291,6 +499,8 @@
       }
       firsts <- dt[, {
         a <- get(action)
+        if (!is.null(begin_state)) a <- c(as.character(begin_state)[1L], a)
+        if (!is.null(end_state)) a <- c(a, as.character(end_state)[1L])
         a <- a[!is.na(a)]
         list(first = if (length(a)) a[[1L]] else NA_character_)
       }, by = grp_col]
@@ -317,9 +527,34 @@
                                  id = NULL,
                                  time = "Time",
                                  cols = NULL,
+                                 codes = NULL,
+                                 window_size = 3L,
+                                 mode = "non-overlapping",
+                                 actor = NULL,
+                                 alphabet = NULL,
+                                 weighted = FALSE,
+                                 concat = 1L,
+                                 begin_state = NULL,
+                                 end_state = NULL,
                                  ...) {
+  if (is.matrix(data)) {
+    freq_mat <- .transition_matrix_input(data, type = "frequency")
+    states <- rownames(freq_mat)
+    return(list(matrix = freq_mat, nodes = states, directed = TRUE,
+                cleaned_data = NULL, frequency_matrix = freq_mat))
+  }
+  if (identical(format, "onehot") || !is.null(codes)) {
+    out <- .estimator_wtna_core(
+      data, codes = codes, window_size = window_size, mode = mode,
+      actor = actor, wtna_method = "transition", type = "frequency"
+    )
+    out$frequency_matrix <- out$matrix
+    return(out)
+  }
   freq_mat <- .count_transitions(
-    data, format = format, action = action, id = id, time = time, cols = cols
+    data, format = format, action = action, id = id, time = time, cols = cols,
+    alphabet = alphabet, weighted = weighted, concat = concat,
+    begin_state = begin_state, end_state = end_state
   )
   states <- rownames(freq_mat)
   resolved_format <- if (format == "auto") {
@@ -327,7 +562,8 @@
   } else format
   initial <- .compute_initial_probs(
     data, states, format = resolved_format,
-    action = action, id = id, time = time, cols = cols
+    action = action, id = id, time = time, cols = cols, concat = concat,
+    begin_state = begin_state, end_state = end_state
   )
   list(
     matrix = freq_mat,
@@ -348,9 +584,37 @@
                                 id = NULL,
                                 time = "Time",
                                 cols = NULL,
+                                codes = NULL,
+                                window_size = 1L,
+                                mode = "non-overlapping",
+                                actor = NULL,
+                                alphabet = NULL,
+                                weighted = FALSE,
+                                concat = 1L,
+                                begin_state = NULL,
+                                end_state = NULL,
                                 ...) {
+  if (is.matrix(data)) {
+    rel_mat <- .transition_matrix_input(data, type = "relative")
+    states <- rownames(rel_mat)
+    return(list(matrix = rel_mat, nodes = states, directed = TRUE,
+                cleaned_data = NULL))
+  }
+  if (identical(format, "onehot") || !is.null(codes)) {
+    out <- .estimator_wtna_core(
+      data, codes = codes, window_size = window_size, mode = mode,
+      actor = actor, wtna_method = "transition", type = "relative"
+    )
+    out$frequency_matrix <- .estimator_wtna_core(
+      data, codes = codes, window_size = window_size, mode = mode,
+      actor = actor, wtna_method = "transition", type = "frequency"
+    )$matrix
+    return(out)
+  }
   freq_mat <- .count_transitions(
-    data, format = format, action = action, id = id, time = time, cols = cols
+    data, format = format, action = action, id = id, time = time, cols = cols,
+    alphabet = alphabet, weighted = weighted, concat = concat,
+    begin_state = begin_state, end_state = end_state
   )
   states <- rownames(freq_mat)
 
@@ -366,7 +630,8 @@
   } else format
   initial <- .compute_initial_probs(
     data, states, format = resolved_format,
-    action = action, id = id, time = time, cols = cols
+    action = action, id = id, time = time, cols = cols, concat = concat,
+    begin_state = begin_state, end_state = end_state
   )
   list(
     matrix = rel_mat,
@@ -397,10 +662,20 @@
                                      time = "Time",
                                      cols = NULL,
                                      codes = NULL,
-                                     window_size = 1L,
+                                     window_size = 3L,
                                      mode = "non-overlapping",
                                      actor = NULL,
+                                     alphabet = NULL,
+                                     weighted = FALSE,
+                                     concat = 1L,
+                                     begin_state = NULL,
+                                     end_state = NULL,
                                      ...) {
+  if (is.matrix(data)) {
+    cooc_mat <- .transition_matrix_input(data, type = "co_occurrence")
+    return(list(matrix = cooc_mat, nodes = rownames(cooc_mat),
+                directed = FALSE, cleaned_data = NULL))
+  }
   stopifnot(is.data.frame(data))
 
   if (format == "auto") {
@@ -437,10 +712,14 @@
 
   # Sequence co-occurrence (column-pair counting)
   if (format == "wide") {
-    cooc_mat <- .count_cooccurrence_wide(data, id = id, cols = cols)
+    cooc_mat <- .count_cooccurrence_wide(
+      data, id = id, cols = cols, alphabet = alphabet, weighted = weighted,
+      concat = concat, begin_state = begin_state, end_state = end_state
+    )
   } else {
     cooc_mat <- .count_cooccurrence_long( # nocov start
-      data, action = action, id = id, time = time
+      data, action = action, id = id, time = time, alphabet = alphabet,
+      weighted = weighted, begin_state = begin_state, end_state = end_state
     ) # nocov end
   }
 
@@ -463,14 +742,21 @@
 #' with lightweight tabulate accumulation. Avoids materializing huge
 #' n_rows x n_pairs matrices.
 #' @noRd
-.count_cooccurrence_wide <- function(data, id = NULL, cols = NULL) {
-  state_cols <- .select_state_cols(data, id, cols)
-
-  mat <- as.matrix(data[, state_cols, drop = FALSE])
-  mat[] <- .clean_states(mat)
+.count_cooccurrence_wide <- function(data, id = NULL, cols = NULL,
+                                     alphabet = NULL, weighted = FALSE,
+                                     concat = 1L, begin_state = NULL,
+                                     end_state = NULL) {
+  prepared <- .prepare_sequence_wide(
+    data, id = id, cols = cols, alphabet = alphabet, concat = concat,
+    begin_state = begin_state, end_state = end_state
+  )
+  mat <- prepared$matrix
   nc <- ncol(mat)
-  all_states <- sort(unique(as.vector(mat[!is.na(mat)])))
+  all_states <- prepared$states
   n_states <- length(all_states)
+  windowed <- isTRUE(attr(data, "windowed"))
+  window_size <- attr(data, "window_size")
+  window_span <- attr(data, "window_span")
 
   if (n_states == 0L || nc < 2L) {
     cooc <- matrix(0, n_states, n_states,
@@ -479,6 +765,51 @@
   }
 
   nbins <- n_states * n_states
+
+  if (windowed) {
+    window_size <- if (is.null(window_size)) 2L else as.integer(window_size)
+    window_span <- if (is.null(window_span)) 1L else as.integer(window_span)
+    effective_window <- window_size * window_span
+    divides <- nc %% effective_window == 0L
+    q <- nc %/% effective_window - as.integer(divides)
+    counts <- if (isTRUE(weighted)) numeric(nbins) else integer(nbins)
+    if (isTRUE(weighted)) {
+      seq_lengths <- rowSums(!is.na(mat))
+    }
+
+    for (i in seq_len(q + 1L)) {
+      j_idx <- seq((i - 1L) * effective_window + 1L,
+                   min(nc, i * effective_window))
+      for (j in j_idx) {
+        from <- mat[, j]
+        for (k in j_idx) {
+          to <- mat[, k]
+          valid <- !is.na(from) & !is.na(to)
+          if (!any(valid)) next
+          from_int <- match(from[valid], all_states)
+          to_int <- match(to[valid], all_states)
+          pair_idx <- (from_int - 1L) * n_states + to_int
+          if (isTRUE(weighted)) {
+            w <- (1 / seq_lengths)[valid]
+            add <- rowsum(w, pair_idx, reorder = FALSE)
+            tmp <- numeric(nbins)
+            tmp[as.integer(rownames(add))] <- add[, 1L]
+            counts <- counts + tmp
+          } else {
+            counts <- counts + tabulate(pair_idx, nbins)
+          }
+        }
+      }
+    }
+
+    return(matrix(
+      as.numeric(counts),
+      nrow = n_states,
+      ncol = n_states,
+      byrow = TRUE,
+      dimnames = list(all_states, all_states)
+    ))
+  }
 
   # Integer-encode the entire matrix once (NA stays NA)
   int_mat <- matrix(match(mat, all_states), nrow = nrow(mat), ncol = nc)
@@ -497,7 +828,17 @@
       idx_fwd <- (fi - 1L) * n_states + tj
       # Reverse direction: j -> i
       idx_rev <- (tj - 1L) * n_states + fi
-      counts <- counts + tabulate(idx_fwd, nbins) + tabulate(idx_rev, nbins)
+      if (isTRUE(weighted)) {
+        w <- (1 / rowSums(!is.na(mat)))[valid]
+        add_f <- rowsum(w, idx_fwd, reorder = FALSE)
+        add_r <- rowsum(w, idx_rev, reorder = FALSE)
+        tmp <- numeric(nbins)
+        tmp[as.integer(rownames(add_f))] <- tmp[as.integer(rownames(add_f))] + add_f[, 1L]
+        tmp[as.integer(rownames(add_r))] <- tmp[as.integer(rownames(add_r))] + add_r[, 1L]
+        counts <- counts + tmp
+      } else {
+        counts <- counts + tabulate(idx_fwd, nbins) + tabulate(idx_rev, nbins)
+      }
     }
   }
 
@@ -522,7 +863,9 @@
 #' co-occurrences.
 #' @noRd
 .count_cooccurrence_long <- function(data, action = "Action", id = NULL,
-                                     time = "Time") {
+                                     time = "Time", alphabet = NULL,
+                                     weighted = FALSE, begin_state = NULL,
+                                     end_state = NULL) {
   if (!action %in% names(data)) {
     stop("Action column '", action, "' not found in data.")
   }
@@ -556,25 +899,28 @@
   # For each group, create all position pairs and collect (from, to)
   pairs <- dt[!is.na(get(action_col)), {
     a <- get(action_col)
+    if (!is.null(begin_state)) a <- c(as.character(begin_state)[1L], a)
+    if (!is.null(end_state)) a <- c(a, as.character(end_state)[1L])
     n <- length(a)
     if (n < 2L) {
-      list(from = character(0), to = character(0))
+      list(from = character(0), to = character(0), weight = numeric(0))
     } else {
       cp <- utils::combn(n, 2)
       f <- a[cp[1, ]]
       t <- a[cp[2, ]]
       # Both directions
-      list(from = c(f, t), to = c(t, f))
+      w <- if (isTRUE(weighted)) rep(1 / sum(!is.na(a)), 2L * length(f)) else rep(1, 2L * length(f))
+      list(from = c(f, t), to = c(t, f), weight = w)
     }
   }, by = grp_col]
 
   from_vec <- pairs$from
   to_vec <- pairs$to
+  pair_weights <- pairs$weight
 
   # Collect all states
-  all_vals <- unique(dt[[action_col]])
-  all_vals <- all_vals[!is.na(all_vals)]
-  all_states <- sort(all_vals)
+  all_states <- alphabet %||% sort(unique(c(dt[[action_col]][!is.na(dt[[action_col]])],
+                                            begin_state, end_state)))
   n_states <- length(all_states)
 
   if (length(from_vec) == 0L || n_states == 0L) {
@@ -586,7 +932,13 @@
   to_int <- match(to_vec, all_states)
   pair_idx <- (from_int - 1L) * n_states + to_int
 
-  counts <- tabulate(pair_idx, nbins = n_states * n_states)
+  if (isTRUE(weighted)) {
+    rs <- rowsum(pair_weights, pair_idx, reorder = FALSE)
+    counts <- numeric(n_states * n_states)
+    counts[as.integer(rownames(rs))] <- rs[, 1L]
+  } else {
+    counts <- tabulate(pair_idx, nbins = n_states * n_states)
+  }
 
   cooc <- matrix(
     as.numeric(counts),
@@ -626,15 +978,18 @@
 .count_attention_wide <- function(data, id = NULL, cols = NULL,
                                    lambda = 1, direction = "forward",
                                    decay = NULL, time_matrix = NULL,
-                                   duration = NULL) {
-  state_cols <- .select_state_cols(data, id, cols)
-
-  mat <- as.matrix(data[, state_cols, drop = FALSE])
-  mat[] <- .clean_states(mat)
+                                   duration = NULL, alphabet = NULL,
+                                   concat = 1L, begin_state = NULL,
+                                   end_state = NULL) {
+  prepared <- .prepare_sequence_wide(
+    data, id = id, cols = cols, alphabet = alphabet, concat = concat,
+    begin_state = begin_state, end_state = end_state
+  )
+  mat <- prepared$matrix
   nr <- nrow(mat)
   nc <- ncol(mat)
 
-  all_states <- sort(unique(as.vector(mat[!is.na(mat)])))
+  all_states <- prepared$states
   n_states <- length(all_states)
 
   if (n_states == 0L || nc < 2L) {
@@ -705,7 +1060,9 @@
 .count_attention_long <- function(data, action = "Action", id = NULL,
                                    time = "Time", lambda = 1,
                                    direction = "forward", decay = NULL,
-                                   time_matrix = NULL, duration = NULL) {
+                                   time_matrix = NULL, duration = NULL,
+                                   alphabet = NULL, begin_state = NULL,
+                                   end_state = NULL) {
   if (!action %in% names(data)) {
     stop("Action column '", action, "' not found in data.")
   }
@@ -734,9 +1091,8 @@
   }
 
   action_col <- action
-  all_vals <- unique(dt[[action_col]])
-  all_vals <- all_vals[!is.na(all_vals)]
-  all_states <- sort(all_vals)
+  all_states <- alphabet %||% sort(unique(c(dt[[action_col]][!is.na(dt[[action_col]])],
+                                            begin_state, end_state)))
   n_states <- length(all_states)
 
   if (n_states == 0L) {
@@ -754,12 +1110,16 @@
   groups <- split(dt, dt[[grp_col]])
   for (g in groups) {
     a <- g[[action_col]]
+    if (!is.null(begin_state)) a <- c(as.character(begin_state)[1L], a)
+    if (!is.null(end_state)) a <- c(a, as.character(end_state)[1L])
     n <- length(a)
     if (n < 2L) next
 
     # Time positions
     if (time %in% names(g)) {
       t_pos <- as.numeric(g[[time]])
+      if (!is.null(begin_state)) t_pos <- c(min(t_pos, na.rm = TRUE) - 1, t_pos)
+      if (!is.null(end_state)) t_pos <- c(t_pos, max(t_pos, na.rm = TRUE) + 1)
     } else {
       t_pos <- seq_len(n)
     }
@@ -821,6 +1181,10 @@
                                   id = NULL,
                                   time = "Time",
                                   cols = NULL,
+                                  alphabet = NULL,
+                                  concat = 1L,
+                                  begin_state = NULL,
+                                  end_state = NULL,
                                   lambda = 1,
                                   direction = "forward",
                                   decay = NULL,
@@ -839,20 +1203,23 @@
     attn_mat <- .count_attention_wide(
       data, id = id, cols = cols, lambda = lambda,
       direction = direction, decay = decay,
-      time_matrix = time_matrix, duration = duration
+      time_matrix = time_matrix, duration = duration, alphabet = alphabet,
+      concat = concat, begin_state = begin_state, end_state = end_state
     )
   } else {
     attn_mat <- .count_attention_long(
       data, action = action, id = id, time = time,
       lambda = lambda, direction = direction, decay = decay,
-      time_matrix = time_matrix, duration = duration
+      time_matrix = time_matrix, duration = duration, alphabet = alphabet,
+      begin_state = begin_state, end_state = end_state
     )
   }
 
   states <- rownames(attn_mat)
   initial <- .compute_initial_probs(
     data, states, format = format,
-    action = action, id = id, time = time, cols = cols
+    action = action, id = id, time = time, cols = cols, concat = concat,
+    begin_state = begin_state, end_state = end_state
   )
   list(
     matrix = attn_mat,

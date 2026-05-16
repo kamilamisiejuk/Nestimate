@@ -13,6 +13,7 @@ cluster_mmm(
   smooth = 0.01,
   seed = NULL,
   covariates = NULL,
+  estimator = c("firth", "multinom", "chisq"),
   cluster_by = "mmm",
   ...
 )
@@ -21,32 +22,46 @@ cluster_mmm(
 \item{data}{A data.frame (wide format), \code{netobject}, or
 \code{tna} model. For tna objects, extracts the stored data.}
 
-\item{k}{Integer. Number of mixture components. Default: 2.}
+\item{k}{Integer. Whole finite number of mixture components, >= 2.
+Default: 2.}
 
-\item{n_starts}{Integer. Number of random restarts. Default: 50.}
+\item{n_starts}{Integer. Positive whole finite number of random restarts.
+Default: 50.}
 
-\item{max_iter}{Integer. Maximum EM iterations per start. Default: 200.}
+\item{max_iter}{Integer. Positive whole finite maximum EM iterations per
+start. Default: 200.}
 
-\item{tol}{Numeric. Convergence tolerance. Default: 1e-6.}
+\item{tol}{Numeric. Finite positive convergence tolerance. Default: 1e-6.}
 
-\item{smooth}{Numeric. Laplace smoothing constant. Default: 0.01.}
+\item{smooth}{Numeric. Finite non-negative Laplace smoothing constant.
+Default: 0.01.}
 
 \item{seed}{Integer or NULL. Random seed.}
 
 \item{covariates}{Optional. Covariates integrated into the EM algorithm
-to model covariate-dependent mixing proportions. Accepts formula,
-character vector, string, or data.frame (same forms as
-\code{\link{build_clusters}}). Unlike the post-hoc analysis in
-\code{build_clusters()}, these covariates directly influence cluster
-membership during estimation. Requires the \pkg{nnet} package.}
+to model covariate-dependent mixing proportions. Accepts a string,
+character vector, formula, or data.frame (same forms as
+\code{\link{build_clusters}}). For \code{netobject} or
+\code{cograph_network} input, names are resolved against
+\code{$metadata} first, so a typical call is
+\code{build_mmm(net, k = 3, covariates = "session_label")}.
+Unlike the post-hoc analysis in \code{build_clusters()}, these
+covariates directly influence cluster membership during EM
+estimation.}
+
+\item{estimator}{Multinomial fitter for the post-hoc covariate
+analysis (does not affect EM): \code{"firth"} (default, via
+\code{brglm2::brmultinom}; finite under separation),
+\code{"multinom"} (\code{nnet::multinom}; warns about separation
+risk), or \code{"chisq"} (descriptive tests, no logit). See
+\code{\link{build_clusters}} for full details.}
 
 \item{cluster_by}{Character. Accepted only as \code{"mmm"} (the
 default). Present so \code{cluster_mmm()} and \code{cluster_network()}
 share the same call shape; any other value raises an error pointing
 at \code{\link{cluster_network}}.}
 
-\item{...}{Reserved for forward compatibility with the unified
-\code{cluster_*} surface. Currently unused.}
+\item{...}{Unsupported. Supplying unused arguments raises an error.}
 }
 \value{
 A \code{netobject_group} (list of \code{netobject}s, one per

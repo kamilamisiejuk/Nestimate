@@ -7,12 +7,14 @@
 net_aggregate_weights(w, method = "sum", n_possible = NULL)
 }
 \arguments{
-\item{w}{Numeric vector of edge weights}
+\item{w}{Numeric vector of finite edge weights. \code{NA} and zero weights
+are excluded before aggregation.}
 
-\item{method}{Aggregation method: "sum", "mean", "median", "max", "min",
-"prod", "density", "geomean"}
+\item{method}{Single aggregation method: "sum", "mean", "median", "max",
+"min", "prod", "density", or "geomean".}
 
-\item{n_possible}{Number of possible edges (for density calculation)}
+\item{n_possible}{Optional single finite numeric number of possible edges
+for density calculation.}
 }
 \value{
 Single aggregated value

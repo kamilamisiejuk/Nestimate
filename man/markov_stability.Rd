@@ -11,6 +11,7 @@ markov_stability(x, normalize = TRUE)
   x,
   metrics = c("persistence", "stationary_prob", "return_time", "sojourn_time",
     "avg_time_to_others", "avg_time_from_others"),
+  combined = TRUE,
   ...
 )
 }
@@ -25,6 +26,11 @@ row-stochastic numeric transition matrix, or a wide sequence data.frame
 \code{"persistence"}, \code{"stationary_prob"}, \code{"return_time"},
 \code{"sojourn_time"}, \code{"avg_time_to_others"},
 \code{"avg_time_from_others"}. Default: all six.}
+
+\item{combined}{When \code{TRUE} (default), all selected metrics are
+shown in one ggplot via \code{facet_wrap(~ metric)}. When \code{FALSE},
+returns a named list of single-panel ggplots, one per metric, so each
+can be printed, saved, or re-laid-out independently.}
 
 \item{...}{Ignored.}
 }

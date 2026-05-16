@@ -9,7 +9,7 @@
 \arguments{
 \item{object}{A \code{cluster_choice} object.}
 
-\item{...}{Additional arguments (ignored).}
+\item{...}{Unsupported. Supplying unused arguments raises an error.}
 }
 \value{
 A data frame with the swept configurations, all metrics, and

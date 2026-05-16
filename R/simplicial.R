@@ -18,26 +18,32 @@
 #'
 #' \itemize{
 #'   \item \strong{Clique complex} (\code{"clique"}): every clique in the
-#'     thresholded graph becomes a simplex. The standard bridge from graph
-#'     theory to algebraic topology.
+#'     thresholded non-zero graph becomes a simplex. Edges with absolute
+#'     weight \eqn{\geq} \code{threshold} are retained. The standard bridge
+#'     from graph theory to algebraic topology.
 #'   \item \strong{Pathway complex} (\code{"pathway"}): each higher-order
 #'     pathway from a \code{net_hon} or \code{net_hypa} becomes a simplex.
 #'   \item \strong{Vietoris-Rips} (\code{"vr"}): nodes with edge weight
-#'     \eqn{\geq} \code{threshold} are connected; all cliques in the
-#'     resulting graph become simplices.
+#'     \eqn{\geq} \code{threshold} and non-zero are connected; all cliques in
+#'     the resulting graph become simplices.
 #' }
 #'
 #' @param x A square matrix, \code{tna}, \code{netobject},
 #'   \code{net_hon}, \code{net_hypa}, or \code{net_mogen}.
 #' @param type Construction type: \code{"clique"} (default),
 #'   \code{"pathway"}, or \code{"vr"}.
-#' @param threshold Minimum absolute edge weight to include an edge
-#'   (default 0). Edges below this are ignored.
+#' @param threshold Minimum non-zero absolute edge weight to include an edge
+#'   (default 0). Edges below this are ignored; zero-weight non-edges are
+#'   never included.
 #' @param max_dim Maximum simplex dimension (default 10). A k-simplex
 #'   has k+1 nodes.
 #' @param max_pathways For \code{type = "pathway"}: maximum number of
 #'   pathways to include, ranked by count (HON) or ratio (HYPA).
 #'   \code{NULL} includes all. Default \code{NULL}.
+#' @param anomaly For HYPA pathway complexes, which anomaly direction to
+#'   include: \code{"all"} (default), \code{"over"}, or \code{"under"}.
+#'   Under-represented HYPA paths are ranked by smallest observed/expected
+#'   ratio; over-represented paths are ranked by largest ratio.
 #' @param ... Additional arguments passed to \code{build_hon()} when
 #'   \code{x} is a \code{tna}/\code{netobject} with \code{type = "pathway"}.
 #'
@@ -55,11 +61,14 @@
 #'
 #' @export
 build_simplicial <- function(x, type = "clique", threshold = 0,
-                              max_dim = 10L, max_pathways = NULL, ...) {
+                              max_dim = 10L, max_pathways = NULL,
+                              anomaly = c("all", "over", "under"), ...) {
   type <- match.arg(type, c("clique", "pathway", "vr"))
+  anomaly <- match.arg(anomaly)
 
   if (type == "pathway") {
-    return(.build_simplicial_pathway(x, max_dim, max_pathways, ...))
+    return(.build_simplicial_pathway(x, max_dim, max_pathways,
+                                     anomaly = anomaly, ...))
   }
 
   mat <- .sc_extract_matrix(x)
@@ -76,12 +85,13 @@ build_simplicial <- function(x, type = "clique", threshold = 0,
 # =========================================================================
 
 #' @noRd
-.build_simplicial_clique <- function(mat, threshold = 0, max_dim = 10L) {
+.build_simplicial_clique <- function(mat, threshold = 0, max_dim = 10L,
+                                     inclusive = TRUE) {
   stopifnot(is.matrix(mat), nrow(mat) == ncol(mat))
   nodes <- rownames(mat) %||% paste0("V", seq_len(nrow(mat)))
   n <- nrow(mat)
 
-  adj <- abs(mat) > threshold
+  adj <- .sc_threshold_adjacency(mat, threshold, inclusive = inclusive)
   diag(adj) <- FALSE
   adj <- adj | t(adj)
 
@@ -95,16 +105,25 @@ build_simplicial <- function(x, type = "clique", threshold = 0,
   stopifnot(is.matrix(mat), nrow(mat) == ncol(mat))
   nodes <- rownames(mat) %||% paste0("V", seq_len(nrow(mat)))
 
-  weights <- abs(mat)
-  diag(weights) <- 0
-  weights <- pmax(weights, t(weights))
-
-  adj <- weights >= threshold
+  adj <- .sc_threshold_adjacency(mat, threshold, inclusive = TRUE)
   diag(adj) <- FALSE
 
   simplices <- .find_all_cliques(adj, max_dim)
 
   .make_simplicial_complex(simplices, nodes, "vr")
+}
+
+#' @noRd
+.sc_threshold_adjacency <- function(mat, threshold, inclusive = TRUE) {
+  weights <- abs(mat)
+  diag(weights) <- 0
+  weights <- pmax(weights, t(weights))
+
+  if (isTRUE(inclusive)) {
+    weights > 0 & weights >= threshold
+  } else {
+    weights > 0 & weights > threshold
+  }
 }
 
 #' Find all cliques (all sizes) via igraph or fallback Bron-Kerbosch
@@ -135,7 +154,11 @@ build_simplicial <- function(x, type = "clique", threshold = 0,
 
 #' @noRd
 .build_simplicial_pathway <- function(x, max_dim = 10L,
-                                       max_pathways = NULL, ...) {
+                                       max_pathways = NULL,
+                                       anomaly = c("all", "over", "under"),
+                                       ...) {
+  anomaly <- match.arg(anomaly)
+
   if (inherits(x, "net_hon")) {
     edges <- x$ho_edges
     ho <- edges[edges$from_order > 1L, , drop = FALSE]
@@ -147,9 +170,17 @@ build_simplicial <- function(x, type = "clique", threshold = 0,
     raw_paths <- ho$path
   } else if (inherits(x, "net_hypa")) {
     scores <- x$scores
-    anom <- scores[scores$anomaly != "normal", , drop = FALSE]
+    if (anomaly == "all") {
+      anom <- scores[scores$anomaly != "normal", , drop = FALSE]
+    } else {
+      anom <- scores[scores$anomaly == anomaly, , drop = FALSE]
+    }
     if ("ratio" %in% names(anom)) {
-      anom <- anom[order(-anom$ratio), , drop = FALSE]
+      if (anomaly == "under") {
+        anom <- anom[order(anom$ratio), , drop = FALSE]
+      } else {
+        anom <- anom[order(-anom$ratio), , drop = FALSE]
+      }
     }
     if (!is.null(max_pathways) && nrow(anom) > max_pathways) { # nocov
       anom <- anom[seq_len(max_pathways), , drop = FALSE] # nocov
@@ -178,8 +209,17 @@ build_simplicial <- function(x, type = "clique", threshold = 0,
     nodes <- x$states
     raw_paths <- trans$path
   } else if (inherits(x, c("tna", "netobject"))) {
-    hon_obj <- build_hon(.coerce_sequence_input(x), ...)
-    return(.build_simplicial_pathway(hon_obj, max_dim, max_pathways))
+    dots <- list(...)
+    method <- match.arg(dots$method %||% "hon", c("hon", "hypa", "mogen"))
+    dots$method <- NULL
+    seqs <- .coerce_sequence_input(x)
+    ho_obj <- switch(method,
+      hon   = do.call(build_hon,   c(list(seqs), dots)),
+      hypa  = do.call(build_hypa,  c(list(seqs), dots)),
+      mogen = do.call(build_mogen, c(list(seqs), dots))
+    )
+    return(.build_simplicial_pathway(ho_obj, max_dim, max_pathways,
+                                     anomaly = anomaly))
   } else {
     stop("For type='pathway', x must be a net_hon, net_hypa, net_mogen, ",
          "tna, or netobject.", call. = FALSE)
@@ -260,10 +300,8 @@ build_simplicial <- function(x, type = "clique", threshold = 0,
 
   for (simplex in simplices) {
     simplex <- sort(as.integer(simplex))
-    if (length(simplex) - 1L > max_dim) {
-      simplex <- simplex[seq_len(max_dim + 1L)]
-    }
-    for (size in seq_len(length(simplex))) {
+    max_size <- min(length(simplex), max_dim + 1L)
+    for (size in seq_len(max_size)) {
       combos <- utils::combn(simplex, size, simplify = FALSE)
       for (face in combos) {
         key <- paste(face, collapse = ",")
@@ -427,9 +465,11 @@ euler_characteristic <- function(sc) {
 #' Persistent Homology
 #'
 #' @description
-#' Computes persistent homology by building simplicial complexes at
-#' decreasing weight thresholds and tracking the birth/death of
-#' topological features.
+#' Builds clique complexes at decreasing inclusive weight thresholds and
+#' records the Betti curve. The returned persistence table is a heuristic
+#' pairing derived from changes in Betti counts across the threshold grid; it
+#' is not a full boundary-matrix persistent homology decomposition of
+#' individual homology classes.
 #'
 #' @param x A square matrix, \code{tna}, or \code{netobject}.
 #' @param n_steps Number of filtration steps (default 20).
@@ -440,7 +480,9 @@ euler_characteristic <- function(sc) {
 #'   \item{betti_curve}{Data frame: \code{threshold}, \code{dimension},
 #'     \code{betti} at each filtration step.}
 #'   \item{persistence}{Data frame of birth-death pairs:
-#'     \code{dimension}, \code{birth}, \code{death}, \code{persistence}.}
+#'     \code{dimension}, \code{birth}, \code{death}, \code{persistence}.
+#'     These intervals summarize Betti-count changes across the sampled
+#'     thresholds.}
 #'   \item{thresholds}{Numeric vector of filtration thresholds.}
 #' }
 #'
@@ -466,13 +508,18 @@ persistent_homology <- function(x, n_steps = 20L, max_dim = 3L) {
   rows <- list()
   for (i in seq_along(thresholds)) {
     sc <- .build_simplicial_clique(mat, threshold = thresholds[i],
-                                    max_dim = max_dim)
+                                    max_dim = max_dim, inclusive = TRUE)
     b <- betti_numbers(sc)
-    for (j in seq_along(b)) {
+    b_by_dim <- integer(max_dim + 1L)
+    b_dim <- as.integer(sub("^b", "", names(b)))
+    keep <- b_dim <= max_dim
+    b_by_dim[b_dim[keep] + 1L] <- as.integer(b[keep])
+
+    for (j in seq_along(b_by_dim)) {
       rows[[length(rows) + 1L]] <- data.frame(
         threshold = thresholds[i],
         dimension = j - 1L,
-        betti = b[j],
+        betti = b_by_dim[j],
         stringsAsFactors = FALSE
       )
     }
@@ -645,8 +692,10 @@ q_analysis <- function(sc) {
   n_max <- length(maximal)
   max_q <- if (n_max > 0L) max(vapply(maximal, length, integer(1))) - 1L else 0L
 
+  q_levels <- max_q:0
+
   if (n_max <= 1L) {
-    q_vec <- setNames(rep(1L, max_q + 1L), paste0("q_", max_q:0))
+    q_vec <- setNames(rep(1L, length(q_levels)), paste0("q_", q_levels))
     return(structure(list(
       q_vector = q_vec, max_q = max_q,
       structure_vector = sv
@@ -662,12 +711,12 @@ q_analysis <- function(sc) {
     }
   }
 
-  q_vec <- vapply(0:max_q, function(q) {
+  q_vec <- vapply(q_levels, function(q) {
     adj_q <- shared_dim >= q
     diag(adj_q) <- FALSE
     .count_components(adj_q)
   }, integer(1))
-  names(q_vec) <- paste0("q_", max_q:0)
+  names(q_vec) <- paste0("q_", q_levels)
 
   structure(list(
     q_vector = q_vec,
@@ -726,7 +775,7 @@ verify_simplicial <- function(mat, threshold = 0) {
   sc <- build_simplicial(mat, threshold = threshold)
 
   # igraph clique count
-  adj <- abs(mat) > threshold
+  adj <- .sc_threshold_adjacency(mat, threshold, inclusive = TRUE)
   diag(adj) <- FALSE
   adj <- adj | t(adj)
   g <- igraph::graph_from_adjacency_matrix(adj, mode = "undirected",
@@ -874,21 +923,21 @@ print.q_analysis <- function(x, ...) {
   cat(sprintf("Q-Analysis (max q = %d)\n", x$max_q))
 
   # Q-vector as compact line
-  q_str <- paste(sprintf("q%d:%d", x$max_q:0, x$q_vector), collapse = " ")
+  q_levels <- as.integer(sub("^q_", "", names(x$q_vector)))
+  q_str <- paste(sprintf("q%d:%d", q_levels, x$q_vector), collapse = " ")
   cat(sprintf("  Components: %s\n", q_str))
 
   # Fragmentation: first q where components > 1
-  frag_q <- NA
-  for (i in seq_along(x$q_vector)) {
-    if (x$q_vector[i] > 1L) {
-      frag_q <- x$max_q - i + 1L
-      break
+  frag_idx <- which(x$q_vector > 1L)[1]
+  if (!is.na(frag_idx)) {
+    if (frag_idx > 1L) {
+      cat(sprintf("  Fragments at q = %d (%d \u2192 %d components)\n",
+                  q_levels[frag_idx], x$q_vector[frag_idx - 1L],
+                  x$q_vector[frag_idx]))
+    } else {
+      cat(sprintf("  Fragments at q = %d (%d components)\n",
+                  q_levels[frag_idx], x$q_vector[frag_idx]))
     }
-  }
-  if (!is.na(frag_q)) {
-    cat(sprintf("  Fragments at q = %d (%d \u2192 %d components)\n",
-                frag_q, x$q_vector[x$max_q - frag_q],
-                x$q_vector[x$max_q - frag_q + 1L]))
   } else {
     cat("  Fully connected at all q levels\n")
   }
@@ -920,8 +969,14 @@ print.q_analysis <- function(x, ...) {
 #' and degree-by-dimension heatmap.
 #'
 #' @param x A \code{simplicial_complex} object.
+#' @param combined When `TRUE` (default), the four panels are stitched into
+#'   a 2x2 gtable via `gridExtra::arrangeGrob` and drawn. When `FALSE`,
+#'   returns a named list of the four ggplots (`f_vector`, `betti`,
+#'   `degree`, `degree_heatmap`) so each can be printed, saved, or
+#'   re-laid-out independently.
 #' @param ... Ignored.
-#' @return A grid grob (invisibly).
+#' @return A grid grob (invisibly) when `combined = TRUE`; a named list of
+#'   four ggplots when `combined = FALSE`.
 #'
 #' @examples
 #' \donttest{
@@ -932,10 +987,8 @@ print.q_analysis <- function(x, ...) {
 #' }
 #'
 #' @export
-plot.simplicial_complex <- function(x, ...) {
-  if (!requireNamespace("gridExtra", quietly = TRUE)) {
-    stop("gridExtra is required for multi-panel plots.", call. = FALSE) # nocov
-  }
+plot.simplicial_complex <- function(x, combined = TRUE, ...) {
+  stopifnot(is.logical(combined), length(combined) == 1L)
 
   deg <- simplicial_degree(x)
   betti <- .compute_betti(x)
@@ -1000,21 +1053,31 @@ plot.simplicial_complex <- function(x, ...) {
                   x = "Dimension", y = expression(beta[k])) +
     .sc_theme()
 
-  combined <- gridExtra::arrangeGrob(p1, p4, p2, p3, ncol = 2,
-                                      padding = grid::unit(0.5, "line"))
+  panels <- list(f_vector = p1, betti = p4, degree = p2,
+                 degree_heatmap = p3)
+  if (!combined) return(invisible(panels))
+  if (!requireNamespace("gridExtra", quietly = TRUE)) {
+    stop("combined = TRUE requires the gridExtra package.", call. = FALSE) # nocov
+  }
+  combined_grob <- gridExtra::arrangeGrob(p1, p4, p2, p3, ncol = 2,
+                                          padding = grid::unit(0.5, "line"))
   grid::grid.newpage()
-  grid::grid.draw(combined)
-  invisible(combined)
+  grid::grid.draw(combined_grob)
+  invisible(combined_grob)
 }
 
 #' Plot Persistent Homology
 #'
-#' Two panels: Betti curve (threshold vs Betti number) and persistence
-#' diagram (birth vs death).
+#' Two panels: Betti curve (threshold vs Betti number) and heuristic
+#' persistence diagram (birth vs death) derived from Betti-count changes.
 #'
 #' @param x A \code{persistent_homology} object.
+#' @param combined When `TRUE` (default), the two panels are stitched
+#'   side-by-side via `gridExtra::arrangeGrob`. When `FALSE`, returns a
+#'   named list (`betti_curve`, `persistence`) of ggplots.
 #' @param ... Ignored.
-#' @return A grid grob (invisibly).
+#' @return A grid grob (invisibly) when `combined = TRUE`; a named list
+#'   of two ggplots when `combined = FALSE`.
 #'
 #' @examples
 #' \donttest{
@@ -1029,10 +1092,8 @@ plot.simplicial_complex <- function(x, ...) {
 #' }
 #'
 #' @export
-plot.persistent_homology <- function(x, ...) {
-  if (!requireNamespace("gridExtra", quietly = TRUE)) {
-    stop("gridExtra is required for multi-panel plots.", call. = FALSE) # nocov
-  }
+plot.persistent_homology <- function(x, combined = TRUE, ...) {
+  stopifnot(is.logical(combined), length(combined) == 1L)
 
   filt <- x$betti_curve
   filt$dim_label <- factor(paste0("B", filt$dimension))
@@ -1043,7 +1104,7 @@ plot.persistent_homology <- function(x, ...) {
     ggplot2::geom_step(linewidth = 1.1, direction = "vh") +
     ggplot2::scale_color_brewer(palette = "Set1") +
     ggplot2::labs(title = "Betti Curve",
-                  subtitle = "Topological features across weight thresholds",
+                  subtitle = "Betti numbers across inclusive weight thresholds",
                   x = "Weight Threshold", y = "Betti Number",
                   color = NULL) +
     .sc_theme() +
@@ -1065,8 +1126,8 @@ plot.persistent_homology <- function(x, ...) {
       ggplot2::scale_size_continuous(range = c(1.5, 6), guide = "none") +
       ggplot2::scale_color_brewer(palette = "Set1") +
       ggplot2::coord_equal(xlim = c(0, lim), ylim = c(0, lim)) +
-      ggplot2::labs(title = "Persistence Diagram",
-                    subtitle = "Far from diagonal = long-lived features",
+      ggplot2::labs(title = "Heuristic Persistence Diagram",
+                    subtitle = "Intervals derived from Betti-count changes",
                     x = "Birth", y = "Death", color = NULL) +
       .sc_theme() +
       ggplot2::theme(legend.position = "top")
@@ -1077,11 +1138,16 @@ plot.persistent_homology <- function(x, ...) {
       .sc_theme() # nocov end
   }
 
-  combined <- gridExtra::arrangeGrob(p1, p2, ncol = 2,
-                                      padding = grid::unit(0.5, "line"))
+  panels <- list(betti_curve = p1, persistence = p2)
+  if (!combined) return(invisible(panels))
+  if (!requireNamespace("gridExtra", quietly = TRUE)) {
+    stop("combined = TRUE requires the gridExtra package.", call. = FALSE) # nocov
+  }
+  combined_grob <- gridExtra::arrangeGrob(p1, p2, ncol = 2,
+                                          padding = grid::unit(0.5, "line"))
   grid::grid.newpage()
-  grid::grid.draw(combined)
-  invisible(combined)
+  grid::grid.draw(combined_grob)
+  invisible(combined_grob)
 }
 
 #' Plot Q-Analysis
@@ -1090,8 +1156,12 @@ plot.persistent_homology <- function(x, ...) {
 #' structure vector (max simplex dimension per node).
 #'
 #' @param x A \code{q_analysis} object.
+#' @param combined When `TRUE` (default), the two panels are stitched
+#'   side-by-side via `gridExtra::arrangeGrob`. When `FALSE`, returns a
+#'   named list (`q_vector`, `structure_vector`) of ggplots.
 #' @param ... Ignored.
-#' @return A grid grob (invisibly).
+#' @return A grid grob (invisibly) when `combined = TRUE`; a named list
+#'   of two ggplots when `combined = FALSE`.
 #'
 #' @examples
 #' \donttest{
@@ -1107,13 +1177,12 @@ plot.persistent_homology <- function(x, ...) {
 #' }
 #'
 #' @export
-plot.q_analysis <- function(x, ...) {
-  if (!requireNamespace("gridExtra", quietly = TRUE)) {
-    stop("gridExtra is required for multi-panel plots.", call. = FALSE) # nocov
-  }
+plot.q_analysis <- function(x, combined = TRUE, ...) {
+  stopifnot(is.logical(combined), length(combined) == 1L)
 
   # --- Panel 1: Q-vector ---
-  qdf <- data.frame(q = x$max_q:0, components = as.integer(x$q_vector))
+  qdf <- data.frame(q = as.integer(sub("^q_", "", names(x$q_vector))),
+                    components = as.integer(x$q_vector))
 
   p1 <- ggplot2::ggplot(qdf, ggplot2::aes(x = q, y = components)) +
     ggplot2::geom_step(linewidth = 1.2, color = "#4A7FB5",
@@ -1146,9 +1215,14 @@ plot.q_analysis <- function(x, ...) {
     ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 35,
                                                          hjust = 1))
 
-  combined <- gridExtra::arrangeGrob(p1, p2, ncol = 2,
-                                      padding = grid::unit(0.5, "line"))
+  panels <- list(q_vector = p1, structure_vector = p2)
+  if (!combined) return(invisible(panels))
+  if (!requireNamespace("gridExtra", quietly = TRUE)) {
+    stop("combined = TRUE requires the gridExtra package.", call. = FALSE) # nocov
+  }
+  combined_grob <- gridExtra::arrangeGrob(p1, p2, ncol = 2,
+                                          padding = grid::unit(0.5, "line"))
   grid::grid.newpage()
-  grid::grid.draw(combined)
-  invisible(combined)
+  grid::grid.draw(combined_grob)
+  invisible(combined_grob)
 }

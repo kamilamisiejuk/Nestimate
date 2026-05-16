@@ -10,6 +10,7 @@ build_simplicial(
   threshold = 0,
   max_dim = 10L,
   max_pathways = NULL,
+  anomaly = c("all", "over", "under"),
   ...
 )
 }
@@ -20,8 +21,9 @@ build_simplicial(
 \item{type}{Construction type: \code{"clique"} (default),
 \code{"pathway"}, or \code{"vr"}.}
 
-\item{threshold}{Minimum absolute edge weight to include an edge
-(default 0). Edges below this are ignored.}
+\item{threshold}{Minimum non-zero absolute edge weight to include an edge
+(default 0). Edges below this are ignored; zero-weight non-edges are
+never included.}
 
 \item{max_dim}{Maximum simplex dimension (default 10). A k-simplex
 has k+1 nodes.}
@@ -29,6 +31,11 @@ has k+1 nodes.}
 \item{max_pathways}{For \code{type = "pathway"}: maximum number of
 pathways to include, ranked by count (HON) or ratio (HYPA).
 \code{NULL} includes all. Default \code{NULL}.}
+
+\item{anomaly}{For HYPA pathway complexes, which anomaly direction to
+include: \code{"all"} (default), \code{"over"}, or \code{"under"}.
+Under-represented HYPA paths are ranked by smallest observed/expected
+ratio; over-represented paths are ranked by largest ratio.}
 
 \item{...}{Additional arguments passed to \code{build_hon()} when
 \code{x} is a \code{tna}/\code{netobject} with \code{type = "pathway"}.}
@@ -42,13 +49,14 @@ object. Three construction methods are available:
 
 \itemize{
 \item \strong{Clique complex} (\code{"clique"}): every clique in the
-thresholded graph becomes a simplex. The standard bridge from graph
-theory to algebraic topology.
+thresholded non-zero graph becomes a simplex. Edges with absolute
+weight \eqn{\geq} \code{threshold} are retained. The standard bridge
+from graph theory to algebraic topology.
 \item \strong{Pathway complex} (\code{"pathway"}): each higher-order
 pathway from a \code{net_hon} or \code{net_hypa} becomes a simplex.
 \item \strong{Vietoris-Rips} (\code{"vr"}): nodes with edge weight
-\eqn{\geq} \code{threshold} are connected; all cliques in the
-resulting graph become simplices.
+\eqn{\geq} \code{threshold} and non-zero are connected; all cliques in
+the resulting graph become simplices.
 }
 }
 \examples{

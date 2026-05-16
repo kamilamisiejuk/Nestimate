@@ -184,7 +184,7 @@ centrality_stability <- function(x,
     estimator <- get_estimator(net_method)
     params <- x$params
     level <- x$level
-    id_col <- params$id %||% params$id_col
+    id_col <- .param_get(params, "id") %||% .param_get(params, "id_col")
   }
 
   # ---- Build matrix from subset (transition fast path) ----
