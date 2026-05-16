@@ -36,7 +36,12 @@ estimate_network(
   `list(format = "wide")` for transition methods). This is the key
   composability feature: downstream functions like bootstrap or grid
   search can store and replay the full params list without knowing
-  method internals.
+  method internals. Transition estimators accept tna-style sequence
+  options such as `weighted`, `begin_state`, `end_state`, and `concat`.
+  Column-like entries in `params` (`action`, `id`, `id_col`, `time`,
+  `session`, `order`, `codes`, and `group`) are resolved before format
+  detection and must name existing columns. If the same column role is
+  supplied both directly and through `params`, the names must agree.
 
 - scaling:
 

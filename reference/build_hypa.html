@@ -13,7 +13,7 @@ flagged as over- or under-represented."><meta property="og:image" content="https
 
     <a class="navbar-brand me-2" href="../index.html">Nestimate</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -101,14 +101,17 @@ p-values are adjusted separately (two-sided testing).</p></dd>
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>An object of class <code>net_hypa</code> with components:</p><dl><dt>scores</dt>
 <dd><p>Data frame with path, from, to, observed, expected,
-ratio, p_value, p_adjusted_under, p_adjusted_over, anomaly
+ratio, p_value, p_under, p_over, p_adjusted_under,
+p_adjusted_over, anomaly
 columns. The <code>path</code> column shows the full state sequence
 (e.g., "A -&gt; B -&gt; C"); <code>from</code> is the context (conditioning
 states); <code>to</code> is the next state; <code>ratio</code> is
-observed / expected; <code>p_value</code> is the raw hypergeometric
-CDF value; <code>p_adjusted_under</code> and <code>p_adjusted_over</code>
-are the corrected p-values for under- and over-representation
-tests respectively.</p></dd>
+observed / expected; <code>p_value</code> is retained as an alias for
+<code>p_under</code>, the raw lower-tail hypergeometric CDF value;
+<code>p_over</code> is the inclusive upper-tail probability
+<code>P(X &gt;= observed)</code>; <code>p_adjusted_under</code> and
+<code>p_adjusted_over</code> are the corrected p-values for under- and
+over-representation tests respectively.</p></dd>
 
 <dt>adjacency</dt>
 <dd><p>Weighted adjacency matrix of the De Bruijn graph.</p></dd>
@@ -153,14 +156,16 @@ Time Series Data on Networks. <em>SDM 2020</em>, 460–468.</p>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">seqs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A"</span>,<span class="st">"B"</span>,<span class="st">"C"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"B"</span>,<span class="st">"C"</span>,<span class="st">"A"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A"</span>,<span class="st">"C"</span>,<span class="st">"B"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A"</span>,<span class="st">"B"</span>,<span class="st">"C"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">hyp</span> <span class="op">&lt;-</span> <span class="fu">build_hypa</span><span class="op">(</span><span class="va">seqs</span>, k <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span></span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>'k' is deprecated; use 'order' instead.</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span><span class="va">trajs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A"</span>,<span class="st">"B"</span>,<span class="st">"C"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A"</span>,<span class="st">"B"</span>,<span class="st">"C"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A"</span>,<span class="st">"B"</span>,<span class="st">"C"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>              <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A"</span>,<span class="st">"B"</span>,<span class="st">"D"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"C"</span>,<span class="st">"B"</span>,<span class="st">"D"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"C"</span>,<span class="st">"B"</span>,<span class="st">"A"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">h</span> <span class="op">&lt;-</span> <span class="fu">build_hypa</span><span class="op">(</span><span class="va">trajs</span>, k <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span></span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>'k' is deprecated; use 'order' instead.</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">h</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> HYPA: Path Anomaly Detection</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Order k:      2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Order(s):     2</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Edges:        4</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Anomalous:    0 (alpha=0.05, p_adjust=BH)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     Over-repr:  0</span>

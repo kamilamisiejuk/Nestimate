@@ -6,7 +6,12 @@ Plot Sequence Clustering Results
 
 ``` r
 # S3 method for class 'net_clustering'
-plot(x, type = c("silhouette", "mds", "heatmap", "predictors"), ...)
+plot(
+  x,
+  type = c("silhouette", "mds", "heatmap", "predictors"),
+  combined = TRUE,
+  ...
+)
 ```
 
 ## Arguments
@@ -23,7 +28,7 @@ plot(x, type = c("silhouette", "mds", "heatmap", "predictors"), ...)
 
 - ...:
 
-  Additional arguments (currently unused).
+  Unsupported. Supplying unused arguments raises an error.
 
 ## Value
 

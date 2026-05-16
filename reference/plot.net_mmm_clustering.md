@@ -15,7 +15,12 @@ for one of those on an MMM result.
 
 ``` r
 # S3 method for class 'net_mmm_clustering'
-plot(x, type = c("posterior", "covariates", "predictors"), ...)
+plot(
+  x,
+  type = c("posterior", "covariates", "predictors"),
+  combined = TRUE,
+  ...
+)
 ```
 
 ## Arguments
@@ -34,7 +39,7 @@ plot(x, type = c("posterior", "covariates", "predictors"), ...)
 
 - ...:
 
-  Currently unused.
+  Unsupported. Supplying unused arguments raises an error.
 
 ## Value
 

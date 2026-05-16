@@ -12,7 +12,7 @@ wtna(
   method = c("transition", "cooccurrence", "both"),
   type = c("frequency", "relative"),
   codes = NULL,
-  window_size = 1L,
+  window_size = 3L,
   mode = c("non-overlapping", "overlapping"),
   actor = NULL
 )
@@ -108,13 +108,13 @@ df <- data.frame(
 net <- wtna(df)
 print(net)
 #> Network (method: wtna_transition) [directed]
-#>   Weights: [1.000, 2.000]  |  mean: 1.500
+#>   Weights: [1.000, 2.000]  |  mean: 1.333
 #> 
 #>   Weight matrix:
 #>     A B C
-#>   A 0 2 0
-#>   B 2 0 1
-#>   C 0 1 0 
+#>   A 2 2 0
+#>   B 1 1 0
+#>   C 1 1 0 
 #> 
 #>   Initial probabilities:
 #>   A             1.000  ████████████████████████████████████████
@@ -125,13 +125,13 @@ print(net)
 nets <- wtna(df, method = "both")
 print(nets$transition)
 #> Network (method: wtna_transition) [directed]
-#>   Weights: [1.000, 2.000]  |  mean: 1.500
+#>   Weights: [1.000, 2.000]  |  mean: 1.333
 #> 
 #>   Weight matrix:
 #>     A B C
-#>   A 0 2 0
-#>   B 2 0 1
-#>   C 0 1 0 
+#>   A 2 2 0
+#>   B 1 1 0
+#>   C 1 1 0 
 #> 
 #>   Initial probabilities:
 #>   A             1.000  ████████████████████████████████████████
@@ -139,13 +139,13 @@ print(nets$transition)
 #>   C             0.000  
 print(nets$cooccurrence)
 #> Network (method: wtna_cooccurrence) [undirected]
-#>   Weights: [1.000, 3.000]  |  mean: 1.750
+#>   Weights: [1.000, 5.000]  |  mean: 2.333
 #> 
 #>   Weight matrix:
 #>     A B C
-#>   A 3 0 1
-#>   B 0 2 0
-#>   C 1 0 1 
+#>   A 5 3 2
+#>   B 3 2 1
+#>   C 2 1 1 
 
 # With windowing
 net <- wtna(df, window_size = 2, mode = "non-overlapping")

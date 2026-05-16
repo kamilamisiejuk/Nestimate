@@ -13,7 +13,7 @@ avoid an export clash when both packages are attached."><meta property="og:image
 
     <a class="navbar-brand me-2" href="../index.html">Nestimate</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -210,6 +210,14 @@ aggregate); <code>"clusters"</code> draws one mosaic per cluster from
 <dt id="arg-ncol">ncol<a class="anchor" aria-label="anchor" href="#arg-ncol"></a></dt>
 <dd><p>For <code>netobject_group</code>: number of columns in the small-
 multiples layout. Default 2.</p></dd>
+
+
+<dt id="arg-values">values<a class="anchor" aria-label="anchor" href="#arg-values"></a></dt>
+<dd><p>Logical. When <code>TRUE</code>, overlay each cell's standardized
+residual as a numeric label (one decimal). Text colour switches to
+white on saturated cells (|stdres| &gt; 1.5) and dark grey otherwise.
+Default <code>FALSE</code> – the colour bar legend already conveys the
+sign and magnitude.</p></dd>
 
 </dl></div>
     <div class="section level2">

@@ -92,12 +92,26 @@ Statistical inference for network estimation
 
 - [`bootstrap_network()`](https://saqr.me/Nestimate/reference/bootstrap_network.md)
   : Bootstrap a Network Estimate
+
 - [`boot_glasso()`](https://saqr.me/Nestimate/reference/boot_glasso.md)
   : Bootstrap for Regularized Partial Correlation Networks
+
 - [`permutation()`](https://saqr.me/Nestimate/reference/permutation.md)
   : Permutation Test for Network Comparison
+
 - [`nct()`](https://saqr.me/Nestimate/reference/nct.md) : Network
   Comparison Test
+
+- [`compare_model()`](https://saqr.me/Nestimate/reference/compare_model.md)
+  : Compare two networks descriptively
+
+- [`compare_model(`*`<netobject_group>`*`)`](https://saqr.me/Nestimate/reference/compare_model.netobject_group.md)
+  : Compare two networks within a netobject_group
+
+- [`rename_models()`](https://saqr.me/Nestimate/reference/rename_models.md)
+  :
+
+  Rename the models of a `netobject_group`
 
 ## Reliability & Stability
 
@@ -546,6 +560,12 @@ Print, summary, and plot methods for package classes
 
   Summary method for `net_transition_entropy`
 
+- [`summary(`*`<netobject>`*`)`](https://saqr.me/Nestimate/reference/summary.netobject.md)
+  : Network metrics for a netobject
+
+- [`summary(`*`<netobject_group>`*`)`](https://saqr.me/Nestimate/reference/summary.netobject_group.md)
+  : Network metrics for a netobject_group
+
 - [`summary(`*`<wtna_boot_mixed>`*`)`](https://saqr.me/Nestimate/reference/summary.wtna_boot_mixed.md)
   : Summary Method for wtna_boot_mixed
 
@@ -575,6 +595,9 @@ Print, summary, and plot methods for package classes
 
 - [`plot(`*`<net_clustering>`*`)`](https://saqr.me/Nestimate/reference/plot.net_clustering.md)
   : Plot Sequence Clustering Results
+
+- [`plot(`*`<net_comparison>`*`)`](https://saqr.me/Nestimate/reference/plot.net_comparison.md)
+  : Plot a network comparison
 
 - [`plot(`*`<net_gimme>`*`)`](https://saqr.me/Nestimate/reference/plot.net_gimme.md)
   : Plot Method for net_gimme

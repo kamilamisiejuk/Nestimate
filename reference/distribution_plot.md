@@ -29,6 +29,7 @@ distribution_plot(
   tick = NULL,
   ncol = NULL,
   nrow = NULL,
+  combined = TRUE,
   legend = c("right", "bottom", "none"),
   legend_size = NULL,
   legend_title = NULL,
@@ -116,7 +117,16 @@ distribution_plot(
 - ncol, nrow:
 
   Facet grid dimensions. `NULL` = auto: `ncol = ceiling(sqrt(G))`,
-  `nrow = ceiling(G / ncol)`.
+  `nrow = ceiling(G / ncol)`. Ignored when `combined = FALSE`.
+
+- combined:
+
+  When `TRUE` (default), groups are arranged on one figure via
+  [`graphics::layout()`](https://rdrr.io/r/graphics/layout.html). When
+  `FALSE`, each group is drawn on its own page (one full-size figure per
+  group, with its own legend). Useful when you want each group at full
+  size in knitr (`fig.show = "asis"`) or to save each as a separate
+  file. Single-group calls (`G == 1`) ignore this argument.
 
 - legend:
 

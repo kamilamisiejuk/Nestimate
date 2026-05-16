@@ -52,10 +52,12 @@ An object of class `net_hypa` with components:
 - scores:
 
   Data frame with path, from, to, observed, expected, ratio, p_value,
-  p_adjusted_under, p_adjusted_over, anomaly columns. The `path` column
-  shows the full state sequence (e.g., "A -\> B -\> C"); `from` is the
-  context (conditioning states); `to` is the next state; `ratio` is
-  observed / expected; `p_value` is the raw hypergeometric CDF value;
+  p_under, p_over, p_adjusted_under, p_adjusted_over, anomaly columns.
+  The `path` column shows the full state sequence (e.g., "A -\> B -\>
+  C"); `from` is the context (conditioning states); `to` is the next
+  state; `ratio` is observed / expected; `p_value` is retained as an
+  alias for `p_under`, the raw lower-tail hypergeometric CDF value;
+  `p_over` is the inclusive upper-tail probability `P(X >= observed)`;
   `p_adjusted_under` and `p_adjusted_over` are the corrected p-values
   for under- and over-representation tests respectively.
 
@@ -110,14 +112,16 @@ Time Series Data on Networks. *SDM 2020*, 460–468.
 ``` r
 seqs <- list(c("A","B","C"), c("B","C","A"), c("A","C","B"), c("A","B","C"))
 hyp <- build_hypa(seqs, k = 2)
+#> Warning: 'k' is deprecated; use 'order' instead.
 
 # \donttest{
 trajs <- list(c("A","B","C"), c("A","B","C"), c("A","B","C"),
               c("A","B","D"), c("C","B","D"), c("C","B","A"))
 h <- build_hypa(trajs, k = 2)
+#> Warning: 'k' is deprecated; use 'order' instead.
 print(h)
 #> HYPA: Path Anomaly Detection
-#>   Order k:      2
+#>   Order(s):     2
 #>   Edges:        4
 #>   Anomalous:    0 (alpha=0.05, p_adjust=BH)
 #>     Over-repr:  0

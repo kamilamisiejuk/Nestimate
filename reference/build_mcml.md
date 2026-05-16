@@ -116,7 +116,7 @@ build_mcml(
   "median", "max", "min", "density", "geomean". Default "sum". For raw
   sequence/event-log inputs the function is counting observed
   transitions, so `"sum"` is the only interpretation that preserves the
-  count semantics — the other methods are useful when aggregating
+  count semantics – the other methods are useful when aggregating
   weighted edge lists or pre-existing weight matrices, where each row
   already represents a measurement rather than a single observation.
 
@@ -127,7 +127,10 @@ build_mcml(
 
 - directed:
 
-  Logical. Treat as directed network? Default TRUE.
+  Logical. If `TRUE` (default), treat transitions as directed. If
+  `FALSE`, symmetrize sequence- and edge-derived weights before
+  returning raw/frequency weights or before row-normalizing transition
+  probabilities.
 
 - compute_within:
 

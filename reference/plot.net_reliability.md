@@ -7,7 +7,7 @@ comparisons show overlaid densities colored by model.
 
 ``` r
 # S3 method for class 'net_reliability'
-plot(x, bins = 60L, ...)
+plot(x, bins = 60L, combined = TRUE, ...)
 ```
 
 ## Arguments
@@ -20,13 +20,20 @@ plot(x, bins = 60L, ...)
 
   Integer. Number of histogram bins per panel (default 60).
 
+- combined:
+
+  When `TRUE` (default), all four metrics are shown in one ggplot via
+  `facet_wrap(~ metric)`. When `FALSE`, returns a named list of four
+  single-panel ggplots, one per metric.
+
 - ...:
 
   Additional arguments (ignored).
 
 ## Value
 
-A `ggplot` object (invisibly).
+A `ggplot` object (invisibly), or a named list of four ggplots when
+`combined = FALSE`.
 
 ## Examples
 

@@ -17,7 +17,7 @@ summary(object, ...)
 
 - ...:
 
-  Additional arguments (ignored).
+  Unsupported. Supplying unused arguments raises an error.
 
 ## Value
 

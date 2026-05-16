@@ -33,8 +33,8 @@ cluster_network(data, k, cluster_by = "pam", dissimilarity = "hamming", ...)
 
 - dissimilarity:
 
-  Character. Distance metric for sequence clustering (ignored when
-  `cluster_by = "mmm"`). Default: `"hamming"`.
+  Character. Distance metric for sequence clustering. Only valid when
+  `cluster_by != "mmm"`. Default: `"hamming"`.
 
 - ...:
 
@@ -42,9 +42,10 @@ cluster_network(data, k, cluster_by = "pam", dissimilarity = "hamming", ...)
   [`build_clusters`](https://saqr.me/Nestimate/reference/build_clusters.md)
   arguments `na_syms`, `weighted`, `lambda`, `seed`, `q`, `p`, and
   `covariates` are intercepted and forwarded to the clusterer;
-  everything else flows to
+  recognised network-estimation arguments flow to
   [`build_network`](https://saqr.me/Nestimate/reference/build_network.md).
-  When `cluster_by = "mmm"`, the recognised
+  Unknown arguments error before either stage is run. When
+  `cluster_by = "mmm"`, the recognised
   [`build_mmm`](https://saqr.me/Nestimate/reference/build_mmm.md)
   arguments (`n_starts`, `max_iter`, `tol`, `smooth`, `seed`,
   `covariates`) are intercepted instead, and the rest flows to

@@ -11,7 +11,7 @@ build_network on each cluster subset."><meta property="og:image" content="https:
 
     <a class="navbar-brand me-2" href="../index.html">Nestimate</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -79,8 +79,8 @@ or <code>"mmm"</code> for Mixed Markov Model clustering. Default: <code>"pam"</c
 
 
 <dt id="arg-dissimilarity">dissimilarity<a class="anchor" aria-label="anchor" href="#arg-dissimilarity"></a></dt>
-<dd><p>Character. Distance metric for sequence clustering
-(ignored when <code>cluster_by = "mmm"</code>). Default: <code>"hamming"</code>.</p></dd>
+<dd><p>Character. Distance metric for sequence clustering.
+Only valid when <code>cluster_by != "mmm"</code>. Default: <code>"hamming"</code>.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
@@ -88,7 +88,9 @@ or <code>"mmm"</code> for Mixed Markov Model clustering. Default: <code>"pam"</c
 (<code>cluster_by != "mmm"</code>), <code><a href="build_clusters.html">build_clusters</a></code> arguments
 <code>na_syms</code>, <code>weighted</code>, <code>lambda</code>, <code>seed</code>, <code>q</code>,
 <code>p</code>, and <code>covariates</code> are intercepted and forwarded to the
-clusterer; everything else flows to <code><a href="build_network.html">build_network</a></code>. When
+clusterer; recognised network-estimation arguments flow to
+<code><a href="build_network.html">build_network</a></code>. Unknown arguments error before either stage
+is run. When
 <code>cluster_by = "mmm"</code>, the recognised <code><a href="build_mmm.html">build_mmm</a></code>
 arguments (<code>n_starts</code>, <code>max_iter</code>, <code>tol</code>, <code>smooth</code>,
 <code>seed</code>, <code>covariates</code>) are intercepted instead, and the rest

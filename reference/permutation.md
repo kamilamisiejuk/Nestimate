@@ -16,6 +16,10 @@ and computes group-wise `colSums`.
 For association methods (`"cor"`, `"pcor"`, `"glasso"`, and custom
 estimators), the full estimator is called on each permuted group split.
 
+If either transition network contains only one sequence, the function
+warns that such a network is not recommended for permutation or other
+confirmatory testing.
+
 ## Usage
 
 ``` r

@@ -10,7 +10,10 @@ count matrices are computed once, and each permutation iteration only
 shuffles group labels and computes group-wise colSums.
 For association methods ("cor", "pcor", "glasso",
 and custom estimators), the full estimator is called on each permuted
-group split.'><meta property="og:description" content='Compares two networks estimated by build_network using a
+group split.
+If either transition network contains only one sequence, the function warns
+that such a network is not recommended for permutation or other
+confirmatory testing.'><meta property="og:description" content='Compares two networks estimated by build_network using a
 permutation test. Works with all built-in methods (transition and
 association) as well as custom registered estimators. The test shuffles
 which observations belong to which group, re-estimates networks, and tests
@@ -21,7 +24,10 @@ count matrices are computed once, and each permutation iteration only
 shuffles group labels and computes group-wise colSums.
 For association methods ("cor", "pcor", "glasso",
 and custom estimators), the full estimator is called on each permuted
-group split.'><meta property="og:image" content="https://saqr.me/Nestimate/logo.svg"></head><body>
+group split.
+If either transition network contains only one sequence, the function warns
+that such a network is not recommended for permutation or other
+confirmatory testing.'><meta property="og:image" content="https://saqr.me/Nestimate/logo.svg"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -29,7 +35,7 @@ group split.'><meta property="og:image" content="https://saqr.me/Nestimate/logo.
 
     <a class="navbar-brand me-2" href="../index.html">Nestimate</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -77,6 +83,9 @@ shuffles group labels and computes group-wise <code>colSums</code>.</p>
 <p>For association methods (<code>"cor"</code>, <code>"pcor"</code>, <code>"glasso"</code>,
 and custom estimators), the full estimator is called on each permuted
 group split.</p>
+<p>If either transition network contains only one sequence, the function warns
+that such a network is not recommended for permutation or other
+confirmatory testing.</p>
     </div>
 
     <div class="section level2">

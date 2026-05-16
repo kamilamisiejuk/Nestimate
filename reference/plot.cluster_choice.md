@@ -12,6 +12,7 @@ plot(
   x,
   type = c("auto", "lines", "bars", "heatmap", "tradeoff", "facet"),
   abbrev = FALSE,
+  combined = TRUE,
   ...
 )
 ```
@@ -34,13 +35,20 @@ plot(
   `"ward.D2"` -\> `"wD2"`). The legend shows the full canonical name.
   Default `FALSE`.
 
+- combined:
+
+  Only meaningful for `type = "facet"`. When `TRUE` (default), all
+  methods are shown in one ggplot via `facet_wrap(~ method)`. When
+  `FALSE`, returns a named list of single-panel ggplots, one per method.
+
 - ...:
 
-  Additional arguments (ignored).
+  Unsupported. Supplying unused arguments raises an error.
 
 ## Value
 
-A `ggplot` object, invisibly.
+A `ggplot` object, invisibly; for `type = "facet"` with
+`combined = FALSE`, a named list of ggplots.
 
 ## Details
 

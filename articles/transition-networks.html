@@ -25,7 +25,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">Nestimate</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -394,16 +394,16 @@ transitions and co-occurrences</li>
 <span>                 method <span class="op">=</span> <span class="st">"transition"</span>, type <span class="op">=</span> <span class="st">"frequency"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">net_wtna</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Network (method: wtna_transition) [directed]</span></span>
-<span><span class="co">#&gt;   Weights: [877.000, 1861.000]  |  mean: 1120.278</span></span>
+<span><span class="co">#&gt;   Weights: [2493.000, 4314.000]  |  mean: 3025.056</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   Weight matrix:</span></span>
 <span><span class="co">#&gt;           Reading Video Forum Quiz Coding Review</span></span>
-<span><span class="co">#&gt;   Reading    1797  1006  1047  955   1036   1021</span></span>
-<span><span class="co">#&gt;   Video      1054  1861  1054  972   1058   1043</span></span>
-<span><span class="co">#&gt;   Forum      1043  1021  1672  943    956   1004</span></span>
-<span><span class="co">#&gt;   Quiz        935   951   955 1584    877    894</span></span>
-<span><span class="co">#&gt;   Coding     1008  1074   967  886   1737   1048</span></span>
-<span><span class="co">#&gt;   Review     1033  1094   985  908   1029   1822 </span></span>
+<span><span class="co">#&gt;   Reading    4297  2903  2908 2638   2935   3008</span></span>
+<span><span class="co">#&gt;   Video      2921  4314  2943 2651   2909   3018</span></span>
+<span><span class="co">#&gt;   Forum      2863  2875  3881 2675   2747   2902</span></span>
+<span><span class="co">#&gt;   Quiz       2691  2654  2706 3695   2518   2542</span></span>
+<span><span class="co">#&gt;   Coding     2814  3094  2767 2559   4005   2953</span></span>
+<span><span class="co">#&gt;   Review     2971  3113  2824 2493   2909   4206 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   Initial probabilities:</span></span>
 <span><span class="co">#&gt;   Reading       0.209  ████████████████████████████████████████</span></span>
@@ -416,16 +416,16 @@ transitions and co-occurrences</li>
 <code class="sourceCode R"><span><span class="va">net_wtna_rel</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/wtna.html">wtna</a></span><span class="op">(</span><span class="va">learning_activities</span>, method <span class="op">=</span> <span class="st">"transition"</span>, type <span class="op">=</span> <span class="st">"relative"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">net_wtna_rel</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Network (method: wtna_transition) [directed]</span></span>
-<span><span class="co">#&gt;   Weights: [0.132, 0.263]  |  mean: 0.167</span></span>
+<span><span class="co">#&gt;   Weights: [0.136, 0.225]  |  mean: 0.167</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   Weight matrix:</span></span>
 <span><span class="co">#&gt;           Reading Video Forum  Quiz Coding Review</span></span>
-<span><span class="co">#&gt;   Reading   0.260 0.147 0.152 0.139  0.153  0.149</span></span>
-<span><span class="co">#&gt;   Video     0.151 0.263 0.149 0.138  0.152  0.148</span></span>
-<span><span class="co">#&gt;   Forum     0.158 0.154 0.249 0.142  0.146  0.150</span></span>
-<span><span class="co">#&gt;   Quiz      0.152 0.153 0.154 0.253  0.142  0.146</span></span>
-<span><span class="co">#&gt;   Coding    0.151 0.159 0.144 0.132  0.258  0.156</span></span>
-<span><span class="co">#&gt;   Review    0.151 0.159 0.143 0.133  0.151  0.263 </span></span>
+<span><span class="co">#&gt;   Reading   0.225 0.157 0.155 0.142  0.159  0.162</span></span>
+<span><span class="co">#&gt;   Video     0.156 0.225 0.157 0.142  0.159  0.161</span></span>
+<span><span class="co">#&gt;   Forum     0.160 0.161 0.210 0.150  0.156  0.162</span></span>
+<span><span class="co">#&gt;   Quiz      0.161 0.160 0.161 0.213  0.151  0.153</span></span>
+<span><span class="co">#&gt;   Coding    0.157 0.169 0.152 0.141  0.220  0.162</span></span>
+<span><span class="co">#&gt;   Review    0.162 0.167 0.152 0.136  0.159  0.224 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   Initial probabilities:</span></span>
 <span><span class="co">#&gt;   Reading       0.500  ████████████████████████████████████████</span></span>
@@ -606,16 +606,13 @@ achievers.</p>
 <span><span class="co">#&gt;  1        982 504 (51%)          478 (49%)        </span></span>
 <span><span class="co">#&gt;  2       1018 496 (49%)          522 (51%)        </span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Predictors of Membership (reference: Cluster 1):</span></span>
+<span><span class="co">#&gt; Predictors of Membership (estimator = firth, reference: Cluster 1):</span></span>
 <span><span class="co">#&gt;  Cluster Variable    OR   95% CI       p     Sig</span></span>
 <span><span class="co">#&gt;  2       AchieverLow 1.11 [0.93, 1.32] 0.245    </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Model: AIC = 2774.6 | BIC = 2785.8 | McFadden R-squared = 0.00</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Note: Covariates are post-hoc and do not influence cluster assignments.</span></span>
-<span><span class="co">#&gt;   cluster size mean_within_dist</span></span>
-<span><span class="co">#&gt; 1       1  982         10.69340</span></span>
-<span><span class="co">#&gt; 2       2 1018         18.59498</span></span></code></pre></div>
+<span><span class="co">#&gt; Note: Covariates are post-hoc and do not influence cluster assignments.</span></span></code></pre></div>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">Postgr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/build_network.html">build_network</a></span><span class="op">(</span><span class="va">Post</span><span class="op">)</span></span>
 <span><span class="va">Postgr</span></span>

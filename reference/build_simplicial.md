@@ -3,16 +3,17 @@
 Constructs a simplicial complex from a network or higher-order pathway
 object. Three construction methods are available:
 
-- **Clique complex** (`"clique"`): every clique in the thresholded graph
-  becomes a simplex. The standard bridge from graph theory to algebraic
-  topology.
+- **Clique complex** (`"clique"`): every clique in the thresholded
+  non-zero graph becomes a simplex. Edges with absolute weight \\\geq\\
+  `threshold` are retained. The standard bridge from graph theory to
+  algebraic topology.
 
 - **Pathway complex** (`"pathway"`): each higher-order pathway from a
   `net_hon` or `net_hypa` becomes a simplex.
 
 - **Vietoris-Rips** (`"vr"`): nodes with edge weight \\\geq\\
-  `threshold` are connected; all cliques in the resulting graph become
-  simplices.
+  `threshold` and non-zero are connected; all cliques in the resulting
+  graph become simplices.
 
 ## Usage
 
@@ -23,6 +24,7 @@ build_simplicial(
   threshold = 0,
   max_dim = 10L,
   max_pathways = NULL,
+  anomaly = c("all", "over", "under"),
   ...
 )
 ```
@@ -40,8 +42,9 @@ build_simplicial(
 
 - threshold:
 
-  Minimum absolute edge weight to include an edge (default 0). Edges
-  below this are ignored.
+  Minimum non-zero absolute edge weight to include an edge (default 0).
+  Edges below this are ignored; zero-weight non-edges are never
+  included.
 
 - max_dim:
 
@@ -51,6 +54,13 @@ build_simplicial(
 
   For `type = "pathway"`: maximum number of pathways to include, ranked
   by count (HON) or ratio (HYPA). `NULL` includes all. Default `NULL`.
+
+- anomaly:
+
+  For HYPA pathway complexes, which anomaly direction to include:
+  `"all"` (default), `"over"`, or `"under"`. Under-represented HYPA
+  paths are ranked by smallest observed/expected ratio; over-represented
+  paths are ranked by largest ratio.
 
 - ...:
 

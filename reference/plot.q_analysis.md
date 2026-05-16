@@ -7,7 +7,7 @@ structure vector (max simplex dimension per node).
 
 ``` r
 # S3 method for class 'q_analysis'
-plot(x, ...)
+plot(x, combined = TRUE, ...)
 ```
 
 ## Arguments
@@ -16,13 +16,21 @@ plot(x, ...)
 
   A `q_analysis` object.
 
+- combined:
+
+  When `TRUE` (default), the two panels are stitched side-by-side via
+  [`gridExtra::arrangeGrob`](https://rdrr.io/pkg/gridExtra/man/arrangeGrob.html).
+  When `FALSE`, returns a named list (`q_vector`, `structure_vector`) of
+  ggplots.
+
 - ...:
 
   Ignored.
 
 ## Value
 
-A grid grob (invisibly).
+A grid grob (invisibly) when `combined = TRUE`; a named list of two
+ggplots when `combined = FALSE`.
 
 ## Examples
 

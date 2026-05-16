@@ -20,6 +20,7 @@ cluster_mmm(
   smooth = 0.01,
   seed = NULL,
   covariates = NULL,
+  estimator = c("firth", "multinom", "chisq"),
   cluster_by = "mmm",
   ...
 )
@@ -34,23 +35,25 @@ cluster_mmm(
 
 - k:
 
-  Integer. Number of mixture components. Default: 2.
+  Integer. Whole finite number of mixture components, \>= 2. Default: 2.
 
 - n_starts:
 
-  Integer. Number of random restarts. Default: 50.
+  Integer. Positive whole finite number of random restarts. Default: 50.
 
 - max_iter:
 
-  Integer. Maximum EM iterations per start. Default: 200.
+  Integer. Positive whole finite maximum EM iterations per start.
+  Default: 200.
 
 - tol:
 
-  Numeric. Convergence tolerance. Default: 1e-6.
+  Numeric. Finite positive convergence tolerance. Default: 1e-6.
 
 - smooth:
 
-  Numeric. Laplace smoothing constant. Default: 0.01.
+  Numeric. Finite non-negative Laplace smoothing constant. Default:
+  0.01.
 
 - seed:
 
@@ -59,13 +62,28 @@ cluster_mmm(
 - covariates:
 
   Optional. Covariates integrated into the EM algorithm to model
-  covariate-dependent mixing proportions. Accepts formula, character
-  vector, string, or data.frame (same forms as
+  covariate-dependent mixing proportions. Accepts a string, character
+  vector, formula, or data.frame (same forms as
   [`build_clusters`](https://saqr.me/Nestimate/reference/build_clusters.md)).
-  Unlike the post-hoc analysis in
+  For `netobject` or `cograph_network` input, names are resolved against
+  `$metadata` first, so a typical call is
+  `build_mmm(net, k = 3, covariates = "session_label")`. Unlike the
+  post-hoc analysis in
   [`build_clusters()`](https://saqr.me/Nestimate/reference/build_clusters.md),
-  these covariates directly influence cluster membership during
-  estimation. Requires the nnet package.
+  these covariates directly influence cluster membership during EM
+  estimation.
+
+- estimator:
+
+  Multinomial fitter for the post-hoc covariate analysis (does not
+  affect EM): `"firth"` (default, via
+  [`brglm2::brmultinom`](https://rdrr.io/pkg/brglm2/man/brmultinom.html);
+  finite under separation), `"multinom"`
+  ([`nnet::multinom`](https://rdrr.io/pkg/nnet/man/multinom.html); warns
+  about separation risk), or `"chisq"` (descriptive tests, no logit).
+  See
+  [`build_clusters`](https://saqr.me/Nestimate/reference/build_clusters.md)
+  for full details.
 
 - cluster_by:
 
@@ -77,8 +95,7 @@ cluster_mmm(
 
 - ...:
 
-  Reserved for forward compatibility with the unified `cluster_*`
-  surface. Currently unused.
+  Unsupported. Supplying unused arguments raises an error.
 
 ## Value
 

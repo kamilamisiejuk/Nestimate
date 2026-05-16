@@ -1,13 +1,13 @@
 # Plot Persistent Homology
 
-Two panels: Betti curve (threshold vs Betti number) and persistence
-diagram (birth vs death).
+Two panels: Betti curve (threshold vs Betti number) and heuristic
+persistence diagram (birth vs death) derived from Betti-count changes.
 
 ## Usage
 
 ``` r
 # S3 method for class 'persistent_homology'
-plot(x, ...)
+plot(x, combined = TRUE, ...)
 ```
 
 ## Arguments
@@ -16,13 +16,21 @@ plot(x, ...)
 
   A `persistent_homology` object.
 
+- combined:
+
+  When `TRUE` (default), the two panels are stitched side-by-side via
+  [`gridExtra::arrangeGrob`](https://rdrr.io/pkg/gridExtra/man/arrangeGrob.html).
+  When `FALSE`, returns a named list (`betti_curve`, `persistence`) of
+  ggplots.
+
 - ...:
 
   Ignored.
 
 ## Value
 
-A grid grob (invisibly).
+A grid grob (invisibly) when `combined = TRUE`; a named list of two
+ggplots when `combined = FALSE`.
 
 ## Examples
 

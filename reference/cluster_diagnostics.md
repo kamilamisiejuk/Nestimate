@@ -28,7 +28,7 @@ as.data.frame(x, row.names = NULL, optional = FALSE, ...)
 
 - ...:
 
-  Reserved for future extensions.
+  Unsupported. Supplying unused arguments raises an error.
 
 - row.names, optional:
 

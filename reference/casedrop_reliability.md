@@ -46,7 +46,7 @@ summary(object, drop_prop = 0.7, ...)
 print(x, ...)
 
 # S3 method for class 'net_casedrop_reliability'
-plot(x, ...)
+plot(x, combined = TRUE, ...)
 
 # S3 method for class 'net_casedrop_reliability_group'
 plot(
@@ -110,6 +110,12 @@ plot(
 
   A `net_casedrop_reliability_group`.
 
+- combined:
+
+  When `TRUE` (default), all four metrics are shown in one ggplot via
+  `facet_wrap(~ metric)`. When `FALSE`, returns a named list of four
+  single-panel ggplots, one per metric.
+
 - metric:
 
   Which metric to plot. One of `"correlation"` (default),
@@ -141,7 +147,8 @@ summarising edge-weight stability across case-dropping iterations.
 A data frame with one row per network containing `cor`, `mean_abs_dev`,
 `median_abs_dev`, `max_abs_dev` formatted as "mean +/- sd".
 
-A `ggplot` object.
+A `ggplot` object, or a named list of four ggplots when
+`combined = FALSE`.
 
 A `ggplot` object.
 

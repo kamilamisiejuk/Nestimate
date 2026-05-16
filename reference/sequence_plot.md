@@ -45,6 +45,7 @@ sequence_plot(
   tick = NULL,
   ncol = NULL,
   nrow = NULL,
+  combined = TRUE,
   legend = NULL,
   legend_size = NULL,
   legend_title = NULL,
@@ -193,7 +194,17 @@ sequence_plot(
 
 - ncol, nrow:
 
-  Facet grid dimensions (index + distribution).
+  Facet grid dimensions (index + distribution). Ignored when
+  `combined = FALSE`.
+
+- combined:
+
+  Index and distribution types only. When `TRUE` (default), groups are
+  arranged on one figure via
+  [`graphics::layout()`](https://rdrr.io/r/graphics/layout.html). When
+  `FALSE`, each group is drawn on its own page (one full-size figure per
+  group, with its own legend). Single-group calls (`G == 1`) ignore this
+  argument. Heatmap is always single-figure.
 
 - legend:
 

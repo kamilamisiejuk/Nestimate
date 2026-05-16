@@ -34,7 +34,7 @@ print(mixed)
 #> -- Transition (directed) --
 #>   Nodes: 3  |  Edges: 3
 #> -- Co-occurrence (undirected) --
-#>   Nodes: 3  |  Edges: 3
+#>   Nodes: 3  |  Edges: 6
 
 # \donttest{
 oh <- data.frame(
@@ -46,8 +46,8 @@ mixed <- wtna(oh, method = "both")
 print(mixed)
 #> Mixed Window TNA (transition + co-occurrence)
 #> -- Transition (directed) --
-#>   Nodes: 3  |  Edges: 7
+#>   Nodes: 3  |  Edges: 9
 #> -- Co-occurrence (undirected) --
-#>   Nodes: 3  |  Edges: 5
+#>   Nodes: 3  |  Edges: 6
 # }
 ```

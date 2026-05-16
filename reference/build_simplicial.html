@@ -3,25 +3,27 @@
 object. Three construction methods are available:
 
 Clique complex ("clique"): every clique in the
-thresholded graph becomes a simplex. The standard bridge from graph
-theory to algebraic topology.
+thresholded non-zero graph becomes a simplex. Edges with absolute
+weight \(\geq\) threshold are retained. The standard bridge
+from graph theory to algebraic topology.
 Pathway complex ("pathway"): each higher-order
 pathway from a net_hon or net_hypa becomes a simplex.
 Vietoris-Rips ("vr"): nodes with edge weight
-\(\geq\) threshold are connected; all cliques in the
-resulting graph become simplices.
+\(\geq\) threshold and non-zero are connected; all cliques in
+the resulting graph become simplices.
 
 '><meta property="og:description" content='Constructs a simplicial complex from a network or higher-order pathway
 object. Three construction methods are available:
 
 Clique complex ("clique"): every clique in the
-thresholded graph becomes a simplex. The standard bridge from graph
-theory to algebraic topology.
+thresholded non-zero graph becomes a simplex. Edges with absolute
+weight \(\geq\) threshold are retained. The standard bridge
+from graph theory to algebraic topology.
 Pathway complex ("pathway"): each higher-order
 pathway from a net_hon or net_hypa becomes a simplex.
 Vietoris-Rips ("vr"): nodes with edge weight
-\(\geq\) threshold are connected; all cliques in the
-resulting graph become simplices.
+\(\geq\) threshold and non-zero are connected; all cliques in
+the resulting graph become simplices.
 
 '><meta property="og:image" content="https://saqr.me/Nestimate/logo.svg"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -31,7 +33,7 @@ resulting graph become simplices.
 
     <a class="navbar-brand me-2" href="../index.html">Nestimate</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -70,13 +72,14 @@ resulting graph become simplices.
     <p>Constructs a simplicial complex from a network or higher-order pathway
 object. Three construction methods are available:</p>
 <ul><li><p><strong>Clique complex</strong> (<code>"clique"</code>): every clique in the
-thresholded graph becomes a simplex. The standard bridge from graph
-theory to algebraic topology.</p></li>
+thresholded non-zero graph becomes a simplex. Edges with absolute
+weight \(\geq\) <code>threshold</code> are retained. The standard bridge
+from graph theory to algebraic topology.</p></li>
 <li><p><strong>Pathway complex</strong> (<code>"pathway"</code>): each higher-order
 pathway from a <code>net_hon</code> or <code>net_hypa</code> becomes a simplex.</p></li>
 <li><p><strong>Vietoris-Rips</strong> (<code>"vr"</code>): nodes with edge weight
-\(\geq\) <code>threshold</code> are connected; all cliques in the
-resulting graph become simplices.</p></li>
+\(\geq\) <code>threshold</code> and non-zero are connected; all cliques in
+the resulting graph become simplices.</p></li>
 </ul></div>
 
     <div class="section level2">
@@ -87,6 +90,7 @@ resulting graph become simplices.</p></li>
 <span>  threshold <span class="op">=</span> <span class="fl">0</span>,</span>
 <span>  max_dim <span class="op">=</span> <span class="fl">10L</span>,</span>
 <span>  max_pathways <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  anomaly <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"all"</span>, <span class="st">"over"</span>, <span class="st">"under"</span><span class="op">)</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -106,8 +110,9 @@ resulting graph become simplices.</p></li>
 
 
 <dt id="arg-threshold">threshold<a class="anchor" aria-label="anchor" href="#arg-threshold"></a></dt>
-<dd><p>Minimum absolute edge weight to include an edge
-(default 0). Edges below this are ignored.</p></dd>
+<dd><p>Minimum non-zero absolute edge weight to include an edge
+(default 0). Edges below this are ignored; zero-weight non-edges are
+never included.</p></dd>
 
 
 <dt id="arg-max-dim">max_dim<a class="anchor" aria-label="anchor" href="#arg-max-dim"></a></dt>
@@ -119,6 +124,13 @@ has k+1 nodes.</p></dd>
 <dd><p>For <code>type = "pathway"</code>: maximum number of
 pathways to include, ranked by count (HON) or ratio (HYPA).
 <code>NULL</code> includes all. Default <code>NULL</code>.</p></dd>
+
+
+<dt id="arg-anomaly">anomaly<a class="anchor" aria-label="anchor" href="#arg-anomaly"></a></dt>
+<dd><p>For HYPA pathway complexes, which anomaly direction to
+include: <code>"all"</code> (default), <code>"over"</code>, or <code>"under"</code>.
+Under-represented HYPA paths are ranked by smallest observed/expected
+ratio; over-represented paths are ranked by largest ratio.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>

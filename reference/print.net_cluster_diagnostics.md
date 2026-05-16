@@ -25,7 +25,7 @@ print(x, digits = 3L, ...)
 
 - ...:
 
-  Additional arguments (ignored).
+  Unsupported. Supplying unused arguments raises an error.
 
 ## Value
 

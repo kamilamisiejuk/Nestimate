@@ -21,6 +21,7 @@ build_clusters(
   q = 2L,
   p = 0.1,
   covariates = NULL,
+  estimator = c("firth", "multinom", "chisq"),
   ...
 )
 ```
@@ -76,7 +77,7 @@ build_clusters(
   `c("*", "%")`.
 
   **Missing-value distance rule:** after symbols are converted to `NA`,
-  missing values are encoded as a single comparable sentinel state —
+  missing values are encoded as a single comparable sentinel state –
   *not* pairwise-deleted. Two missing values in the same position match
   (distance contribution 0); a missing value paired with any observed
   state mismatches (distance contribution 1 for Hamming, etc.). This is
@@ -94,8 +95,8 @@ build_clusters(
 
 - lambda:
 
-  Numeric. Decay rate for weighted Hamming. Higher values weight earlier
-  positions more strongly. Default: 1.
+  Numeric. Non-negative decay rate for weighted Hamming. Higher values
+  weight earlier positions more strongly. Default: 1.
 
 - seed:
 
@@ -108,42 +109,59 @@ build_clusters(
 
 - p:
 
-  Numeric. Winkler prefix penalty for Jaro-Winkler distance (clamped to
-  0–0.25). Default: `0.1`.
+  Numeric. Winkler prefix penalty for Jaro-Winkler distance. Must be
+  between 0 and 0.25. Default: `0.1`.
 
 - covariates:
 
-  Optional. Post-hoc covariate analysis of cluster membership via
-  multinomial logistic regression. Accepts:
-
-  formula
-
-  :   `~ Age + Gender`
-
-  character vector
-
-  :   `c("Age", "Gender")`
+  Optional. Post-hoc covariate analysis of cluster membership. Accepts:
 
   string
 
-  :   `"Age + Gender"`
+  :   Single column name, e.g. `"Age"`. Resolved against `x$metadata`
+      (and `x$data`) for `netobject` or `cograph_network` input.
+
+  character vector
+
+  :   `c("Age", "Gender")`, same lookup.
+
+  formula
+
+  :   `~ Age + Gender`, same lookup; supports `"Age + Gender"` string
+      form too.
 
   data.frame
 
-  :   All columns used as covariates
+  :   All columns used as covariates verbatim; must have one row per
+      sequence.
 
   NULL
 
-  :   No covariate analysis (default)
+  :   No covariate analysis (default).
 
-  Covariates are looked up in `netobject$metadata` or non-sequence
-  columns of the input data. For `tna` and `cograph_network` inputs,
-  pass covariates as a data.frame. Results stored in `$covariates`.
-  Requires the nnet package.
+  For `netobject` or `cograph_network` input, names are resolved against
+  `$metadata` first and then non-state columns of `$data`, so a typical
+  call looks like
+  `build_clusters(net, k = 3, covariates = "session_label")` without
+  pre-extracting a data.frame. `tna` input requires the data.frame form.
+  Results are stored in `$covariates`.
+
+- estimator:
+
+  Multinomial logit fitter for the covariate analysis. `"firth"`
+  (default) uses Firth's penalised likelihood via
+  [`brglm2::brmultinom`](https://rdrr.io/pkg/brglm2/man/brmultinom.html)
+  — bias-reduced and finite under quasi-complete separation.
+  `"multinom"` uses classical ML via
+  [`nnet::multinom`](https://rdrr.io/pkg/nnet/man/multinom.html); emits
+  a warning because rare-cell separation produces astronomical ORs with
+  degenerate CIs (silent failure). `"chisq"` runs WeightedCluster-style
+  descriptive tests (chi-square + Cramer's V + standardized adjusted
+  residuals for factors; Kruskal-Wallis + eta-squared for numerics).
 
 - ...:
 
-  Additional arguments (currently unused).
+  Unsupported. Supplying unused arguments raises an error.
 
 ## Value
 

@@ -1,8 +1,10 @@
 # Persistent Homology
 
-Computes persistent homology by building simplicial complexes at
-decreasing weight thresholds and tracking the birth/death of topological
-features.
+Builds clique complexes at decreasing inclusive weight thresholds and
+records the Betti curve. The returned persistence table is a heuristic
+pairing derived from changes in Betti counts across the threshold grid;
+it is not a full boundary-matrix persistent homology decomposition of
+individual homology classes.
 
 ## Usage
 
@@ -35,7 +37,8 @@ A `persistent_homology` object with:
 - persistence:
 
   Data frame of birth-death pairs: `dimension`, `birth`, `death`,
-  `persistence`.
+  `persistence`. These intervals summarize Betti-count changes across
+  the sampled thresholds.
 
 - thresholds:
 
@@ -50,9 +53,8 @@ ph <- persistent_homology(mat, n_steps = 10)
 print(ph)
 #> Persistent Homology
 #>   10 filtration steps [0.6000 → 0.0060]
-#>   Features: b0: 3 (1 persistent) 
+#>   Features: b0: 2 (1 persistent) 
 #>   Longest-lived:
 #>     b0: 0.6000 → 0.0000 (life: 0.6000)
 #>     b0: 0.6000 → 0.4680 (life: 0.1320)
-#>     b0: 0.6000 → 0.5340 (life: 0.0660)
 ```

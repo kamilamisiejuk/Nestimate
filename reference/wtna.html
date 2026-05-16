@@ -11,7 +11,7 @@ or both network types."><meta property="og:image" content="https://saqr.me/Nesti
 
     <a class="navbar-brand me-2" href="../index.html">Nestimate</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -59,7 +59,7 @@ or both network types.</p>
 <span>  method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"transition"</span>, <span class="st">"cooccurrence"</span>, <span class="st">"both"</span><span class="op">)</span>,</span>
 <span>  type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"frequency"</span>, <span class="st">"relative"</span><span class="op">)</span>,</span>
 <span>  codes <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  window_size <span class="op">=</span> <span class="fl">1L</span>,</span>
+<span>  window_size <span class="op">=</span> <span class="fl">3L</span>,</span>
 <span>  mode <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"non-overlapping"</span>, <span class="st">"overlapping"</span><span class="op">)</span>,</span>
 <span>  actor <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -153,13 +153,13 @@ per group and summed.</p>
 <span class="r-in"><span><span class="va">net</span> <span class="op">&lt;-</span> <span class="fu">wtna</span><span class="op">(</span><span class="va">df</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">net</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Network (method: wtna_transition) [directed]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Weights: [1.000, 2.000]  |  mean: 1.500</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Weights: [1.000, 2.000]  |  mean: 1.333</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Weight matrix:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     A B C</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   A 0 2 0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   B 2 0 1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   C 0 1 0 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   A 2 2 0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   B 1 1 0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   C 1 1 0 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Initial probabilities:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   A             1.000  ████████████████████████████████████████</span>
@@ -170,13 +170,13 @@ per group and summed.</p>
 <span class="r-in"><span><span class="va">nets</span> <span class="op">&lt;-</span> <span class="fu">wtna</span><span class="op">(</span><span class="va">df</span>, method <span class="op">=</span> <span class="st">"both"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">nets</span><span class="op">$</span><span class="va">transition</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Network (method: wtna_transition) [directed]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Weights: [1.000, 2.000]  |  mean: 1.500</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Weights: [1.000, 2.000]  |  mean: 1.333</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Weight matrix:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     A B C</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   A 0 2 0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   B 2 0 1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   C 0 1 0 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   A 2 2 0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   B 1 1 0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   C 1 1 0 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Initial probabilities:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   A             1.000  ████████████████████████████████████████</span>
@@ -184,13 +184,13 @@ per group and summed.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   C             0.000  </span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">nets</span><span class="op">$</span><span class="va">cooccurrence</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Network (method: wtna_cooccurrence) [undirected]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Weights: [1.000, 3.000]  |  mean: 1.750</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Weights: [1.000, 5.000]  |  mean: 2.333</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Weight matrix:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     A B C</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   A 3 0 1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   B 0 2 0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   C 1 0 1 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   A 5 3 2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   B 3 2 1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   C 2 1 1 </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># With windowing</span></span></span>
 <span class="r-in"><span><span class="va">net</span> <span class="op">&lt;-</span> <span class="fu">wtna</span><span class="op">(</span><span class="va">df</span>, window_size <span class="op">=</span> <span class="fl">2</span>, mode <span class="op">=</span> <span class="st">"non-overlapping"</span><span class="op">)</span></span></span>

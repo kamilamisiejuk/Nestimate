@@ -9,7 +9,7 @@ Compatible with igraph's edge.attr.comb parameter."><meta property="og:image" co
 
     <a class="navbar-brand me-2" href="../index.html">Nestimate</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -59,16 +59,18 @@ Compatible with igraph's edge.attr.comb parameter.</p>
 
 
 <dl><dt id="arg-w">w<a class="anchor" aria-label="anchor" href="#arg-w"></a></dt>
-<dd><p>Numeric vector of edge weights</p></dd>
+<dd><p>Numeric vector of finite edge weights. <code>NA</code> and zero weights
+are excluded before aggregation.</p></dd>
 
 
 <dt id="arg-method">method<a class="anchor" aria-label="anchor" href="#arg-method"></a></dt>
-<dd><p>Aggregation method: "sum", "mean", "median", "max", "min",
-"prod", "density", "geomean"</p></dd>
+<dd><p>Single aggregation method: "sum", "mean", "median", "max",
+"min", "prod", "density", or "geomean".</p></dd>
 
 
 <dt id="arg-n-possible">n_possible<a class="anchor" aria-label="anchor" href="#arg-n-possible"></a></dt>
-<dd><p>Number of possible edges (for density calculation)</p></dd>
+<dd><p>Optional single finite numeric number of possible edges
+for density calculation.</p></dd>
 
 </dl></div>
     <div class="section level2">

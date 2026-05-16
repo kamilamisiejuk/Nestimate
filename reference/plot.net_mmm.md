@@ -6,7 +6,7 @@ Plot Method for net_mmm
 
 ``` r
 # S3 method for class 'net_mmm'
-plot(x, type = c("posterior", "covariates"), ...)
+plot(x, type = c("posterior", "covariates"), combined = TRUE, ...)
 ```
 
 ## Arguments
@@ -21,7 +21,7 @@ plot(x, type = c("posterior", "covariates"), ...)
 
 - ...:
 
-  Additional arguments (ignored).
+  Unsupported. Supplying unused arguments raises an error.
 
 ## Value
 

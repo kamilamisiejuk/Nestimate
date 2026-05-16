@@ -6,7 +6,13 @@ Summary Method for net_hypa
 
 ``` r
 # S3 method for class 'net_hypa'
-summary(object, n = 10L, type = c("all", "over", "under"), ...)
+summary(
+  object,
+  n = 10L,
+  type = c("all", "over", "under"),
+  order_by = c("sig", "freq", "ratio", "path"),
+  ...
+)
 ```
 
 ## Arguments
@@ -25,28 +31,36 @@ summary(object, n = 10L, type = c("all", "over", "under"), ...)
   Character. Which anomalies to show: `"all"` (default), `"over"`, or
   `"under"`.
 
+- order_by:
+
+  Character. Ranking used within each anomaly direction: `"sig"` ranks
+  by the active tail probability, `"freq"` by observed count, `"ratio"`
+  by observed/expected ratio, and `"path"` alphabetically.
+
 - ...:
 
   Additional arguments (ignored).
 
 ## Value
 
-The input object, invisibly.
+A data frame with path, observed, expected, ratio, p_tail, and direction
+columns.
 
 ## Examples
 
 ``` r
 seqs <- list(c("A","B","C"), c("B","C","A"), c("A","C","B"), c("A","B","C"))
 hyp <- build_hypa(seqs, k = 2)
+#> Warning: 'k' is deprecated; use 'order' instead.
 summary(hyp)
 #> HYPA Summary
 #> 
-#>   Order: 2 | Nodes: 5 | Edges: 3
+#>   Order(s): 2 | Edges: 3
 #>   Alpha: 0.05 | p_adjust: BH
-#>   Anomalous: 0 (over: 0, under: 0)
+#>   Anomalous: 0 (over: 0, under: 0) | order_by: sig
 #> 
 #>   No anomalous paths detected.
-#> [1] path      observed  expected  ratio     p_value   direction
+#> [1] path      observed  expected  ratio     p_tail    direction
 #> <0 rows> (or 0-length row.names)
 
 # \donttest{
@@ -57,25 +71,26 @@ seqs <- data.frame(
   V4 = c("A","B","C","A","B","C","A","B","C","A")
 )
 hypa <- build_hypa(seqs, k = 2L)
+#> Warning: 'k' is deprecated; use 'order' instead.
 summary(hypa)
 #> HYPA Summary
 #> 
-#>   Order: 2 | Nodes: 3 | Edges: 3
+#>   Order(s): 2 | Edges: 3
 #>   Alpha: 0.05 | p_adjust: BH
-#>   Anomalous: 0 (over: 0, under: 0)
+#>   Anomalous: 0 (over: 0, under: 0) | order_by: sig
 #> 
 #>   No anomalous paths detected.
-#> [1] path      observed  expected  ratio     p_value   direction
+#> [1] path      observed  expected  ratio     p_tail    direction
 #> <0 rows> (or 0-length row.names)
 summary(hypa, type = "over", n = 5)
 #> HYPA Summary
 #> 
-#>   Order: 2 | Nodes: 3 | Edges: 3
+#>   Order(s): 2 | Edges: 3
 #>   Alpha: 0.05 | p_adjust: BH
-#>   Anomalous: 0 (over: 0, under: 0)
+#>   Anomalous: 0 (over: 0, under: 0) | order_by: sig
 #> 
 #>   No anomalous paths detected.
-#> [1] path      observed  expected  ratio     p_value   direction
+#> [1] path      observed  expected  ratio     p_tail    direction
 #> <0 rows> (or 0-length row.names)
 # }
 ```

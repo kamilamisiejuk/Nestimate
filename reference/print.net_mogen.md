@@ -34,7 +34,9 @@ print(mg)
 #>   Orders tested:  0 to 2
 #>   States:         4
 #>   Paths:          3 (12 observations)
-#>   AIC:           38.6 | 19.0 | 21.0
+#>   AIC:            38.6 | 19.0* | 21.0
+#>   BIC:            40.0 | 20.9* | 23.4
+#>   (* = minimum;  AIC and BIC agree on order 1)
 
 # \donttest{
 seqs <- data.frame(
@@ -49,6 +51,8 @@ print(mog)
 #>   Orders tested:  0 to 2
 #>   States:         3
 #>   Paths:          5 (15 observations)
-#>   AIC:           37.0 | 15.0 | 15.0
+#>   AIC:            37.0 | 15.0* | 15.0
+#>   BIC:            38.4 | 16.4* | 16.4
+#>   (* = minimum;  AIC and BIC agree on order 1)
 # }
 ```

@@ -15,6 +15,7 @@ plot(
   x,
   metrics = c("persistence", "stationary_prob", "return_time", "sojourn_time",
     "avg_time_to_others", "avg_time_from_others"),
+  combined = TRUE,
   ...
 )
 ```
@@ -36,6 +37,13 @@ plot(
   Character vector. Which metrics to plot. Options: `"persistence"`,
   `"stationary_prob"`, `"return_time"`, `"sojourn_time"`,
   `"avg_time_to_others"`, `"avg_time_from_others"`. Default: all six.
+
+- combined:
+
+  When `TRUE` (default), all selected metrics are shown in one ggplot
+  via `facet_wrap(~ metric)`. When `FALSE`, returns a named list of
+  single-panel ggplots, one per metric, so each can be printed, saved,
+  or re-laid-out independently.
 
 - ...:
 

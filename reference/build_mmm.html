@@ -11,7 +11,7 @@ matrix. Sequences are probabilistically assigned to components."><meta property=
 
     <a class="navbar-brand me-2" href="../index.html">Nestimate</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -62,7 +62,8 @@ matrix. Sequences are probabilistically assigned to components.</p>
 <span>  tol <span class="op">=</span> <span class="fl">1e-06</span>,</span>
 <span>  smooth <span class="op">=</span> <span class="fl">0.01</span>,</span>
 <span>  seed <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  covariates <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  covariates <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  estimator <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"firth"</span>, <span class="st">"multinom"</span>, <span class="st">"chisq"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -76,23 +77,27 @@ matrix. Sequences are probabilistically assigned to components.</p>
 
 
 <dt id="arg-k">k<a class="anchor" aria-label="anchor" href="#arg-k"></a></dt>
-<dd><p>Integer. Number of mixture components. Default: 2.</p></dd>
+<dd><p>Integer. Whole finite number of mixture components, &gt;= 2.
+Default: 2.</p></dd>
 
 
 <dt id="arg-n-starts">n_starts<a class="anchor" aria-label="anchor" href="#arg-n-starts"></a></dt>
-<dd><p>Integer. Number of random restarts. Default: 50.</p></dd>
+<dd><p>Integer. Positive whole finite number of random restarts.
+Default: 50.</p></dd>
 
 
 <dt id="arg-max-iter">max_iter<a class="anchor" aria-label="anchor" href="#arg-max-iter"></a></dt>
-<dd><p>Integer. Maximum EM iterations per start. Default: 200.</p></dd>
+<dd><p>Integer. Positive whole finite maximum EM iterations per
+start. Default: 200.</p></dd>
 
 
 <dt id="arg-tol">tol<a class="anchor" aria-label="anchor" href="#arg-tol"></a></dt>
-<dd><p>Numeric. Convergence tolerance. Default: 1e-6.</p></dd>
+<dd><p>Numeric. Finite positive convergence tolerance. Default: 1e-6.</p></dd>
 
 
 <dt id="arg-smooth">smooth<a class="anchor" aria-label="anchor" href="#arg-smooth"></a></dt>
-<dd><p>Numeric. Laplace smoothing constant. Default: 0.01.</p></dd>
+<dd><p>Numeric. Finite non-negative Laplace smoothing constant.
+Default: 0.01.</p></dd>
 
 
 <dt id="arg-seed">seed<a class="anchor" aria-label="anchor" href="#arg-seed"></a></dt>
@@ -101,17 +106,36 @@ matrix. Sequences are probabilistically assigned to components.</p>
 
 <dt id="arg-covariates">covariates<a class="anchor" aria-label="anchor" href="#arg-covariates"></a></dt>
 <dd><p>Optional. Covariates integrated into the EM algorithm
-to model covariate-dependent mixing proportions. Accepts formula,
-character vector, string, or data.frame (same forms as
-<code><a href="build_clusters.html">build_clusters</a></code>). Unlike the post-hoc analysis in
-<code><a href="build_clusters.html">build_clusters()</a></code>, these covariates directly influence cluster
-membership during estimation. Requires the <span class="pkg">nnet</span> package.</p></dd>
+to model covariate-dependent mixing proportions. Accepts a string,
+character vector, formula, or data.frame (same forms as
+<code><a href="build_clusters.html">build_clusters</a></code>). For <code>netobject</code> or
+<code>cograph_network</code> input, names are resolved against
+<code>$metadata</code> first, so a typical call is
+<code>build_mmm(net, k = 3, covariates = "session_label")</code>.
+Unlike the post-hoc analysis in <code><a href="build_clusters.html">build_clusters()</a></code>, these
+covariates directly influence cluster membership during EM
+estimation.</p></dd>
+
+
+<dt id="arg-estimator">estimator<a class="anchor" aria-label="anchor" href="#arg-estimator"></a></dt>
+<dd><p>Multinomial fitter for the post-hoc covariate
+analysis (does not affect EM): <code>"firth"</code> (default, via
+<code><a href="https://rdrr.io/pkg/brglm2/man/brmultinom.html" class="external-link">brglm2::brmultinom</a></code>; finite under separation),
+<code>"multinom"</code> (<code><a href="https://rdrr.io/pkg/nnet/man/multinom.html" class="external-link">nnet::multinom</a></code>; warns about separation
+risk), or <code>"chisq"</code> (descriptive tests, no logit). See
+<code><a href="build_clusters.html">build_clusters</a></code> for full details.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>An object of class <code>net_mmm</code> with components:</p><dl><dt>models</dt>
-<dd><p>List of <code>netobject</code>s, one per component.</p></dd>
+    <p>An object of class <code>net_mmm</code> with components:</p><dl><dt>data</dt>
+<dd><p>The full N-row sequence frame used for estimation.</p></dd>
+
+<dt>models</dt>
+<dd><p>List of <code>netobject</code>s, one per component. Each
+component carries the rows assigned to that component in its
+<code>$data</code> slot, while its transition matrix is the EM-estimated
+component transition matrix.</p></dd>
 
 <dt>k</dt>
 <dd><p>Number of components.</p></dd>

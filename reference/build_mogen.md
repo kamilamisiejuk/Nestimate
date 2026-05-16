@@ -118,7 +118,9 @@ print(m)
 #>   Orders tested:  0 to 3
 #>   States:         4
 #>   Paths:          4 (16 observations)
-#>   AIC:           50.4 | 28.7 | 26.7 | 26.7
+#>   AIC:            50.4 | 28.7 | 26.7* | 26.7
+#>   BIC:            52.7 | 32.6 | 31.3* | 31.3
+#>   (* = minimum;  AIC and BIC agree on order 2)
 plot(m)
 
 # }

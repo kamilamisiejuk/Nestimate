@@ -17,6 +17,10 @@ For association methods (`"cor"`, `"pcor"`, `"glasso"`, and custom
 estimators), the full estimator is called on resampled rows each
 iteration.
 
+If a transition network contains only one sequence, the function warns
+that such a network is not recommended for bootstrap or other
+confirmatory testing.
+
 ## Usage
 
 ``` r

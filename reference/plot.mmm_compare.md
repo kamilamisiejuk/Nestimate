@@ -17,7 +17,7 @@ plot(x, ...)
 
 - ...:
 
-  Additional arguments (ignored).
+  Unsupported. Supplying unused arguments raises an error.
 
 ## Value
 

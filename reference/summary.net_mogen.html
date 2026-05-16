@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">Nestimate</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -78,13 +78,13 @@
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   States: A, B, C, D</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Paths: 3 | Observations: 12</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Best by AIC: order 1  |  Best by BIC: order 1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Selected:    order 1 (by aic)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Optimal order: 1 (by aic)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>         order layer_dof cum_dof loglik   aic   bic selected</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> order_0     0         3       3 -16.30 38.59 40.05         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> order_1     1         1       4  -5.49 18.99 20.93      &lt;--</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> order_2     2         1       5  -5.49 20.99 23.41         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         order layer_dof cum_dof loglik   aic   bic    best selected</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> order_0     0         3       3 -16.30 38.59 40.05                 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> order_1     1         1       4  -5.49 18.99 20.93 AIC+BIC      &lt;--</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> order_2     2         1       5  -5.49 20.99 23.41                 </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span><span class="va">seqs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
@@ -98,13 +98,13 @@
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   States: A, B, C</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Paths: 5 | Observations: 15</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Best by AIC: order 1  |  Best by BIC: order 1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Selected:    order 1 (by aic)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Optimal order: 1 (by aic)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>         order layer_dof cum_dof loglik   aic   bic selected</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> order_0     0         2       2 -16.48 36.96 38.37         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> order_1     1         0       2  -5.49 14.99 16.40      &lt;--</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> order_2     2         0       2  -5.49 14.99 16.40         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         order layer_dof cum_dof loglik   aic   bic    best selected</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> order_0     0         2       2 -16.48 36.96 38.37                 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> order_1     1         0       2  -5.49 14.99 16.40 AIC+BIC      &lt;--</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> order_2     2         0       2  -5.49 14.99 16.40                 </span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

@@ -15,7 +15,7 @@ Uses the Okabe-Ito colorblind-safe palette.
 
 ``` r
 # S3 method for class 'net_markov_order'
-plot(x, panel = c("both", "ic", "permutation"), ...)
+plot(x, panel = c("both", "ic", "permutation"), combined = TRUE, ...)
 ```
 
 ## Arguments
@@ -29,13 +29,22 @@ plot(x, panel = c("both", "ic", "permutation"), ...)
   Which panel(s) to render: `"both"`, `"ic"`, or `"permutation"`.
   Default `"both"`.
 
+- combined:
+
+  When `panel = "both"` and `combined = TRUE` (default), the two panels
+  are stitched side-by-side via
+  [`gridExtra::grid.arrange`](https://rdrr.io/pkg/gridExtra/man/arrangeGrob.html).
+  When `FALSE`, returns a named list (`ic`, `permutation`) of ggplots.
+  Ignored when `panel != "both"`.
+
 - ...:
 
   Ignored.
 
 ## Value
 
-A ggplot (single panel) or a gridExtra-arranged grob (both).
+A ggplot (single panel), a gridExtra-arranged grob (both, combined), or
+a named list of two ggplots (both, not combined).
 
 ## Examples
 

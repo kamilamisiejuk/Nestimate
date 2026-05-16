@@ -17,7 +17,7 @@ summary(object, ...)
 
 - ...:
 
-  Additional arguments (ignored).
+  Unsupported. Supplying unused arguments raises an error.
 
 ## Value
 
@@ -25,7 +25,7 @@ A tidy data frame with one row per cluster and columns `cluster`,
 `size`, `within_total`, `between_out`, `between_in`. For undirected
 macro networks the in/out split is not meaningful, so `between_out`
 reports total incident weight and `between_in` is `NA`. The data frame
-is returned silently *without* printing the full object — call
+is returned silently *without* printing the full object – call
 `print(object)` explicitly if you want the verbose dump.
 
 ## Examples

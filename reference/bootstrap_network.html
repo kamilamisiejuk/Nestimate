@@ -11,7 +11,10 @@ transition bootstrap; use convert_sequence_format to
 convert long-format data first.
 For association methods ("cor", "pcor", "glasso",
 and custom estimators), the full estimator is called on resampled rows
-each iteration.'><meta property="og:description" content='Non-parametric bootstrap for any network estimated by
+each iteration.
+If a transition network contains only one sequence, the function warns that
+such a network is not recommended for bootstrap or other confirmatory
+testing.'><meta property="og:description" content='Non-parametric bootstrap for any network estimated by
 build_network. Works with all built-in methods
 (transition and association) as well as custom registered estimators.
 For transition methods ("relative", "frequency",
@@ -23,7 +26,10 @@ transition bootstrap; use convert_sequence_format to
 convert long-format data first.
 For association methods ("cor", "pcor", "glasso",
 and custom estimators), the full estimator is called on resampled rows
-each iteration.'><meta property="og:image" content="https://saqr.me/Nestimate/logo.svg"></head><body>
+each iteration.
+If a transition network contains only one sequence, the function warns that
+such a network is not recommended for bootstrap or other confirmatory
+testing.'><meta property="og:image" content="https://saqr.me/Nestimate/logo.svg"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -31,7 +37,7 @@ each iteration.'><meta property="og:image" content="https://saqr.me/Nestimate/lo
 
     <a class="navbar-brand me-2" href="../index.html">Nestimate</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -80,6 +86,9 @@ convert long-format data first.</p>
 <p>For association methods (<code>"cor"</code>, <code>"pcor"</code>, <code>"glasso"</code>,
 and custom estimators), the full estimator is called on resampled rows
 each iteration.</p>
+<p>If a transition network contains only one sequence, the function warns that
+such a network is not recommended for bootstrap or other confirmatory
+testing.</p>
     </div>
 
     <div class="section level2">

@@ -151,7 +151,12 @@ build_network(
   `list(format = "wide")` for transition methods). This is the key
   composability feature: downstream functions like bootstrap or grid
   search can store and replay the full params list without knowing
-  method internals.
+  method internals. Transition estimators accept tna-style sequence
+  options such as `weighted`, `begin_state`, `end_state`, and `concat`.
+  Column-like entries in `params` (`action`, `id`, `id_col`, `time`,
+  `session`, `order`, `codes`, and `group`) are resolved before format
+  detection and must name existing columns. If the same column role is
+  supplied both directly and through `params`, the names must agree.
 
 - labels:
 
@@ -245,16 +250,24 @@ The function works as follows:
 
 1.  Resolves method aliases to canonical names.
 
-2.  Retrieves the estimator function from the global registry.
+2.  Validates explicit column arguments before any format guessing.
 
-3.  For association methods with `level` specified, decomposes the data
+3.  Retrieves the estimator function from the global registry.
+
+4.  For association methods with `level` specified, decomposes the data
     (between-person means or within-person centering).
 
-4.  Calls the estimator: `do.call(fn, c(list(data = data), params))`.
+5.  Calls the estimator: `do.call(fn, c(list(data = data), params))`.
 
-5.  Applies scaling and thresholding to the result matrix.
+6.  Applies scaling and thresholding to the result matrix.
 
-6.  Extracts edges and constructs the `netobject`.
+7.  Extracts edges and constructs the `netobject`.
+
+For long-format transition data, supplying `action` without `actor` is
+allowed and treats all rows as one sequence in row/time order. The
+function warns because a one-sequence transition network is not
+recommended and cannot be validated by bootstrap or other confirmatory
+tests.
 
 ## See also
 

@@ -16,14 +16,15 @@ compare_mmm(data, k = 2:5, return_fits = FALSE, ...)
 
 - k:
 
-  Integer vector of component counts. Default: 2:5.
+  Integer vector of component counts. Values must be whole finite
+  numbers \>= 2. Default: 2:5.
 
 - return_fits:
 
   Logical. When `TRUE` the fitted models are retained on the result via
   `attr(result, "fits")` (a list of `net_mmm` objects, named by `k`), so
   the user can pick the chosen model without re-running the EM. Default
-  `FALSE` keeps the historical lightweight return shape — only the
+  `FALSE` keeps the historical lightweight return shape – only the
   comparison table is allocated.
 
 - ...:

@@ -7,6 +7,13 @@ and [`tna::tna()`](http://sonsoles.me/tna/reference/build_model.md).
 Each binary column represents a state; rows where the value is 1 are
 marked with the column name. Supports optional windowed aggregation.
 
+Simultaneous active states are preserved using the same window-span
+representation as
+[`tna::import_onehot()`](http://sonsoles.me/tna/reference/import_onehot.md):
+each input row/window is expanded to one sequence slot per code and
+transition counting occurs between windows, not between simultaneous
+states inside the same row.
+
 ## Usage
 
 ``` r
@@ -16,7 +23,7 @@ prepare_onehot(
   actor = NULL,
   session = NULL,
   interval = NULL,
-  window_size = 1L,
+  window_size = 3L,
   window_type = c("non-overlapping", "overlapping"),
   aggregate = FALSE
 )

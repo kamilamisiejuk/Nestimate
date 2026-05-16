@@ -34,12 +34,12 @@ print(boot)
 #> -- Transition --
 #> Bootstrap Network  [Window TNA | directed]
 #>   Iterations : 10  |  Nodes : 3
-#>   Edges      : 0 significant / 6 total
+#>   Edges      : 0 significant / 3 total
 #>   CI         : 95%  |  Inference: stability  |  CR [0.75, 1.25]
 #> -- Co-occurrence --
 #> Bootstrap Network  [Network (wtna_cooccurrence) | undirected]
 #>   Iterations : 10  |  Nodes : 3
-#>   Edges      : 0 significant / 5 total
+#>   Edges      : 0 significant / 6 total
 #>   CI         : 95%  |  Inference: stability  |  CR [0.75, 1.25]
 # \donttest{
 set.seed(1)
@@ -55,12 +55,12 @@ print(boot)
 #> -- Transition --
 #> Bootstrap Network  [Window TNA | directed]
 #>   Iterations : 20  |  Nodes : 3
-#>   Edges      : 0 significant / 7 total
+#>   Edges      : 0 significant / 9 total
 #>   CI         : 95%  |  Inference: stability  |  CR [0.75, 1.25]
 #> -- Co-occurrence --
 #> Bootstrap Network  [Network (wtna_cooccurrence) | undirected]
 #>   Iterations : 20  |  Nodes : 3
-#>   Edges      : 0 significant / 5 total
+#>   Edges      : 0 significant / 6 total
 #>   CI         : 95%  |  Inference: stability  |  CR [0.75, 1.25]
 # }
 ```

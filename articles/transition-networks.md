@@ -307,16 +307,16 @@ net_wtna <- wtna(learning_activities, actor = "student",
                  method = "transition", type = "frequency")
 print(net_wtna)
 #> Network (method: wtna_transition) [directed]
-#>   Weights: [877.000, 1861.000]  |  mean: 1120.278
+#>   Weights: [2493.000, 4314.000]  |  mean: 3025.056
 #> 
 #>   Weight matrix:
 #>           Reading Video Forum Quiz Coding Review
-#>   Reading    1797  1006  1047  955   1036   1021
-#>   Video      1054  1861  1054  972   1058   1043
-#>   Forum      1043  1021  1672  943    956   1004
-#>   Quiz        935   951   955 1584    877    894
-#>   Coding     1008  1074   967  886   1737   1048
-#>   Review     1033  1094   985  908   1029   1822 
+#>   Reading    4297  2903  2908 2638   2935   3008
+#>   Video      2921  4314  2943 2651   2909   3018
+#>   Forum      2863  2875  3881 2675   2747   2902
+#>   Quiz       2691  2654  2706 3695   2518   2542
+#>   Coding     2814  3094  2767 2559   4005   2953
+#>   Review     2971  3113  2824 2493   2909   4206 
 #> 
 #>   Initial probabilities:
 #>   Reading       0.209  ████████████████████████████████████████
@@ -332,16 +332,16 @@ print(net_wtna)
 net_wtna_rel <- wtna(learning_activities, method = "transition", type = "relative")
 print(net_wtna_rel)
 #> Network (method: wtna_transition) [directed]
-#>   Weights: [0.132, 0.263]  |  mean: 0.167
+#>   Weights: [0.136, 0.225]  |  mean: 0.167
 #> 
 #>   Weight matrix:
 #>           Reading Video Forum  Quiz Coding Review
-#>   Reading   0.260 0.147 0.152 0.139  0.153  0.149
-#>   Video     0.151 0.263 0.149 0.138  0.152  0.148
-#>   Forum     0.158 0.154 0.249 0.142  0.146  0.150
-#>   Quiz      0.152 0.153 0.154 0.253  0.142  0.146
-#>   Coding    0.151 0.159 0.144 0.132  0.258  0.156
-#>   Review    0.151 0.159 0.143 0.133  0.151  0.263 
+#>   Reading   0.225 0.157 0.155 0.142  0.159  0.162
+#>   Video     0.156 0.225 0.157 0.142  0.159  0.161
+#>   Forum     0.160 0.161 0.210 0.150  0.156  0.162
+#>   Quiz      0.161 0.160 0.161 0.213  0.151  0.153
+#>   Coding    0.157 0.169 0.152 0.141  0.220  0.162
+#>   Review    0.162 0.167 0.152 0.136  0.159  0.224 
 #> 
 #>   Initial probabilities:
 #>   Reading       0.500  ████████████████████████████████████████
@@ -537,16 +537,13 @@ summary(Post)
 #>  1        982 504 (51%)          478 (49%)        
 #>  2       1018 496 (49%)          522 (51%)        
 #> 
-#> Predictors of Membership (reference: Cluster 1):
+#> Predictors of Membership (estimator = firth, reference: Cluster 1):
 #>  Cluster Variable    OR   95% CI       p     Sig
 #>  2       AchieverLow 1.11 [0.93, 1.32] 0.245    
 #> 
 #> Model: AIC = 2774.6 | BIC = 2785.8 | McFadden R-squared = 0.00
 #> 
 #> Note: Covariates are post-hoc and do not influence cluster assignments.
-#>   cluster size mean_within_dist
-#> 1       1  982         10.69340
-#> 2       2 1018         18.59498
 ```
 
 ``` r

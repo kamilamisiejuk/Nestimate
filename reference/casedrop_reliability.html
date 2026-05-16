@@ -33,7 +33,7 @@ iterations. Dashed horizontal line marks the stability threshold
 
     <a class="navbar-brand me-2" href="../index.html">Nestimate</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -114,7 +114,7 @@ iterations. Dashed horizontal line marks the stability threshold
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'net_casedrop_reliability'</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">x</span>, combined <span class="op">=</span> <span class="cn">TRUE</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'net_casedrop_reliability_group'</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span></span>
@@ -180,6 +180,12 @@ edge vector. Default <code>FALSE</code>.</p></dd>
 <dd><p>A <code>net_casedrop_reliability_group</code>.</p></dd>
 
 
+<dt id="arg-combined">combined<a class="anchor" aria-label="anchor" href="#arg-combined"></a></dt>
+<dd><p>When <code>TRUE</code> (default), all four metrics are shown in
+one ggplot via <code>facet_wrap(~ metric)</code>. When <code>FALSE</code>, returns a named
+list of four single-panel ggplots, one per metric.</p></dd>
+
+
 <dt id="arg-metric">metric<a class="anchor" aria-label="anchor" href="#arg-metric"></a></dt>
 <dd><p>Which metric to plot. One of <code>"correlation"</code>
 (default), <code>"mean_abs_dev"</code>, <code>"median_abs_dev"</code>, <code>"max_abs_dev"</code>.</p></dd>
@@ -207,7 +213,8 @@ case-dropping iterations.</p>
 <p>A data frame with one row per network containing
 <code>cor</code>, <code>mean_abs_dev</code>, <code>median_abs_dev</code>, <code>max_abs_dev</code> formatted as
 "mean +/- sd".</p>
-<p>A <code>ggplot</code> object.</p>
+<p>A <code>ggplot</code> object, or a named list of four ggplots when
+<code>combined = FALSE</code>.</p>
 <p>A <code>ggplot</code> object.</p>
     </div>
     <div class="section level2">

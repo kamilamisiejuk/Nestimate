@@ -13,16 +13,18 @@ net_aggregate_weights(w, method = "sum", n_possible = NULL)
 
 - w:
 
-  Numeric vector of edge weights
+  Numeric vector of finite edge weights. `NA` and zero weights are
+  excluded before aggregation.
 
 - method:
 
-  Aggregation method: "sum", "mean", "median", "max", "min", "prod",
-  "density", "geomean"
+  Single aggregation method: "sum", "mean", "median", "max", "min",
+  "prod", "density", or "geomean".
 
 - n_possible:
 
-  Number of possible edges (for density calculation)
+  Optional single finite numeric number of possible edges for density
+  calculation.
 
 ## Value
 

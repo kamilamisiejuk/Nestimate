@@ -15,7 +15,7 @@ distance computation for 100-1000x speedup on edit distances."><meta property="o
 
     <a class="navbar-brand me-2" href="../index.html">Nestimate</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -72,6 +72,7 @@ distance computation for 100-1000x speedup on edit distances.</p>
 <span>  q <span class="op">=</span> <span class="fl">2L</span>,</span>
 <span>  p <span class="op">=</span> <span class="fl">0.1</span>,</span>
 <span>  covariates <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  estimator <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"firth"</span>, <span class="st">"multinom"</span>, <span class="st">"chisq"</span><span class="op">)</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -128,7 +129,7 @@ Default: <code>"pam"</code>.</p></dd>
 Default: <code>c("*", "%")</code>.</p>
 <p><strong>Missing-value distance rule:</strong> after symbols are converted to
 <code>NA</code>, missing values are encoded as a single comparable sentinel
-state — <em>not</em> pairwise-deleted. Two missing values in the same
+state – <em>not</em> pairwise-deleted. Two missing values in the same
 position match (distance contribution 0); a missing value paired with
 any observed state mismatches (distance contribution 1 for Hamming,
 etc.). This is the conventional behaviour for aligned sequence
@@ -145,8 +146,8 @@ Default: <code>FALSE</code>.</p></dd>
 
 
 <dt id="arg-lambda">lambda<a class="anchor" aria-label="anchor" href="#arg-lambda"></a></dt>
-<dd><p>Numeric. Decay rate for weighted Hamming. Higher values
-weight earlier positions more strongly. Default: 1.</p></dd>
+<dd><p>Numeric. Non-negative decay rate for weighted Hamming.
+Higher values weight earlier positions more strongly. Default: 1.</p></dd>
 
 
 <dt id="arg-seed">seed<a class="anchor" aria-label="anchor" href="#arg-seed"></a></dt>
@@ -160,37 +161,54 @@ and <code>"jaccard"</code> distances. Default: <code>2L</code>.</p></dd>
 
 
 <dt id="arg-p">p<a class="anchor" aria-label="anchor" href="#arg-p"></a></dt>
-<dd><p>Numeric. Winkler prefix penalty for Jaro-Winkler distance
-(clamped to 0–0.25). Default: <code>0.1</code>.</p></dd>
+<dd><p>Numeric. Winkler prefix penalty for Jaro-Winkler distance.
+Must be between 0 and 0.25. Default: <code>0.1</code>.</p></dd>
 
 
 <dt id="arg-covariates">covariates<a class="anchor" aria-label="anchor" href="#arg-covariates"></a></dt>
 <dd><p>Optional. Post-hoc covariate analysis of cluster
-membership via multinomial logistic regression. Accepts:</p><dl><dt>formula</dt>
-<dd><p><code>~ Age + Gender</code></p></dd>
+membership. Accepts:</p><dl><dt>string</dt>
+<dd><p>Single column name, e.g. <code>"Age"</code>. Resolved
+against <code>x$metadata</code> (and <code>x$data</code>) for
+<code>netobject</code> or <code>cograph_network</code> input.</p></dd>
 
 <dt>character vector</dt>
-<dd><p><code>c("Age", "Gender")</code></p></dd>
+<dd><p><code>c("Age", "Gender")</code>, same lookup.</p></dd>
 
-<dt>string</dt>
-<dd><p><code>"Age + Gender"</code></p></dd>
+<dt>formula</dt>
+<dd><p><code>~ Age + Gender</code>, same lookup; supports
+<code>"Age + Gender"</code> string form too.</p></dd>
 
 <dt>data.frame</dt>
-<dd><p>All columns used as covariates</p></dd>
+<dd><p>All columns used as covariates verbatim;
+must have one row per sequence.</p></dd>
 
 <dt>NULL</dt>
-<dd><p>No covariate analysis (default)</p></dd>
+<dd><p>No covariate analysis (default).</p></dd>
 
 
-</dl><p>Covariates are looked up in <code>netobject$metadata</code> or
-non-sequence columns of the input data. For <code>tna</code> and
-<code>cograph_network</code> inputs, pass covariates as a data.frame.
-Results stored in <code>$covariates</code>. Requires the <span class="pkg">nnet</span>
-package.</p></dd>
+</dl><p>For <code>netobject</code> or <code>cograph_network</code> input, names are
+resolved against <code>$metadata</code> first and then non-state columns
+of <code>$data</code>, so a typical call looks like
+<code>build_clusters(net, k = 3, covariates = "session_label")</code>
+without pre-extracting a data.frame. <code>tna</code> input requires the
+data.frame form. Results are stored in <code>$covariates</code>.</p></dd>
+
+
+<dt id="arg-estimator">estimator<a class="anchor" aria-label="anchor" href="#arg-estimator"></a></dt>
+<dd><p>Multinomial logit fitter for the covariate analysis.
+<code>"firth"</code> (default) uses Firth's penalised likelihood via
+<code><a href="https://rdrr.io/pkg/brglm2/man/brmultinom.html" class="external-link">brglm2::brmultinom</a></code> — bias-reduced and finite under
+quasi-complete separation. <code>"multinom"</code> uses classical ML via
+<code><a href="https://rdrr.io/pkg/nnet/man/multinom.html" class="external-link">nnet::multinom</a></code>; emits a warning because rare-cell separation
+produces astronomical ORs with degenerate CIs (silent failure).
+<code>"chisq"</code> runs WeightedCluster-style descriptive tests
+(chi-square + Cramer's V + standardized adjusted residuals for
+factors; Kruskal-Wallis + eta-squared for numerics).</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Additional arguments (currently unused).</p></dd>
+<dd><p>Unsupported. Supplying unused arguments raises an error.</p></dd>
 
 </dl></div>
     <div class="section level2">

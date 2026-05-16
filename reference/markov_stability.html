@@ -11,7 +11,7 @@ recurrence time, sojourn time, and mean accessibility to/from other states."><me
 
     <a class="navbar-brand me-2" href="../index.html">Nestimate</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -61,6 +61,7 @@ recurrence time, sojourn time, and mean accessibility to/from other states.</p>
 <span>  <span class="va">x</span>,</span>
 <span>  metrics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"persistence"</span>, <span class="st">"stationary_prob"</span>, <span class="st">"return_time"</span>, <span class="st">"sojourn_time"</span>,</span>
 <span>    <span class="st">"avg_time_to_others"</span>, <span class="st">"avg_time_from_others"</span><span class="op">)</span>,</span>
+<span>  combined <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -84,6 +85,13 @@ row-stochastic numeric transition matrix, or a wide sequence data.frame
 <code>"persistence"</code>, <code>"stationary_prob"</code>, <code>"return_time"</code>,
 <code>"sojourn_time"</code>, <code>"avg_time_to_others"</code>,
 <code>"avg_time_from_others"</code>. Default: all six.</p></dd>
+
+
+<dt id="arg-combined">combined<a class="anchor" aria-label="anchor" href="#arg-combined"></a></dt>
+<dd><p>When <code>TRUE</code> (default), all selected metrics are
+shown in one ggplot via <code>facet_wrap(~ metric)</code>. When <code>FALSE</code>,
+returns a named list of single-panel ggplots, one per metric, so each
+can be printed, saved, or re-laid-out independently.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>

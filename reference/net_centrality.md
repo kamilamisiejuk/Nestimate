@@ -53,7 +53,7 @@ net <- build_network(seqs, method = "relative")
 net_centrality(net)
 #> centralities computed excluding loops (diagonal). Pass `loops = TRUE` to include self-transitions.
 #>   InStrength OutStrength Betweenness
-#> A          1           1           2
-#> B          1           1           2
-#> C          1           1           2
+#> A          1           1         0.5
+#> B          1           1         0.5
+#> C          1           1         0.5
 ```

@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">Nestimate</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -60,7 +60,8 @@
 
 
 <dt id="arg-k">k<a class="anchor" aria-label="anchor" href="#arg-k"></a></dt>
-<dd><p>Integer vector of component counts. Default: 2:5.</p></dd>
+<dd><p>Integer vector of component counts. Values must be whole finite
+numbers &gt;= 2. Default: 2:5.</p></dd>
 
 
 <dt id="arg-return-fits">return_fits<a class="anchor" aria-label="anchor" href="#arg-return-fits"></a></dt>
@@ -68,7 +69,7 @@
 retained on the result via <code>attr(result, "fits")</code> (a list of
 <code>net_mmm</code> objects, named by <code>k</code>), so the user can pick
 the chosen model without re-running the EM. Default <code>FALSE</code>
-keeps the historical lightweight return shape — only the comparison
+keeps the historical lightweight return shape – only the comparison
 table is allocated.</p></dd>
 
 

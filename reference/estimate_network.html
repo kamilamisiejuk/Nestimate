@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">Nestimate</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -78,7 +78,14 @@ compatibility.</p></dd>
 function (e.g. <code>list(gamma = 0.5)</code> for glasso, or
 <code>list(format = "wide")</code> for transition methods). This is the key
 composability feature: downstream functions like bootstrap or grid search
-can store and replay the full params list without knowing method internals.</p></dd>
+can store and replay the full params list without knowing method internals.
+Transition estimators accept tna-style sequence options such as
+<code>weighted</code>, <code>begin_state</code>, <code>end_state</code>, and <code>concat</code>.
+Column-like entries in <code>params</code> (<code>action</code>, <code>id</code>,
+<code>id_col</code>, <code>time</code>, <code>session</code>, <code>order</code>, <code>codes</code>,
+and <code>group</code>) are resolved before format detection and must name
+existing columns. If the same column role is supplied both directly and
+through <code>params</code>, the names must agree.</p></dd>
 
 
 <dt id="arg-scaling">scaling<a class="anchor" aria-label="anchor" href="#arg-scaling"></a></dt>

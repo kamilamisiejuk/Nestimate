@@ -7,7 +7,7 @@ degree-by-dimension heatmap.
 
 ``` r
 # S3 method for class 'simplicial_complex'
-plot(x, ...)
+plot(x, combined = TRUE, ...)
 ```
 
 ## Arguments
@@ -16,13 +16,23 @@ plot(x, ...)
 
   A `simplicial_complex` object.
 
+- combined:
+
+  When `TRUE` (default), the four panels are stitched into a 2x2 gtable
+  via
+  [`gridExtra::arrangeGrob`](https://rdrr.io/pkg/gridExtra/man/arrangeGrob.html)
+  and drawn. When `FALSE`, returns a named list of the four ggplots
+  (`f_vector`, `betti`, `degree`, `degree_heatmap`) so each can be
+  printed, saved, or re-laid-out independently.
+
 - ...:
 
   Ignored.
 
 ## Value
 
-A grid grob (invisibly).
+A grid grob (invisibly) when `combined = TRUE`; a named list of four
+ggplots when `combined = FALSE`.
 
 ## Examples
 

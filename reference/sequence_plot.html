@@ -25,7 +25,7 @@ distribution_plot.
 
     <a class="navbar-brand me-2" href="../index.html">Nestimate</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -102,6 +102,7 @@ thin gaps (no dendrogram). Supports grouping via <code>group</code> or a
 <span>  tick <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  ncol <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  nrow <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  combined <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  legend <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  legend_size <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  legend_title <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -243,7 +244,17 @@ instead.</p></dd>
 
 
 <dt id="arg-ncol-nrow">ncol, nrow<a class="anchor" aria-label="anchor" href="#arg-ncol-nrow"></a></dt>
-<dd><p>Facet grid dimensions (index + distribution).</p></dd>
+<dd><p>Facet grid dimensions (index + distribution).
+Ignored when <code>combined = FALSE</code>.</p></dd>
+
+
+<dt id="arg-combined">combined<a class="anchor" aria-label="anchor" href="#arg-combined"></a></dt>
+<dd><p>Index and distribution types only. When <code>TRUE</code>
+(default), groups are arranged on one figure via
+<code><a href="https://rdrr.io/r/graphics/layout.html" class="external-link">graphics::layout()</a></code>. When <code>FALSE</code>, each group is drawn
+on its own page (one full-size figure per group, with its own
+legend). Single-group calls (<code>G == 1</code>) ignore this argument.
+Heatmap is always single-figure.</p></dd>
 
 
 <dt id="arg-legend">legend<a class="anchor" aria-label="anchor" href="#arg-legend"></a></dt>

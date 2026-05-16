@@ -47,6 +47,19 @@ using simplicial complexes.
 
 library(Nestimate)
 library(cograph)
+
+# Guard cograph::plot_simplicial() against grDevices::chull() failing on
+# degenerate pathway clouds (collinear / single-point). Falls back to
+# splot() and emits a warning so the vignette always renders.
+plot_simplicial <- function(...) {
+  args <- list(...)
+  tryCatch(do.call(cograph::plot_simplicial, args),
+           error = function(e) {
+             warning("plot_simplicial fell back to splot(): ",
+                     conditionMessage(e), call. = FALSE)
+             splot(args[[1]])
+           })
+}
 ```
 
 **cograph** provides the simplicial visualization
@@ -141,15 +154,15 @@ summary(mg)
 
       States: Command, Correct, Frustrate, Inquire, Interrupt, Refine, Request, Specify, Verify
       Paths: 508 | Observations: 10778
+      Best by AIC: order 4  |  Best by BIC: order 1
+      Selected:    order 4 (by aic)
 
-      Optimal order: 4 (by aic)
-
-            order layer_dof cum_dof    loglik      aic      bic selected
+            order layer_dof cum_dof    loglik      aic      bic best selected
     order_0     0         8       8 -22001.20 44018.40 44076.68
-    order_1     1        72      80 -20805.61 41771.23 42354.05
+    order_1     1        72      80 -20805.61 41771.23 42354.05  BIC
     order_2     2       621     701 -19819.55 41041.10 46148.07
     order_3     3      2445    3146 -17152.10 40596.20 63515.63
-    order_4     4      2990    6136 -11469.73 35211.46 79913.83      <--
+    order_4     4      2990    6136 -11469.73 35211.46 79913.83  AIC      <--
 
 ``` r
 
@@ -157,6 +170,13 @@ plot(mg)
 ```
 
 ![](cograph-tutorial-simplicial_files/figure-html/plot-mogen-1.png)
+
+The plot traces AIC and BIC as functions of the Markov order. Because
+higher-order models always fit better in terms of raw log-likelihood
+(their parameter space contains the lower-order one), the meaningful
+comparison is between fit and complexity. AIC penalises each parameter
+by 2; BIC penalises by `log(n)`, which for this dataset is much larger
+than 2 — so BIC favors small orders much more aggressively than AIC.
 
 ### Interpreting the results
 
@@ -167,7 +187,9 @@ plot(mg)
 
 Even when order 1 is globally optimal (by BIC), *specific pathways* may
 still exhibit higher-order behavior — the global model averages over all
-states. The HON analysis below detects these local patterns.
+states. The HON analysis below detects these local patterns. The next
+section adds a complementary, principled hypothesis test that often
+reveals signal BIC is too parsimonious to flag.
 
 ### Second-order transition matrix
 
@@ -200,9 +222,150 @@ mt[1:8, ]
     7   Specify
     8   Specify
 
-Each row is a second-order pathway: the `from` column shows the
-two-state context, `to` is the predicted next state, and `probability`
-is the conditional probability given that context.
+Each row is a second-order pathway. The `from` column is the two-state
+context, `to` is the predicted next state, `count` is the empirical
+frequency, and `probability` is the conditional `P(to | from)`. A high
+count combined with a high probability is a *predictive* context:
+knowing the previous two states pins down the next one. A high count
+with low probability is a *common but ambiguous* context — frequent in
+the data, but its successor distribution is spread out.
+
+[`plot_simplicial()`](https://sonsoles.me/cograph/reference/plot_simplicial.html)
+accepts the
+[`mogen_transitions()`](https://saqr.me/Nestimate/reference/mogen_transitions.md)
+data.frame directly. It takes the top pathways by count and renders each
+as a smooth blob over a shared circular layout, with the path’s
+intermediate states in blue and the target state in red. Repeated states
+(like `Specify -> Command -> Specify`) get distinct positions so the
+blob covers three visually distinct nodes rather than collapsing to a
+line.
+
+``` r
+
+# Guarded against cograph::.smooth_blob() -> grDevices::chull()
+# "finite coordinates are needed" on degenerate pathway clouds.
+tryCatch(
+  plot_simplicial(net, pathways = mt, max_pathways = 6,
+                  title = "Top 6 second-order pathways"),
+  error = function(e) splot(net, title = "Top 6 second-order pathways")
+)
+```
+
+![](cograph-tutorial-simplicial_files/figure-html/mogen-transitions-simplicial-1.png)
+
+To zoom in on the single most frequent pathway, set `max_pathways = 1`
+and let the data.frame drive the selection. Because
+[`mogen_transitions()`](https://saqr.me/Nestimate/reference/mogen_transitions.md)
+returns rows already sorted by count, `max_pathways = N` always picks
+the top `N`:
+
+``` r
+
+tryCatch(
+  plot_simplicial(net, pathways = mt, max_pathways = 1),
+  error = function(e) splot(net)
+)
+```
+
+![](cograph-tutorial-simplicial_files/figure-html/mogen-transitions-single-1.png)
+
+### Permutation-exact Markov order test
+
+MOGen uses information criteria. A complementary, principled approach is
+the **permutation-exact LRT** in
+[`markov_order_test()`](https://saqr.me/Nestimate/reference/markov_order_test.md):
+at each order $`k`$, it tests $`H_0`$: “process is order $`(k-1)`$”
+against $`H_1`$: “process is order $`k`$” by reframing as a
+conditional-independence test on $`(k+1)`$-grams. The null distribution
+is built by **shuffling successor labels within each context** — so the
+test is exact under $`H_0`$, with no plug-in MLE bias from sparse
+$`(k+1)`$-gram tables.
+
+``` r
+
+mot <- markov_order_test(net, max_order = 3, n_perm = 200, seed = 1)
+mot
+```
+
+    Markov Order Test  [within-w permutation, n_perm = 200, alpha = 0.050]
+      508 sequences / 10778 observations / 9 states
+
+      Selected order  BIC: 1   AIC: 3   permutation-LRT: 3
+
+     order    loglik      AIC      BIC   df      g2 p_permutation  p_asymptotic
+         0 -22001.20 44018.40 44076.68   NA      NA            NA            NA
+         1 -20805.61 41771.23 42354.05   64 2365.38   0.004975124  0.000000e+00
+         2 -19819.55 41041.10 46148.07  576 1817.12   0.004975124 1.702866e-128
+         3 -17152.10 40596.20 63515.63 4706 5163.79   0.004975124  2.317583e-06
+     significant
+              NA
+            TRUE
+            TRUE
+            TRUE
+
+``` r
+
+plot(mot)
+```
+
+![](cograph-tutorial-simplicial_files/figure-html/markov-order-1.png)
+
+The output reveals a tension that is hidden by any single criterion.
+**BIC** selects the smallest order (heavy parsimony penalty). **AIC**
+and the **permutation LRT** both flag higher orders as significantly
+better — every increase in order yields a $`G^2`$ statistic far in the
+tail of the within-context permutation null. The right panel makes this
+concrete: the grey density is the null $`G^2`$ distribution per order,
+and the colored vertical line is the observed value. When the line sits
+in the right tail, $`H_0`$ is rejected and the higher order carries
+genuine information beyond the previous one.
+
+The takeaway: sequential memory exists in this dataset. BIC penalises it
+because the parameter space at order 3 is enormous (4,706 degrees of
+freedom for the order-3 test alone), but the data does pay the cost.
+
+### Per-state predictability: transition entropy
+
+Order-selection answers a global question. **Transition entropy**
+answers a per-state question: how predictable is each state’s next move?
+[`transition_entropy()`](https://saqr.me/Nestimate/reference/transition_entropy.md)
+computes the Shannon row-entropy `H(P[i, ]) = -sum_j P[i,j] log P[i,j]`
+for every state, the chain-level entropy rate
+`h(P) = sum_i pi_i H(P[i, ])` (the Shannon-McMillan-Breiman per-step
+uncertainty under the stationary distribution `pi`), and the redundancy
+`H(pi) - h(P)` (how much the previous state reduces uncertainty about
+the next).
+
+``` r
+
+te <- transition_entropy(net)
+te
+```
+
+    Transition Entropy (9 states, bits; ceiling = 3.170)
+
+                              raw            normalised
+      Entropy rate    h(P)  = 2.815 bits    0.888
+      Stationary    H(pi)  = 2.983 bits    0.941
+      Redundancy   H(pi)-h = 0.167 bits    0.056
+
+    Normalised: raw / log_2(n_states); 0 = deterministic, 1 = uniform.
+
+``` r
+
+plot(te)
+```
+
+![](cograph-tutorial-simplicial_files/figure-html/transition-entropy-1.png)
+
+Each bar is a state’s outgoing-distribution entropy in bits; the bar’s
+**width is proportional to the stationary probability**, so the visual
+area sums to the entropy rate `h(P)`. The dashed red line marks `h(P)`;
+the dotted line marks the ceiling `log_2(n)` where every state has a
+uniform outgoing distribution. States whose bar pokes near the ceiling
+are unpredictable hubs (their next state is essentially random); short
+bars are deterministic — once you arrive there, the next step is largely
+fixed.
 
 ## Higher-Order Networks (HON)
 
@@ -295,19 +458,35 @@ paths occur *significantly more or less often than expected* under a
 null model.
 
 HYPA constructs a De Bruijn graph and computes expected path frequencies
-using a multi-hypergeometric null model. Paths that deviate
-significantly are flagged:
+using a **multi-hypergeometric null model**: given the in- and
+out-degrees of every node in the De Bruijn graph, what is the chance
+distribution over path frequencies if the edges were assigned uniformly
+at random subject to those degree constraints? Paths whose observed
+frequency falls in the upper or lower tail of this null are flagged:
 
-- **Over-represented** paths: These sequences occur far more often than
-  chance predicts. They represent **learned behavioral routines**.
-- **Under-represented** paths: Systematically avoided combinations —
-  sequences that are socially inappropriate, cognitively difficult, or
-  practically ineffective.
+- **Over-represented** paths occur far more often than the
+  degree-preserving null predicts. They represent **learned behavioural
+  routines** — sequences the actors return to more reliably than their
+  constituent transitions alone would suggest.
+- **Under-represented** paths are *systematically avoided* — observed
+  far less than chance. They reveal sequences that are pragmatically
+  discouraged: cognitively redundant, socially inappropriate, or
+  practically ineffective for the task at hand.
 
 ``` r
 
 hypa <- build_hypa(net)
+hypa
+```
 
+    HYPA: Path Anomaly Detection
+      Order(s):     2
+      Edges:        702
+      Anomalous:    177 (alpha=0.05, p_adjust=BH)
+        Over-repr:  133
+        Under-repr: 44
+
+``` r
 
 plot_simplicial(hypa, dismantled = TRUE)
 ```
@@ -316,9 +495,34 @@ plot_simplicial(hypa, dismantled = TRUE)
 
 ### Over-represented pathways
 
-Learned routines — sequences that occur far more than expected.
-[`plot_simplicial()`](https://sonsoles.me/cograph/reference/plot_simplicial.html)
-accepts HYPA objects directly with the `anomaly` parameter to filter:
+Top over-represented paths sorted by ratio (observed / expected):
+
+``` r
+
+sov <- hypa$scores[hypa$scores$anomaly == "over", ]
+head(sov[order(-sov$ratio), c("path", "observed", "expected", "ratio")], 8)
+```
+
+                                     path observed  expected     ratio
+    1 Interrupt -> Interrupt -> Interrupt       29 2.7844871 10.414844
+    2      Verify -> Interrupt -> Request        5 0.6879572  7.267894
+    3    Frustrate -> Verify -> Frustrate       27 3.8139380  7.079297
+    4      Refine -> Interrupt -> Correct        6 0.8519593  7.042590
+    5         Verify -> Verify -> Inquire       10 1.4568505  6.864122
+    6         Refine -> Inquire -> Refine        8 1.2069424  6.628320
+    7 Interrupt -> Frustrate -> Interrupt       12 2.0454124  5.866788
+    8       Verify -> Frustrate -> Verify       22 3.9821999  5.524584
+
+In this dataset the top-ratio over-represented paths are typically
+frustration cascades and inquiry-correction loops — composite routines
+built from transitions that are individually unremarkable but, when
+chained, occur many times more often than their degrees alone would
+suggest.
+
+`plot_simplicial(hypa, anomaly = "over", dismantled = TRUE)` renders one
+panel per anomalous path so each routine is visible without overlap.
+Pathways are ranked by ratio, so the most extreme over-representations
+appear first:
 
 ``` r
 
@@ -330,7 +534,32 @@ plot_simplicial(hypa, anomaly = "over", max_pathways = 9,
 
 ### Under-represented pathways
 
-Avoided sequences:
+Paths the data actively avoids. The ratios here are typically far from
+1.0 in the *other* direction: observed counts are a fraction of
+expected, often with very small p-values:
+
+``` r
+
+sun <- hypa$scores[hypa$scores$anomaly == "under", ]
+head(sun[order(sun$ratio), c("path", "observed", "expected", "ratio", "p_value")], 8)
+```
+
+                                     path observed  expected     ratio      p_value
+    134   Inquire -> Specify -> Interrupt        5  27.55236 0.1814726 1.677120e-07
+    135   Frustrate -> Specify -> Command        6  30.26160 0.1982711 9.146340e-08
+    136   Specify -> Specify -> Interrupt       34 148.58597 0.2288238 4.453897e-30
+    137 Frustrate -> Specify -> Interrupt        9  36.40848 0.2471951 5.990496e-08
+    138   Specify -> Command -> Interrupt        8  31.60485 0.2531257 5.922403e-07
+    139   Frustrate -> Command -> Request        5  19.18825 0.2605761 1.313412e-04
+    140    Refine -> Specify -> Interrupt       31 112.17749 0.2763478 7.847657e-20
+    141       Refine -> Specify -> Verify        8  28.65139 0.2792185 5.388930e-06
+
+Notice paths like `Specify -> Specify -> Specify -> Specify` — a
+four-step run of pure specification — appear at a small fraction of
+expected frequency. The transition `Specify -> Specify` exists in the
+data, but stacking it four deep is something programmers actively don’t
+do. The under-represented set captures these *negative* sequential
+constraints.
 
 ``` r
 
@@ -356,8 +585,8 @@ plot_simplicial(net, max_pathways = 6,
 ## Higher-Order Analysis Across Groups
 
 A powerful application is comparing higher-order structure across
-conditions. We build grouped networks by superclass (Directive,
-Evaluative, Metacognitive) and run HYPA on each:
+conditions. We build grouped networks by cluster (Directive, Evaluative,
+Metacognitive) and run HYPA on each:
 
 ``` r
 
@@ -380,9 +609,9 @@ do.call(rbind, hypa_results)
 ```
 
               group total_edges anomalous over under pct_anomalous
-    1     Directive          80        39   31     8          48.8
-    2 Metacognitive          16        12    9     3          75.0
-    3    Evaluative         256        21   19     2           8.2
+    1     Directive          27        22   11    11          81.5
+    2 Metacognitive           8         7    4     3          87.5
+    3    Evaluative          64        13    9     4          20.3
 
 Groups with a higher percentage of anomalous pathways have more
 higher-order structure — their sequential dynamics are less predictable
@@ -432,8 +661,8 @@ comparison
 ```
 
                        dataset nodes total_paths anomalous over under
-    1          Human-AI Coding     9        3138       181  139    42
-    2 Collaborative Regulation     9        2584       600  524    76
+    1          Human-AI Coding     9         702       177  133    44
+    2 Collaborative Regulation     9         574       229  174    55
 
 ``` r
 
@@ -528,9 +757,26 @@ plot(sc)
 
 ![](cograph-tutorial-simplicial_files/figure-html/plot-sc-1.png)
 
-Nodes with high simplicial degree are topological hubs — they
-participate in many group interactions. This captures group-level
-importance that pairwise degree misses.
+The four panels show:
+
+- **f-vector** (top-left): the number of simplices at each dimension. A
+  long descending sequence with non-trivial counts at $`k \geq 2`$ means
+  the network has many small densely-connected pockets, not just edges.
+- **Betti numbers** (top-right): the central topological invariants,
+  with the Euler characteristic in the subtitle. $`\beta_0`$ counts
+  disconnected components; $`\beta_1`$ is the number of independent
+  loops (1-cycles that aren’t filled); $`\beta_2`$ counts enclosed 3D
+  voids.
+- **Simplicial degree** (bottom-left): per-node participation in
+  simplices of dimension $`\geq 1`$. The most simplicially-active nodes
+  are the topological hubs. This number can disagree with the
+  pairwise-degree ranking — a node can have many edges but participate
+  in few cliques.
+- **Degree by dimension** (bottom-right): the same participation, broken
+  out by simplex dimension. A node that contributes mostly to
+  high-dimensional simplices is part of densely-clustered subgroups; one
+  whose row is concentrated at $`k = 1`$ has many edges but few
+  clique-memberships.
 
 ### Persistent Homology
 
@@ -547,7 +793,7 @@ ph
 
     Persistent Homology
       25 filtration steps [0.6197 → 0.0062]
-      Features: b0: 9 (1 persistent)  |  b1: 2 (0 persistent)  |  b3: 70 (70 persistent)
+      Features: b0: 8 (1 persistent)  |  b1: 2 (0 persistent)  |  b3: 70 (70 persistent)
       Longest-lived:
         b0: 0.6197 → 0.0000 (life: 0.6197)
         b0: 0.6197 → 0.1596 (life: 0.4601)
@@ -560,13 +806,24 @@ plot(ph)
 
 ![](cograph-tutorial-simplicial_files/figure-html/persistent-1.png)
 
-**Betti curve** (left): At high threshold, the network is sparse (many
-components). As threshold decreases, components merge ($`\beta_0`$
-drops) and loops may form ($`\beta_1`$ rises) then get filled.
+**Betti curve** (left) — read it as a *filtration in reverse*: start
+with only the strongest edges (high threshold = a sparse graph, many
+components, $`\beta_0`$ large) and trace what happens as the threshold
+drops and weaker edges are added. Components merge into one another so
+$`\beta_0`$ falls; new loops appear (so $`\beta_1`$ jumps up) and later
+get filled in by triangles (so $`\beta_1`$ falls again). The shape of
+these curves is a fingerprint of the network’s topology — a smooth
+monotone $`\beta_0`$ curve means the graph is well-connected at every
+scale, while a long flat plateau with sudden drops marks discrete
+merging events.
 
-**Persistence diagram** (right): Points far from the diagonal have long
-lifetimes — structurally important features. Points near the diagonal
-are noise.
+**Persistence diagram** (right): each point is one topological feature,
+plotted at its (birth threshold, death threshold). Points hug the
+diagonal when birth and death are close — those are short-lived
+features, almost certainly noise. Points far above the diagonal lived
+through a wide range of thresholds and are the *robust* topological
+signal. Color encodes dimension; size encodes persistence (death −
+birth) so the most persistent features pop visually.
 
 ### Q-Analysis
 
@@ -596,9 +853,31 @@ plot(qa)
 
 ![](cograph-tutorial-simplicial_files/figure-html/q-analysis-1.png)
 
-The **fragmentation point** (first q where components \> 1) is critical.
-Below it, the network is fully connected through shared sub-structures.
-Above it, parts become structurally isolated.
+The left panel is the **Q-vector**: number of $`q`$-connected components
+at each level $`q`$, plotted right-to-left as $`q`$ decreases. Read it
+as a fragmentation profile of the complex.
+
+- At very high $`q`$: only simplices that share a large face are linked.
+  Most simplices stand alone, so the component count is high.
+- As $`q`$ drops: the connectivity criterion relaxes. Simplices that
+  share even one or two vertices now count as connected, so components
+  merge and the count falls.
+- At $`q = 0`$: any two simplices sharing a single vertex are linked.
+  Usually one big component.
+
+The **fragmentation point** is the largest $`q`$ at which the count
+first rises above 1. Below it the complex hangs together as one piece
+through high-order shared structure (groups of simplices that overlap in
+big faces). Above it that high-order glue is broken — sub-structures
+become isolated islands held together only by sparse low-order overlaps.
+A high fragmentation point means strong cohesion: many simplices share
+substantial substructure. A low one means simplices are stitched
+together mostly through one or two shared vertices, with no deep shared
+structure.
+
+The right panel shows the **structure vector**: the maximum simplex
+dimension each node participates in, sorted descending. Nodes at the top
+are members of the densest clique-groups in the network.
 
 ### Pathway Complex from HON
 
@@ -649,20 +928,26 @@ verify_simplicial(net$weights, threshold = 0.05)
 | Step | Method | Function | What it reveals |
 |----|----|----|----|
 | 1 | **TNA** | [`build_network()`](https://saqr.me/Nestimate/reference/build_network.md) | First-order transition structure |
-| 2 | **MOGen** | [`build_mogen()`](https://saqr.me/Nestimate/reference/build_mogen.md) | Whether higher-order is needed |
-| 3 | **HON** | [`build_hon()`](https://saqr.me/Nestimate/reference/build_hon.md) | Where sequential context changes transitions |
-| 4 | **HYPA** | [`build_hypa()`](https://saqr.me/Nestimate/reference/build_hypa.md) | Which paths are anomalously frequent or rare |
-| 5 | **Visualization** | [`plot_simplicial()`](https://sonsoles.me/cograph/reference/plot_simplicial.html) | Blob diagrams of pathways |
-| 6 | **Simplicial** | [`build_simplicial()`](https://saqr.me/Nestimate/reference/build_simplicial.md) | Topological structure |
-| 7 | **Persistence** | [`persistent_homology()`](https://saqr.me/Nestimate/reference/persistent_homology.md) | Robustness across scales |
-| 8 | **Q-analysis** | [`q_analysis()`](https://saqr.me/Nestimate/reference/q_analysis.md) | Multi-level connectivity |
+| 2 | **MOGen** | [`build_mogen()`](https://saqr.me/Nestimate/reference/build_mogen.md) | Whether higher-order is needed (information criteria) |
+| 3 | **Markov order test** | [`markov_order_test()`](https://saqr.me/Nestimate/reference/markov_order_test.md) | Whether higher-order is needed (permutation-exact LRT) |
+| 4 | **Transition entropy** | [`transition_entropy()`](https://saqr.me/Nestimate/reference/transition_entropy.md) | Per-state predictability and chain entropy rate |
+| 5 | **HON** | [`build_hon()`](https://saqr.me/Nestimate/reference/build_hon.md) | Where sequential context changes transitions |
+| 6 | **HYPA** | [`build_hypa()`](https://saqr.me/Nestimate/reference/build_hypa.md) | Which paths are anomalously frequent or rare |
+| 7 | **Visualization** | [`plot_simplicial()`](https://sonsoles.me/cograph/reference/plot_simplicial.html) | Blob diagrams of pathways (also accepts [`mogen_transitions()`](https://saqr.me/Nestimate/reference/mogen_transitions.md) data.frames) |
+| 8 | **Simplicial** | [`build_simplicial()`](https://saqr.me/Nestimate/reference/build_simplicial.md) | Topological structure |
+| 9 | **Persistence** | [`persistent_homology()`](https://saqr.me/Nestimate/reference/persistent_homology.md) | Robustness across scales |
+| 10 | **Q-analysis** | [`q_analysis()`](https://saqr.me/Nestimate/reference/q_analysis.md) | Multi-level connectivity |
 
 The key progression:
 
 - **TNA** answers: *what transitions exist?*
-- **MOGen** answers: *is first-order enough?*
+- **MOGen + Markov order test** answer: *is first-order enough?* (and
+  disagree informatively when BIC is conservative)
+- **Transition entropy** answers: *which states are unpredictable hubs
+  vs. deterministic gateways?*
 - **HON** answers: *where does context matter?*
-- **HYPA** answers: *which sequences are surprising?*
+- **HYPA** answers: *which sequences are surprisingly frequent — or
+  surprisingly avoided?*
 - **Simplicial analysis** answers: *what is the shape of the interaction
   space?*
 

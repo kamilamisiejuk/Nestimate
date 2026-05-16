@@ -13,7 +13,7 @@ estimator registry, so custom estimators can also be used."><meta property="og:i
 
     <a class="navbar-brand me-2" href="../index.html">Nestimate</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -206,7 +206,14 @@ with <code>state_cols</code>. Default: <code>NULL</code>.</p></dd>
 function (e.g. <code>list(gamma = 0.5)</code> for glasso, or
 <code>list(format = "wide")</code> for transition methods). This is the key
 composability feature: downstream functions like bootstrap or grid search
-can store and replay the full params list without knowing method internals.</p></dd>
+can store and replay the full params list without knowing method internals.
+Transition estimators accept tna-style sequence options such as
+<code>weighted</code>, <code>begin_state</code>, <code>end_state</code>, and <code>concat</code>.
+Column-like entries in <code>params</code> (<code>action</code>, <code>id</code>,
+<code>id_col</code>, <code>time</code>, <code>session</code>, <code>order</code>, <code>codes</code>,
+and <code>group</code>) are resolved before format detection and must name
+existing columns. If the same column role is supplied both directly and
+through <code>params</code>, the names must agree.</p></dd>
 
 
 <dt id="arg-labels">labels<a class="anchor" aria-label="anchor" href="#arg-labels"></a></dt>
@@ -284,13 +291,19 @@ sub-networks and a <code>$method</code> field.</p>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>The function works as follows:</p><ol><li><p>Resolves method aliases to canonical names.</p></li>
+<li><p>Validates explicit column arguments before any format guessing.</p></li>
 <li><p>Retrieves the estimator function from the global registry.</p></li>
 <li><p>For association methods with <code>level</code> specified, decomposes
 the data (between-person means or within-person centering).</p></li>
 <li><p>Calls the estimator: <code>do.call(fn, c(list(data = data), params))</code>.</p></li>
 <li><p>Applies scaling and thresholding to the result matrix.</p></li>
 <li><p>Extracts edges and constructs the <code>netobject</code>.</p></li>
-</ol></div>
+</ol><p>For long-format transition data, supplying <code>action</code> without
+<code>actor</code> is allowed and treats all rows as one sequence in row/time
+order. The function warns because a one-sequence transition network is not
+recommended and cannot be validated by bootstrap or other confirmatory
+tests.</p>
+    </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="register_estimator.html">register_estimator</a></code>, <code><a href="list_estimators.html">list_estimators</a></code>,
