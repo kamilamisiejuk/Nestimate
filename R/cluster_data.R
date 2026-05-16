@@ -1888,10 +1888,16 @@ print.tidy_covariates <- function(x, ...) {
   seq_data <- x$data
   k <- x$k
 
-  # Merge stored build_args with caller's ...; caller takes precedence
+  # Merge stored build_args with caller's ...; caller takes precedence.
+  # Drop long-format-only column-name args (actor/time/session/order/action)
+  # because x$data is already in wide format (T1..Tn columns) at this point,
+  # so forwarding e.g. actor = "session_id" would fail validation.
+  long_only <- c("actor", "time", "session", "order", "action",
+                 "state_cols", "metadata_cols")
   dots <- list(...)
   build_args <- if (!is.null(x$build_args))
     modifyList(x$build_args, dots) else dots
+  build_args <- build_args[setdiff(names(build_args), long_only)]
 
   nets <- lapply(seq_len(k), function(cl) {
     sub <- seq_data[assignments == cl, , drop = FALSE]

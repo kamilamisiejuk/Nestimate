@@ -18,7 +18,7 @@ Description: Estimate, compare, and analyze dynamic and psychological networks
     split-half reliability, centrality stability analysis, mixed Markov
     models, multi-cluster multi-layer networks and clustering.
 License: MIT + file LICENSE
-URL: https://github.com/mohsaqr/Nestimate
+URL: https://github.com/mohsaqr/Nestimate, https://saqr.me/Nestimate/
 BugReports: https://github.com/mohsaqr/Nestimate/issues
 Language: en-US
 Encoding: UTF-8
