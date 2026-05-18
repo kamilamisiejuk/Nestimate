@@ -21,7 +21,11 @@ summary(object, ...)
 
 ## Value
 
-The input object, invisibly.
+A per-order model-selection data.frame with columns `order`,
+`layer_dof`, `cum_dof`, `loglik`, `aic`, `bic`, `best`
+(`"AIC"`/`"BIC"`/`"AIC+BIC"` marker) and `selected` (`"<--"` on the
+chosen order), returned visibly; the summary text is printed as a side
+effect.
 
 ## Examples
 

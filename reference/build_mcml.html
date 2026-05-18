@@ -64,7 +64,7 @@ original transition data to produce the TRUE Markov chain over cluster states.</
 <span>  <span class="va">x</span>,</span>
 <span>  clusters <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"sum"</span>, <span class="st">"mean"</span>, <span class="st">"median"</span>, <span class="st">"max"</span>, <span class="st">"min"</span>, <span class="st">"density"</span>, <span class="st">"geomean"</span><span class="op">)</span>,</span>
-<span>  type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"tna"</span>, <span class="st">"frequency"</span>, <span class="st">"cooccurrence"</span>, <span class="st">"semi_markov"</span>, <span class="st">"raw"</span><span class="op">)</span>,</span>
+<span>  type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"tna"</span>, <span class="st">"frequency"</span>, <span class="st">"cooccurrence"</span>, <span class="st">"raw"</span><span class="op">)</span>,</span>
 <span>  directed <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  compute_within <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  actor <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -160,8 +160,26 @@ already represents a measurement rather than a single observation.</p></dd>
 
 
 <dt id="arg-type">type<a class="anchor" aria-label="anchor" href="#arg-type"></a></dt>
-<dd><p>Post-processing: "tna" (row-normalize), "cooccurrence"
-(symmetrize), "semi_markov", or "raw". Default "tna".</p></dd>
+<dd><p>Post-processing of the aggregated count matrix. One of:</p><dl><dt>"tna"</dt>
+<dd><p>(default) Row-normalize so each row sums to 1
+(first-order Markov transition probabilities).</p></dd>
+
+<dt>"raw"</dt>
+<dd><p>Return the un-normalized count matrix.</p></dd>
+
+<dt>"frequency"</dt>
+<dd><p>Explicit alias of <code>"raw"</code> – identical raw
+count construction (kept as a synonym for callers using
+frequency-network terminology).</p></dd>
+
+<dt>"cooccurrence"</dt>
+<dd><p>Symmetrize the matrix (undirected
+co-occurrence).</p></dd>
+
+
+</dl><p><code>"semi_markov"</code> is <em>not</em> accepted: the package does not
+implement a semi-Markov / holding-time construction, so passing it
+errors rather than silently aliasing <code>"tna"</code>.</p></dd>
 
 
 <dt id="arg-directed">directed<a class="anchor" aria-label="anchor" href="#arg-directed"></a></dt>

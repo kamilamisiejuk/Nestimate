@@ -40,6 +40,11 @@ An object of class `"net_transition_entropy"` with:
   Named numeric vector, length \\n\\. Per-state branching entropy
   \\H(P\_{i\cdot}) = -\sum_j P\_{ij} \log P\_{ij}\\.
 
+- row_entropy_norm:
+
+  Named numeric vector. `row_entropy` divided by the ceiling \\\log_b
+  n\\ (in \\\[0, 1\]\\; all zeros when \\n = 1\\).
+
 - stationary:
 
   Named numeric vector. Stationary distribution \\\pi\\.
@@ -49,16 +54,34 @@ An object of class `"net_transition_entropy"` with:
   Scalar. \\H(\pi) = -\sum_i \pi_i \log \pi_i\\ - the entropy of \\\pi\\
   treated as an i.i.d. distribution. Upper bound on the entropy rate.
 
+- stationary_entropy_norm:
+
+  Scalar. `stationary_entropy` divided by the ceiling \\\log_b n\\.
+
 - entropy_rate:
 
   Scalar. \\h(P) = \sum_i \pi_i H(P\_{i\cdot})\\ - the
   Shannon-McMillan-Breiman entropy rate.
+
+- entropy_rate_norm:
+
+  Scalar. `entropy_rate` divided by the ceiling \\\log_b n\\.
 
 - redundancy:
 
   Scalar. \\H(\pi) - h(P)\\, the entropy deficit attributable to serial
   dependence; zero for an i.i.d. chain (rows of \\P\\ all equal
   \\\pi\\).
+
+- redundancy_norm:
+
+  Scalar. The *relative* redundancy \\(H(\pi) - h(P)) / H(\pi)\\ (the
+  fraction of the stationary entropy removed by order-1 memory), **not**
+  `redundancy` divided by \\\log_b n\\; `0` when \\H(\pi) = 0\\.
+
+- max_entropy:
+
+  Scalar. The normalising ceiling \\\log_b n\\.
 
 - base:
 
@@ -110,7 +133,8 @@ print(te)
 #>   Stationary    H(pi)  = 1.501 bits    0.947
 #>   Redundancy   H(pi)-h = 0.255 bits    0.170
 #> 
-#> Normalised: raw / log_2(n_states); 0 = deterministic, 1 = uniform.
+#> Normalised: h(P) and H(pi) are raw / log_2(n_states) (0 = deterministic, 1 = uniform);
+#>   redundancy is the relative redundancy (H(pi) - h(P)) / H(pi), not raw / log_2(n_states).
 summary(te)
 #> Transition Entropy Summary (bits)
 #> 
@@ -131,7 +155,8 @@ summary(te)
 #>  redundancy H(pi)-h(P) 0.255      0.170
 #>       ceiling log_2(n) 1.585      1.000
 #> 
-#> Normalised values are raw / log_2(n_states), in [0, 1].
+#> Normalised: row entropy, h(P) and H(pi) are raw / log_2(n_states), in [0, 1];
+#>   redundancy is the relative redundancy (H(pi) - h(P)) / H(pi).
 plot(te)
 
 # }

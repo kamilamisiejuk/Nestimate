@@ -20,8 +20,9 @@ mogen_transitions(x, order = NULL, min_count = 1L)
 
 - order:
 
-  Integer. Which order's transitions to extract. Defaults to the optimal
-  order selected by the model.
+  Integer. Which order's transitions to extract. Must be a whole number;
+  a non-integer value is an error rather than being silently truncated.
+  Defaults to the optimal order selected by the model.
 
 - min_count:
 

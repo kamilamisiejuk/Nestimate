@@ -54,8 +54,9 @@ plot(
 
 - alpha:
 
-  Numeric. Significance threshold for p-value display in the pyramid.
-  Default: 0.05.
+  Numeric. Significance threshold for p-value display in the pyramid:
+  patterns with `p_value < alpha` are starred and drawn in bold dark
+  text, the rest stay plain grey. Default: 0.05.
 
 - show_residuals:
 

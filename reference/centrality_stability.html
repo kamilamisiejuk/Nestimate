@@ -101,7 +101,11 @@ are computed directly from the matrix without igraph.</p>
 <dd><p>Character vector. Centrality measures to assess.
 Built-in: <code>"InStrength"</code>, <code>"OutStrength"</code>, <code>"Betweenness"</code>,
 <code>"InCloseness"</code>, <code>"OutCloseness"</code>, <code>"Closeness"</code>.
-Custom measures beyond these require <code>centrality_fn</code>.
+<code>"Closeness"</code> is defined only for undirected networks;
+<code>"InCloseness"</code>/<code>"OutCloseness"</code> only for directed
+networks (requesting the wrong one for the network's directedness
+is an error). Custom measures beyond these are valid only when a
+<code>centrality_fn</code> is supplied to resolve them.
 Default: <code>c("InStrength", "OutStrength", "Betweenness")</code>.</p></dd>
 
 
@@ -133,11 +137,14 @@ threshold (default: 0.95).</p></dd>
 <dt id="arg-centrality-fn">centrality_fn<a class="anchor" aria-label="anchor" href="#arg-centrality-fn"></a></dt>
 <dd><p>Optional function. A custom centrality function
 that takes a weight matrix and returns a named list of centrality
-vectors. When <code>NULL</code> (default), only <code>"InStrength"</code> and
-<code>"OutStrength"</code> are computed via <code>colSums</code>/<code>rowSums</code>.
-When provided, the function is called as <code>centrality_fn(mat)</code>
-and should return a named list (e.g.,
-<code>list(Betweenness = ..., Closeness = ...)</code>).</p></dd>
+vectors. When <code>NULL</code> (default), all built-in measures are
+computed internally: <code>"InStrength"</code>/<code>"OutStrength"</code> via
+<code>colSums</code>/<code>rowSums</code>, and <code>"Betweenness"</code>/
+<code>"InCloseness"</code>/<code>"OutCloseness"</code>/<code>"Closeness"</code> via an
+internal Floyd-Warshall shortest-path routine. When provided, the
+function is called as <code>centrality_fn(mat)</code> and is used only for
+requested measures that are not one of the six built-ins; it should
+return a named list (e.g., <code>list(my_metric = ...)</code>).</p></dd>
 
 
 <dt id="arg-loops">loops<a class="anchor" aria-label="anchor" href="#arg-loops"></a></dt>

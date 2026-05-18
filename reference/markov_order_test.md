@@ -75,10 +75,24 @@ An object of class `net_markov_order` with elements:
 
   Integer. Selected order via sequential permutation test.
 
+- bic_order:
+
+  Integer. Order minimising BIC (reported by `print`/`plot`; not used in
+  the permutation selection).
+
+- aic_order:
+
+  Integer. Order minimising AIC (reported by `print`/`plot`; not used in
+  the permutation selection).
+
 - test_table:
 
   Tidy data.frame, one row per order tested with columns `order`,
-  `loglik`, `df`, `g2`, `p_permutation`, `p_asymptotic`, `significant`.
+  `loglik`, `AIC`, `BIC`, `df`, `g2`, `p_permutation`, `p_asymptotic`,
+  `significant`. `AIC`/`BIC` are the information-criterion values used
+  for the `ic` plot panel and to derive `aic_order`/`bic_order`; the
+  order-0 row has `NA` for the test columns (`df`, `g2`,
+  `p_permutation`, `p_asymptotic`, `significant`).
 
 - permutation_null:
 
@@ -89,6 +103,12 @@ An object of class `net_markov_order` with elements:
 
   Named numeric vector of log-likelihoods per order (for AIC / BIC panel
   only, not used in the test).
+
+- layer_dofs:
+
+  Named integer vector of model degrees of freedom per order (free
+  parameters added at each layer), used to compute the AIC / BIC
+  columns.
 
 - transition_matrices:
 

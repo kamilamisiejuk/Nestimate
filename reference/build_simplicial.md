@@ -1,7 +1,7 @@
 # Build a Simplicial Complex
 
 Constructs a simplicial complex from a network or higher-order pathway
-object. Three construction methods are available:
+object. Two construction methods are available:
 
 - **Clique complex** (`"clique"`): every clique in the thresholded
   non-zero graph becomes a simplex. Edges with absolute weight \\\geq\\
@@ -11,9 +11,9 @@ object. Three construction methods are available:
 - **Pathway complex** (`"pathway"`): each higher-order pathway from a
   `net_hon` or `net_hypa` becomes a simplex.
 
-- **Vietoris-Rips** (`"vr"`): nodes with edge weight \\\geq\\
-  `threshold` and non-zero are connected; all cliques in the resulting
-  graph become simplices.
+A metric Vietoris-Rips filtration is **not implemented**; passing
+`type = "vr"` (or `"rips"`) raises an error rather than silently
+returning a clique complex.
 
 ## Usage
 
@@ -38,17 +38,20 @@ build_simplicial(
 
 - type:
 
-  Construction type: `"clique"` (default), `"pathway"`, or `"vr"`.
+  Construction type: `"clique"` (default) or `"pathway"`. `"vr"` /
+  `"rips"` are accepted by `match.arg` but not implemented and will
+  error.
 
 - threshold:
 
   Minimum non-zero absolute edge weight to include an edge (default 0).
-  Edges below this are ignored; zero-weight non-edges are never
-  included.
+  Must be a single non-negative number. Edges below this are ignored;
+  zero-weight non-edges are never included.
 
 - max_dim:
 
-  Maximum simplex dimension (default 10). A k-simplex has k+1 nodes.
+  Maximum simplex dimension (default 10). Must be a single non-negative
+  integer. A k-simplex has k+1 nodes.
 
 - max_pathways:
 

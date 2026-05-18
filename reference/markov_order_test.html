@@ -154,10 +154,23 @@ Default <code>FALSE</code> (set <code>TRUE</code> only on Unix-like systems).</p
     <p>An object of class <code>net_markov_order</code> with elements:</p><dl><dt>optimal_order</dt>
 <dd><p>Integer. Selected order via sequential permutation test.</p></dd>
 
+<dt>bic_order</dt>
+<dd><p>Integer. Order minimising BIC (reported by
+<code>print</code>/<code>plot</code>; not used in the permutation selection).</p></dd>
+
+<dt>aic_order</dt>
+<dd><p>Integer. Order minimising AIC (reported by
+<code>print</code>/<code>plot</code>; not used in the permutation selection).</p></dd>
+
 <dt>test_table</dt>
 <dd><p>Tidy data.frame, one row per order tested with
-columns <code>order</code>, <code>loglik</code>, <code>df</code>, <code>g2</code>,
-<code>p_permutation</code>, <code>p_asymptotic</code>, <code>significant</code>.</p></dd>
+columns <code>order</code>, <code>loglik</code>, <code>AIC</code>, <code>BIC</code>,
+<code>df</code>, <code>g2</code>, <code>p_permutation</code>, <code>p_asymptotic</code>,
+<code>significant</code>. <code>AIC</code>/<code>BIC</code> are the
+information-criterion values used for the <code>ic</code> plot panel and
+to derive <code>aic_order</code>/<code>bic_order</code>; the order-0 row has
+<code>NA</code> for the test columns (<code>df</code>, <code>g2</code>,
+<code>p_permutation</code>, <code>p_asymptotic</code>, <code>significant</code>).</p></dd>
 
 <dt>permutation_null</dt>
 <dd><p>List of numeric vectors (length <code>max_order</code>),
@@ -166,6 +179,11 @@ one empirical null \(G^2\) distribution per order.</p></dd>
 <dt>logliks</dt>
 <dd><p>Named numeric vector of log-likelihoods per order
 (for AIC / BIC panel only, not used in the test).</p></dd>
+
+<dt>layer_dofs</dt>
+<dd><p>Named integer vector of model degrees of freedom per
+order (free parameters added at each layer), used to compute the
+AIC / BIC columns.</p></dd>
 
 <dt>transition_matrices</dt>
 <dd><p>List of fitted transition matrices.</p></dd>

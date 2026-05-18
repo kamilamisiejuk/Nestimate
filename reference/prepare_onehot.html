@@ -110,8 +110,9 @@ Default: NULL.</p></dd>
 
 
 <dt id="arg-window-size">window_size<a class="anchor" aria-label="anchor" href="#arg-window-size"></a></dt>
-<dd><p>Integer. Number of consecutive rows to aggregate
-into each window. Default: 1 (no windowing).</p></dd>
+<dd><p>Integer (&gt;= 1). Number of consecutive rows to aggregate
+into each window. Default: 3. Set <code>window_size = 1</code> for no
+windowing (each row is its own time point).</p></dd>
 
 
 <dt id="arg-window-type">window_type<a class="anchor" aria-label="anchor" href="#arg-window-type"></a></dt>

@@ -115,20 +115,26 @@ path (default: 100).</p></dd>
 
 <dt id="arg-centrality">centrality<a class="anchor" aria-label="anchor" href="#arg-centrality"></a></dt>
 <dd><p>Character vector. Centrality measures to compute.
-Built-in: <code>"strength"</code>, <code>"expected_influence"</code>,
-<code>"betweenness"</code>, <code>"closeness"</code>.
-Custom measures beyond these require <code>centrality_fn</code>.
+All four built-in measures (<code>"strength"</code>,
+<code>"expected_influence"</code>, <code>"betweenness"</code>,
+<code>"closeness"</code>) are computed internally with no extra
+dependencies and are always taken from the built-in path even if
+<code>centrality_fn</code> is supplied. Names that are not one of these
+four are valid only when a <code>centrality_fn</code> is supplied; that
+function is then responsible for returning them.
 Default: <code>c("strength", "expected_influence", "betweenness", "closeness")</code>.</p></dd>
 
 
 <dt id="arg-centrality-fn">centrality_fn<a class="anchor" aria-label="anchor" href="#arg-centrality-fn"></a></dt>
 <dd><p>Optional function. A custom centrality function
 that takes a weight matrix and returns a named list of centrality
-vectors. When <code>NULL</code> (default), only <code>"strength"</code> and
-<code>"expected_influence"</code> are computed via <code>rowSums</code>/
-<code>colSums</code>. When provided, the function is called as
-<code>centrality_fn(mat)</code> and should return a named list (e.g.,
-<code>list(closeness = ..., betweenness = ...)</code>).</p></dd>
+vectors. When <code>NULL</code> (default), all four built-in measures are
+computed internally: <code>"strength"</code>/<code>"expected_influence"</code>
+via <code>rowSums</code>, and <code>"betweenness"</code>/<code>"closeness"</code> via
+an internal Floyd-Warshall shortest-path routine. When provided, the
+function is called as <code>centrality_fn(mat)</code> and is used only for
+requested measures that are not one of the four built-ins; it should
+return a named list (e.g., <code>list(my_metric = ...)</code>).</p></dd>
 
 
 <dt id="arg-cor-method">cor_method<a class="anchor" aria-label="anchor" href="#arg-cor-method"></a></dt>

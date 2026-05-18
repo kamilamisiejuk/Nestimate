@@ -66,7 +66,21 @@
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>The input object, invisibly.</p>
+    <p>A per-component summary <code>data.frame</code>. The class and visibility
+depend on whether the model was fitted with covariates:</p><dl><dt>No covariates</dt>
+<dd><p>A plain <code>data.frame</code> with one row per
+component and columns <code>component</code>, <code>prior</code>,
+<code>n_assigned</code>, <code>mean_posterior</code>, <code>avepp</code>, returned
+<em>visibly</em> (so it auto-prints after the printed summary block).</p></dd>
+
+<dt>With covariates</dt>
+<dd><p>A <code>tidy_covariates</code>/<code>data.frame</code>
+(the tidied covariate table, with the per-component stats attached),
+returned <em>invisibly</em>.</p></dd>
+
+
+</dl><p>In both cases the printed summary (model fit, per-cluster transition
+matrices, optional covariate profiles) is emitted as a side effect.</p>
     </div>
 
     <div class="section level2">

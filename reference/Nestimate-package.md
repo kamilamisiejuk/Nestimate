@@ -20,6 +20,8 @@ Useful links:
 
 - <https://github.com/mohsaqr/Nestimate>
 
+- <https://saqr.me/Nestimate/>
+
 - Report bugs at <https://github.com/mohsaqr/Nestimate/issues>
 
 ## Author

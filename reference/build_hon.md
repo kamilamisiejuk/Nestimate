@@ -78,7 +78,9 @@ An S3 object of class `"net_hon"` containing:
 
 - nodes:
 
-  Character vector of HON node names in arrow notation.
+  data.frame with columns `id`, `label`, `name` (one row per HON node;
+  `label`/`name` are the arrow-notation node names). Stored as a
+  data.frame for `cograph_network` compatibility.
 
 - n_nodes:
 

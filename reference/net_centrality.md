@@ -21,7 +21,10 @@ net_centrality(x, measures = NULL, loops = FALSE, centrality_fn = NULL, ...)
 
   Character vector. Centrality measures to compute. Built-in:
   `"InStrength"`, `"OutStrength"`, `"Betweenness"`, `"InCloseness"`,
-  `"OutCloseness"`, `"Closeness"`. Default depends on directedness.
+  `"OutCloseness"`, `"Closeness"`. `"Closeness"` is defined only for
+  undirected networks; `"InCloseness"`/`"OutCloseness"` only for
+  directed networks (requesting the wrong one for the network's
+  directedness is an error). Default depends on directedness.
 
 - loops:
 

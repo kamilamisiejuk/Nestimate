@@ -56,8 +56,9 @@ prepare_onehot(
 
 - window_size:
 
-  Integer. Number of consecutive rows to aggregate into each window.
-  Default: 1 (no windowing).
+  Integer (\>= 1). Number of consecutive rows to aggregate into each
+  window. Default: 3. Set `window_size = 1` for no windowing (each row
+  is its own time point).
 
 - window_type:
 

@@ -21,7 +21,9 @@ summary(object, ...)
 
 ## Value
 
-The input object, invisibly.
+A data.frame with one row per node: column `node` (node label) followed
+by `dim1`, `dim2`, ..., `dim`*d* embedding coordinates, returned
+visibly; the summary text is printed as a side effect.
 
 ## Examples
 

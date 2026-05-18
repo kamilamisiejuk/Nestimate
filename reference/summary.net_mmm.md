@@ -21,7 +21,23 @@ summary(object, ...)
 
 ## Value
 
-The input object, invisibly.
+A per-component summary `data.frame`. The class and visibility depend on
+whether the model was fitted with covariates:
+
+- No covariates:
+
+  A plain `data.frame` with one row per component and columns
+  `component`, `prior`, `n_assigned`, `mean_posterior`, `avepp`,
+  returned *visibly* (so it auto-prints after the printed summary
+  block).
+
+- With covariates:
+
+  A `tidy_covariates`/`data.frame` (the tidied covariate table, with the
+  per-component stats attached), returned *invisibly*.
+
+In both cases the printed summary (model fit, per-cluster transition
+matrices, optional covariate profiles) is emitted as a side effect.
 
 ## Examples
 

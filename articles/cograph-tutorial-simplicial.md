@@ -349,7 +349,8 @@ te
       Stationary    H(pi)  = 2.983 bits    0.941
       Redundancy   H(pi)-h = 0.167 bits    0.056
 
-    Normalised: raw / log_2(n_states); 0 = deterministic, 1 = uniform.
+    Normalised: h(P) and H(pi) are raw / log_2(n_states) (0 = deterministic, 1 = uniform);
+      redundancy is the relative redundancy (H(pi) - h(P)) / H(pi), not raw / log_2(n_states).
 
 ``` r
 

@@ -60,17 +60,28 @@ Compatible with igraph's edge.attr.comb parameter.</p>
 
 <dl><dt id="arg-w">w<a class="anchor" aria-label="anchor" href="#arg-w"></a></dt>
 <dd><p>Numeric vector of finite edge weights. <code>NA</code> and zero weights
-are excluded before aggregation.</p></dd>
+are excluded before aggregation, so every method (including
+<code>"density"</code>, <code>"min"</code>, <code>"max"</code>, <code>"prod"</code>,
+<code>"geomean"</code>) operates on the non-zero, non-<code>NA</code> subset.</p></dd>
 
 
 <dt id="arg-method">method<a class="anchor" aria-label="anchor" href="#arg-method"></a></dt>
 <dd><p>Single aggregation method: "sum", "mean", "median", "max",
-"min", "prod", "density", or "geomean".</p></dd>
+"min", "prod", "density", or "geomean". Because zeros are stripped first,
+<code>"density"</code> (<code>sum(w) / n_possible</code>) and <code>"mean"</code>
+(<code>sum(w) / number of non-zero edges</code>) return the <em>same</em> value
+whenever the block is fully dense – i.e. when the count of non-zero
+edges equals <code>n_possible</code>. They diverge only when zero/<code>NA</code>
+edges are present (then <code>"density"</code> divides by the larger
+<code>n_possible</code>, <code>"mean"</code> by the smaller non-zero count).</p></dd>
 
 
 <dt id="arg-n-possible">n_possible<a class="anchor" aria-label="anchor" href="#arg-n-possible"></a></dt>
 <dd><p>Optional single finite numeric number of possible edges
-for density calculation.</p></dd>
+for density calculation. When omitted, <code>"density"</code> falls back to
+<code>sum(w) / length(w)</code> on the non-zero subset (equivalent to
+<code>"mean"</code>); supply <code>n_possible</code> (e.g. the block size
+<code>n_i * n_j</code>) for a true edge density.</p></dd>
 
 </dl></div>
     <div class="section level2">

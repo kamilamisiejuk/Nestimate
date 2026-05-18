@@ -21,8 +21,8 @@ mosaic_plot(
   xlab = NULL,
   ylab = NULL,
   range = NULL,
-  top_angle = 90,
-  left_angle = 0,
+  top_angle = NULL,
+  left_angle = NULL,
   residuals = c("permutation", "asymptotic"),
   n_perm = 500L,
   seed = NULL,
@@ -35,8 +35,8 @@ mosaic_plot(
   xlab = NULL,
   ylab = NULL,
   range = NULL,
-  top_angle = 90,
-  left_angle = 0,
+  top_angle = NULL,
+  left_angle = NULL,
   residuals = c("permutation", "asymptotic"),
   n_perm = 500L,
   seed = NULL,
@@ -50,8 +50,8 @@ mosaic_plot(
   xlab = NULL,
   ylab = NULL,
   range = NULL,
-  top_angle = 90,
-  left_angle = 0,
+  top_angle = NULL,
+  left_angle = NULL,
   residuals = c("permutation", "asymptotic"),
   n_perm = 500L,
   seed = NULL,
@@ -65,8 +65,8 @@ mosaic_plot(
   xlab = NULL,
   ylab = NULL,
   range = NULL,
-  top_angle = 90,
-  left_angle = 0,
+  top_angle = NULL,
+  left_angle = NULL,
   residuals = c("permutation", "asymptotic"),
   n_perm = 500L,
   seed = NULL,
@@ -178,9 +178,12 @@ Column widths are proportional to row marginals of the weight matrix
 Within each column, segment heights are proportional to that row's
 conditional distribution. Cell fill is the standardized residual from
 [`stats::chisq.test()`](https://rdrr.io/r/stats/chisq.test.html), with a
-diverging palette clipped to \\\pm 4\\. Mosaics only make sense for
-integer-valued matrices, so this function rejects relative / glasso /
-correlation networks.
+diverging palette clipped to \\\pm 4\\. Mosaics need integer counts:
+when `$weights` is already integer (`method = "frequency"` /
+`"co_occurrence"`) it is used directly; for a single `netobject` /
+`htna` otherwise (relative, glasso, cor, ...) order-1 transition counts
+are recounted from the raw `$data` sequences. The function errors only
+when neither integer weights nor `$data` are available.
 
 ## See also
 

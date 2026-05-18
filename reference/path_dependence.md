@@ -25,7 +25,8 @@ path_dependence(x, order = 2L, min_count = 5L, base = 2)
 
   Integer. Order of the conditioning context. `order = 2` (default)
   compares 2-step memory against 1-step; `order = 3` compares 3-step
-  memory; etc.
+  memory; etc. Must be a whole number; a non-integer value is an error
+  rather than being silently truncated.
 
 - min_count:
 

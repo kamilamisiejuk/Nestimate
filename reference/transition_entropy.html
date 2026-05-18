@@ -90,6 +90,11 @@ to 1 are normalised automatically (with a warning).</p></dd>
 <dd><p>Named numeric vector, length \(n\). Per-state
 branching entropy \(H(P_{i\cdot}) = -\sum_j P_{ij} \log P_{ij}\).</p></dd>
 
+<dt>row_entropy_norm</dt>
+<dd><p>Named numeric vector. <code>row_entropy</code>
+divided by the ceiling \(\log_b n\) (in \([0, 1]\); all zeros
+when \(n = 1\)).</p></dd>
+
 <dt>stationary</dt>
 <dd><p>Named numeric vector. Stationary distribution
 \(\pi\).</p></dd>
@@ -99,14 +104,32 @@ branching entropy \(H(P_{i\cdot}) = -\sum_j P_{ij} \log P_{ij}\).</p></dd>
 - the entropy of \(\pi\) treated as an i.i.d. distribution. Upper
 bound on the entropy rate.</p></dd>
 
+<dt>stationary_entropy_norm</dt>
+<dd><p>Scalar. <code>stationary_entropy</code>
+divided by the ceiling \(\log_b n\).</p></dd>
+
 <dt>entropy_rate</dt>
 <dd><p>Scalar. \(h(P) = \sum_i \pi_i H(P_{i\cdot})\) -
 the Shannon-McMillan-Breiman entropy rate.</p></dd>
+
+<dt>entropy_rate_norm</dt>
+<dd><p>Scalar. <code>entropy_rate</code> divided by the
+ceiling \(\log_b n\).</p></dd>
 
 <dt>redundancy</dt>
 <dd><p>Scalar. \(H(\pi) - h(P)\), the entropy deficit
 attributable to serial dependence; zero for an i.i.d. chain (rows of
 \(P\) all equal \(\pi\)).</p></dd>
+
+<dt>redundancy_norm</dt>
+<dd><p>Scalar. The <em>relative</em> redundancy
+\((H(\pi) - h(P)) / H(\pi)\) (the fraction of the stationary
+entropy removed by order-1 memory), <strong>not</strong>
+<code>redundancy</code> divided by \(\log_b n\); <code>0</code> when
+\(H(\pi) = 0\).</p></dd>
+
+<dt>max_entropy</dt>
+<dd><p>Scalar. The normalising ceiling \(\log_b n\).</p></dd>
 
 <dt>base</dt>
 <dd><p>Logarithm base used.</p></dd>
@@ -154,7 +177,8 @@ states are independent. The deficit \(H(\pi) - h(P)\) is reported as
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Stationary    H(pi)  = 1.501 bits    0.947</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Redundancy   H(pi)-h = 0.255 bits    0.170</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Normalised: raw / log_2(n_states); 0 = deterministic, 1 = uniform.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Normalised: h(P) and H(pi) are raw / log_2(n_states) (0 = deterministic, 1 = uniform);</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   redundancy is the relative redundancy (H(pi) - h(P)) / H(pi), not raw / log_2(n_states).</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">te</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Transition Entropy Summary (bits)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
@@ -175,7 +199,8 @@ states are independent. The deficit \(H(\pi) - h(P)\) is reported as
 <span class="r-out co"><span class="r-pr">#&gt;</span>  redundancy H(pi)-h(P) 0.255      0.170</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       ceiling log_2(n) 1.585      1.000</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Normalised values are raw / log_2(n_states), in [0, 1].</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Normalised: row entropy, h(P) and H(pi) are raw / log_2(n_states), in [0, 1];</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   redundancy is the relative redundancy (H(pi) - h(P)) / H(pi).</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">te</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="transition_entropy-1.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span><span class="co"># }</span></span></span>

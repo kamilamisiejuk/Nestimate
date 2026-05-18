@@ -61,19 +61,26 @@ boot_glasso(
 
 - centrality:
 
-  Character vector. Centrality measures to compute. Built-in:
-  `"strength"`, `"expected_influence"`, `"betweenness"`, `"closeness"`.
-  Custom measures beyond these require `centrality_fn`. Default:
+  Character vector. Centrality measures to compute. All four built-in
+  measures (`"strength"`, `"expected_influence"`, `"betweenness"`,
+  `"closeness"`) are computed internally with no extra dependencies and
+  are always taken from the built-in path even if `centrality_fn` is
+  supplied. Names that are not one of these four are valid only when a
+  `centrality_fn` is supplied; that function is then responsible for
+  returning them. Default:
   `c("strength", "expected_influence", "betweenness", "closeness")`.
 
 - centrality_fn:
 
   Optional function. A custom centrality function that takes a weight
   matrix and returns a named list of centrality vectors. When `NULL`
-  (default), only `"strength"` and `"expected_influence"` are computed
-  via `rowSums`/ `colSums`. When provided, the function is called as
-  `centrality_fn(mat)` and should return a named list (e.g.,
-  `list(closeness = ..., betweenness = ...)`).
+  (default), all four built-in measures are computed internally:
+  `"strength"`/`"expected_influence"` via `rowSums`, and
+  `"betweenness"`/`"closeness"` via an internal Floyd-Warshall
+  shortest-path routine. When provided, the function is called as
+  `centrality_fn(mat)` and is used only for requested measures that are
+  not one of the four built-ins; it should return a named list (e.g.,
+  `list(my_metric = ...)`).
 
 - cor_method:
 

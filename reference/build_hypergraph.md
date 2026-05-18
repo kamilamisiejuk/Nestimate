@@ -11,7 +11,7 @@ pairwise edges as 2-hyperedges. Foundation for higher-order analyses.
 build_hypergraph(
   net,
   p = 1,
-  method = c("clique", "vr"),
+  method = c("clique", "vr", "rips"),
   include_pairwise = TRUE,
   max_size = 3L,
   threshold = 0,
@@ -41,8 +41,10 @@ summary(object, ...)
 
 - method:
 
-  One of `"clique"` (cliques in the binarised adjacency) or `"vr"`
-  (Vietoris-Rips: cliques in the weight \>= threshold graph). Default
+  Hyperedge enumeration. `"clique"` (default) promotes k-cliques in the
+  binarised adjacency to k-hyperedges. A metric Vietoris-Rips
+  construction is **not implemented**; `"vr"` / `"rips"` are accepted by
+  `match.arg` but raise an error rather than silently aliasing
   `"clique"`.
 
 - include_pairwise:

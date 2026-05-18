@@ -21,7 +21,9 @@ summary(object, ...)
 
 ## Value
 
-The input object, invisibly.
+The edge data.frame `object$edges` (columns `path`, `from`, `to`,
+`count`, `probability`, `from_order`, `to_order`), returned visibly; the
+summary text is printed as a side effect.
 
 ## Examples
 

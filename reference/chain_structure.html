@@ -82,7 +82,13 @@ matrix are renormalized to sum to 1 before analysis (see
 <dt id="arg-tol">tol<a class="anchor" aria-label="anchor" href="#arg-tol"></a></dt>
 <dd><p>Numerical tolerance for the reversibility check (detailed
 balance) and for treating near-zero entries as zero when building the
-support graph. Default <code>1e-10</code>.</p></dd>
+support graph (which drives <code>classification</code>, <code>communicating_classes</code>,
+<code>period</code>, and <code>hitting_probabilities</code>). It does <strong>not</strong> govern the
+absorbing-state test: a state is absorbing only when <code>P[i, i]</code> equals
+1 to an internal fixed tolerance of <code>.Machine$double.eps^0.5</code>,
+independent of <code>tol</code> (so raising <code>tol</code> to ignore tiny transition
+probabilities never reclassifies a near-deterministic state as
+absorbing). Default <code>1e-10</code>.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -106,7 +112,9 @@ closed (no transitions leaving the class).</p></dd>
 <dd><p>Subset that are not closed.</p></dd>
 
 <dt><code>absorbing_states</code></dt>
-<dd><p>Character vector of states with <code>P[i, i] = 1</code>.</p></dd>
+<dd><p>Character vector of states with <code>P[i, i] = 1</code>
+(tested exactly, to within <code>.Machine$double.eps^0.5</code>; the
+user-facing <code>tol</code> does not relax this).</p></dd>
 
 <dt><code>period</code></dt>
 <dd><p>Named integer vector. Period of each recurrent state;
@@ -129,7 +137,10 @@ satisfies detailed balance against its stationary distribution.
 <code>NA</code> for non-irreducible chains (no unique stationary).</p></dd>
 
 <dt><code>hitting_probabilities</code></dt>
-<dd><p><code>n x n</code> matrix. <code>[i, j] = P(ever reach j starting from i)</code>.</p></dd>
+<dd><p><code>n x n</code> matrix. <code>[i, j] = P(ever reach j starting from i)</code>, computed over the same <code>tol</code>-thresholded support
+graph that drives <code>classification</code> so the two are mutually
+consistent (a state classified <code>"absorbing"</code>/closed never shows
+hitting probability to states outside its class).</p></dd>
 
 <dt><code>absorption_probabilities</code></dt>
 <dd><p><code>n_transient x n_absorbing</code> matrix

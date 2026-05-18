@@ -20,7 +20,9 @@ path_counts(data, k = 2L, top = NULL)
 - k:
 
   Integer. Length of the path / n-gram (default 2). A k of 2 counts
-  individual transitions; k of 3 counts two-step paths, etc.
+  individual transitions; k of 3 counts two-step paths, etc. Must be a
+  whole number; a non-integer value is an error rather than being
+  silently truncated.
 
 - top:
 

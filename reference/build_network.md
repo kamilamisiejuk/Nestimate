@@ -45,11 +45,14 @@ build_network(
 
   Character. Required. Name of a registered estimator. Built-in methods:
   `"relative"`, `"frequency"`, `"co_occurrence"`, `"cor"`, `"pcor"`,
-  `"glasso"`. Aliases: `"tna"` and `"transition"` map to `"relative"`;
-  `"ftna"` and `"counts"` map to `"frequency"`; `"cna"` maps to
-  `"co_occurrence"`; `"corr"` and `"correlation"` map to `"cor"`;
-  `"partial"` maps to `"pcor"`; `"ebicglasso"` and `"regularized"` map
-  to `"glasso"`.
+  `"glasso"`, `"ising"`, `"mgm"`, `"attention"`, `"wtna"`,
+  `"wtna_cooccurrence"`. Aliases: `"tna"` and `"transition"` map to
+  `"relative"`; `"ftna"` and `"counts"` map to `"frequency"`; `"cna"`
+  and `"wcna"` map to `"co_occurrence"`; `"corr"` and `"correlation"`
+  map to `"cor"`; `"partial"` maps to `"pcor"`; `"ebicglasso"` and
+  `"regularized"` map to `"glasso"`; `"isingfit"` maps to `"ising"`;
+  `"atna"` maps to `"attention"`; `"mixed"` and `"mixed_graphical"` map
+  to `"mgm"`; `"wtna_transition"` maps to `"wtna"`.
 
 - actor:
 
@@ -94,8 +97,9 @@ build_network(
 
 - mode:
 
-  Character. Windowing mode: `"non-overlapping"` or `"overlapping"`.
-  Default: `"non-overlapping"`.
+  Character. Windowing mode for one-hot input only: `"non-overlapping"`
+  or `"overlapping"`. Has no effect on wide or long sequence data (only
+  the one-hot/wtna path reads it). Default: `"non-overlapping"`.
 
 - scaling:
 
@@ -322,7 +326,6 @@ print(net)
 freq_data <- convert_sequence_format(seqs, format = "frequency")
 net_glasso <- build_network(freq_data, method = "glasso",
                              params = list(gamma = 0.5, nlambda = 50))
-#> Dropping non-syntactic columns: 0, 1, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 2, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 3, 30, 4, 5, 6, 7, 8, 9
 
 # With scaling
 net_scaled <- build_network(seqs, method = "relative",

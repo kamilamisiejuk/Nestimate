@@ -66,8 +66,9 @@ sequence of states, along with the observed count and transition probability.</p
 
 
 <dt id="arg-order">order<a class="anchor" aria-label="anchor" href="#arg-order"></a></dt>
-<dd><p>Integer. Which order's transitions to extract.
-Defaults to the optimal order selected by the model.</p></dd>
+<dd><p>Integer. Which order's transitions to extract. Must be a
+whole number; a non-integer value is an error rather than being
+silently truncated. Defaults to the optimal order selected by the model.</p></dd>
 
 
 <dt id="arg-min-count">min_count<a class="anchor" aria-label="anchor" href="#arg-min-count"></a></dt>

@@ -94,8 +94,10 @@ If NULL, auto-detects binary columns. Default: NULL.</p></dd>
 
 
 <dt id="arg-window-size">window_size<a class="anchor" aria-label="anchor" href="#arg-window-size"></a></dt>
-<dd><p>Integer. Number of consecutive rows to aggregate per
-window. Default: 1 (no windowing).</p></dd>
+<dd><p>Integer (&gt;= 1). Number of consecutive rows to aggregate
+per window. Default: 3 (windowed pairwise between-window counting). Set
+<code>window_size = 1</code> for ordinary consecutive (t -&gt; t+1) transitions
+with no windowing.</p></dd>
 
 
 <dt id="arg-mode">mode<a class="anchor" aria-label="anchor" href="#arg-mode"></a></dt>

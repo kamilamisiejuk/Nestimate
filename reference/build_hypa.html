@@ -57,7 +57,14 @@ flagged as over- or under-represented.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">build_hypa</span><span class="op">(</span><span class="va">data</span>, k <span class="op">=</span> <span class="fl">3L</span>, alpha <span class="op">=</span> <span class="fl">0.05</span>, min_count <span class="op">=</span> <span class="fl">5L</span>, p_adjust <span class="op">=</span> <span class="st">"BH"</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">build_hypa</span><span class="op">(</span></span>
+<span>  <span class="va">data</span>,</span>
+<span>  order <span class="op">=</span> <span class="fl">2L</span>,</span>
+<span>  alpha <span class="op">=</span> <span class="fl">0.05</span>,</span>
+<span>  min_count <span class="op">=</span> <span class="fl">5L</span>,</span>
+<span>  p_adjust <span class="op">=</span> <span class="st">"BH"</span>,</span>
+<span>  k <span class="op">=</span> <span class="cn">NULL</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -71,9 +78,19 @@ flagged as over- or under-represented.</p>
 converted to label names.</p></dd>
 
 
-<dt id="arg-k">k<a class="anchor" aria-label="anchor" href="#arg-k"></a></dt>
-<dd><p>Integer. Order of the De Bruijn graph (default 2). Detects
-anomalies in paths of length k.</p></dd>
+<dt id="arg-order">order<a class="anchor" aria-label="anchor" href="#arg-order"></a></dt>
+<dd><p>Integer scalar or integer vector. Order(s) of the De Bruijn
+graph (default <code>2L</code>). An order of <code>k</code> detects anomalies in
+paths of length <code>k</code>. When a vector is supplied, one De Bruijn layer
+is built per order and the per-order results are stored in
+<code>$by_order</code> (named by order). The orders are sorted ascending
+internally, so the <code>cograph_network</code> slots
+(<code>$weights</code>, <code>$edges</code>, <code>$adjacency</code>, <code>$xi</code>,
+<code>$nodes</code>, <code>$meta</code>) always describe the network of the
+<em>lowest order that produced a layer</em> (a requested order with no
+edges is dropped from <code>$by_order</code>, <code>$order</code> and <code>$k</code>),
+regardless of the order in which the vector is given; <code>$scores</code>
+aggregates every built order.</p></dd>
 
 
 <dt id="arg-alpha">alpha<a class="anchor" aria-label="anchor" href="#arg-alpha"></a></dt>
@@ -84,9 +101,9 @@ paths with score &gt; 1-alpha are over-represented.</p></dd>
 
 <dt id="arg-min-count">min_count<a class="anchor" aria-label="anchor" href="#arg-min-count"></a></dt>
 <dd><p>Integer. Minimum observed count for a path to be
-classified as anomalous (default 2). Paths with fewer observations
+classified as anomalous (default 5). Paths with fewer observations
 are always classified as <code>"normal"</code> regardless of their
-HYPA score, since single occurrences are unreliable.</p></dd>
+HYPA score, since rare occurrences are unreliable.</p></dd>
 
 
 <dt id="arg-p-adjust">p_adjust<a class="anchor" aria-label="anchor" href="#arg-p-adjust"></a></dt>
@@ -96,14 +113,21 @@ Accepts any method from <code><a href="https://rdrr.io/r/stats/p.adjust.html" cl
 <code>"none"</code> to skip correction. Under- and over-representation
 p-values are adjusted separately (two-sided testing).</p></dd>
 
+
+<dt id="arg-k">k<a class="anchor" aria-label="anchor" href="#arg-k"></a></dt>
+<dd><p>Deprecated. Former name of <code>order</code>; if supplied it overrides
+<code>order</code> and emits a deprecation message. Use <code>order</code> instead.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>An object of class <code>net_hypa</code> with components:</p><dl><dt>scores</dt>
+    <p>An object of class <code>c("net_hypa", "cograph_network")</code> with
+components:</p><dl><dt>scores</dt>
 <dd><p>Data frame with path, from, to, observed, expected,
 ratio, p_value, p_under, p_over, p_adjusted_under,
-p_adjusted_over, anomaly
-columns. The <code>path</code> column shows the full state sequence
+p_adjusted_over, anomaly, order
+columns (one block of rows per requested order). The <code>path</code>
+column shows the full state sequence
 (e.g., "A -&gt; B -&gt; C"); <code>from</code> is the context (conditioning
 states); <code>to</code> is the next state; <code>ratio</code> is
 observed / expected; <code>p_value</code> is retained as an alias for
@@ -113,14 +137,36 @@ observed / expected; <code>p_value</code> is retained as an alias for
 <code>p_adjusted_over</code> are the corrected p-values for under- and
 over-representation tests respectively.</p></dd>
 
+<dt>ho_edges</dt>
+<dd><p>Alias for <code>scores</code> (all orders, arrow notation).</p></dd>
+
+<dt>over</dt>
+<dd><p>Subset of <code>scores</code> classified as over-represented.</p></dd>
+
+<dt>under</dt>
+<dd><p>Subset of <code>scores</code> classified as under-represented.</p></dd>
+
 <dt>adjacency</dt>
-<dd><p>Weighted adjacency matrix of the De Bruijn graph.</p></dd>
+<dd><p>Weighted adjacency matrix of the lowest-order De
+Bruijn graph.</p></dd>
+
+<dt>weights</dt>
+<dd><p>cograph weight matrix of the lowest-order graph.</p></dd>
 
 <dt>xi</dt>
-<dd><p>Fitted propensity matrix.</p></dd>
+<dd><p>Fitted propensity matrix of the lowest-order graph.</p></dd>
+
+<dt>edges</dt>
+<dd><p>cograph edge data.frame of the lowest-order graph.</p></dd>
+
+<dt>by_order</dt>
+<dd><p>Named list of per-order result lists.</p></dd>
+
+<dt>order</dt>
+<dd><p>Integer vector of orders actually built (sorted ascending).</p></dd>
 
 <dt>k</dt>
-<dd><p>Order of the De Bruijn graph.</p></dd>
+<dd><p>Back-compatibility alias for <code>order</code>.</p></dd>
 
 <dt>alpha</dt>
 <dd><p>Significance threshold used.</p></dd>
@@ -129,19 +175,29 @@ over-representation tests respectively.</p></dd>
 <dd><p>Multiple testing correction method used.</p></dd>
 
 <dt>n_anomalous</dt>
-<dd><p>Number of anomalous paths detected.</p></dd>
+<dd><p>Number of anomalous paths detected (all orders).</p></dd>
 
 <dt>n_over</dt>
-<dd><p>Number of over-represented paths.</p></dd>
+<dd><p>Number of over-represented paths (all orders).</p></dd>
 
 <dt>n_under</dt>
-<dd><p>Number of under-represented paths.</p></dd>
+<dd><p>Number of under-represented paths (all orders).</p></dd>
 
 <dt>n_edges</dt>
-<dd><p>Total number of edges.</p></dd>
+<dd><p>Total number of edges (all orders).</p></dd>
 
 <dt>nodes</dt>
-<dd><p>Node names in the De Bruijn graph.</p></dd>
+<dd><p>data.frame (<code>id</code>, <code>label</code>, <code>name</code>) of the
+lowest-order De Bruijn graph nodes (arrow notation).</p></dd>
+
+<dt>directed</dt>
+<dd><p>Logical. Always <code>TRUE</code>.</p></dd>
+
+<dt>meta</dt>
+<dd><p>cograph meta list of the lowest-order graph.</p></dd>
+
+<dt>node_groups</dt>
+<dd><p>Always <code>NULL</code>.</p></dd>
 
 
 </dl></div>
@@ -149,20 +205,18 @@ over-representation tests respectively.</p></dd>
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
     <p>LaRock, T., Nanumyan, V., Scholtes, I., Casiraghi, G., Eliassi-Rad, T.,
 &amp; Schweitzer, F. (2020). HYPA: Efficient Detection of Path Anomalies in
-Time Series Data on Networks. <em>SDM 2020</em>, 460–468.</p>
+Time Series Data on Networks. <em>SDM 2020</em>, 460-468.</p>
     </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">seqs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A"</span>,<span class="st">"B"</span>,<span class="st">"C"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"B"</span>,<span class="st">"C"</span>,<span class="st">"A"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A"</span>,<span class="st">"C"</span>,<span class="st">"B"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A"</span>,<span class="st">"B"</span>,<span class="st">"C"</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">hyp</span> <span class="op">&lt;-</span> <span class="fu">build_hypa</span><span class="op">(</span><span class="va">seqs</span>, k <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>'k' is deprecated; use 'order' instead.</span>
+<span class="r-in"><span><span class="va">hyp</span> <span class="op">&lt;-</span> <span class="fu">build_hypa</span><span class="op">(</span><span class="va">seqs</span>, order <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span><span class="va">trajs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A"</span>,<span class="st">"B"</span>,<span class="st">"C"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A"</span>,<span class="st">"B"</span>,<span class="st">"C"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A"</span>,<span class="st">"B"</span>,<span class="st">"C"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>              <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A"</span>,<span class="st">"B"</span>,<span class="st">"D"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"C"</span>,<span class="st">"B"</span>,<span class="st">"D"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"C"</span>,<span class="st">"B"</span>,<span class="st">"A"</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">h</span> <span class="op">&lt;-</span> <span class="fu">build_hypa</span><span class="op">(</span><span class="va">trajs</span>, k <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>'k' is deprecated; use 'order' instead.</span>
+<span class="r-in"><span><span class="va">h</span> <span class="op">&lt;-</span> <span class="fu">build_hypa</span><span class="op">(</span><span class="va">trajs</span>, order <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">h</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> HYPA: Path Anomaly Detection</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Order(s):     2</span>

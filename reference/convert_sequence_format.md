@@ -30,9 +30,13 @@ convert_sequence_format(
 
 - id_col:
 
-  Character vector. Name(s) of the ID column(s). For wide format,
-  defaults to the first column. For long format, required. Default:
-  NULL.
+  Character vector. Name(s) of the ID column(s). For long format,
+  required. For wide format, optional: if NULL, the first column is used
+  as the id only when it is a genuine identifier (its values are
+  disjoint from the states in the remaining columns); for canonical wide
+  sequence data with no id column (e.g. `V1..Vn` / `T1..Tn`), a
+  row-index id is synthesized and every column is treated as a sequence
+  column. Default: NULL.
 
 - action:
 
@@ -96,13 +100,16 @@ building transition frequency matrices.
 # Wide format input
 seqs <- data.frame(V1 = c("A","B","A"), V2 = c("B","A","C"), V3 = c("A","C","B"))
 convert_sequence_format(seqs, format = "frequency")
-#>   rid V1 A B C
-#> 1   1  A 1 1 0
-#> 2   2  B 1 0 1
-#> 3   3  A 0 1 1
+#>   rid .rid A B C
+#> 1   1    1 2 1 0
+#> 2   2    2 1 1 1
+#> 3   3    3 1 1 1
 convert_sequence_format(seqs, format = "edgelist")
-#>   V1 from to
-#> 1  A    B  A
-#> 2  B    A  C
-#> 3  A    C  B
+#>   .rid from to
+#> 1    1    A  B
+#> 2    1    B  A
+#> 3    2    B  A
+#> 4    2    A  C
+#> 5    3    A  C
+#> 6    3    C  B
 ```

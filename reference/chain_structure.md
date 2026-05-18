@@ -31,8 +31,14 @@ chain_structure(x, normalize = TRUE, tol = 1e-10)
 - tol:
 
   Numerical tolerance for the reversibility check (detailed balance) and
-  for treating near-zero entries as zero when building the support
-  graph. Default `1e-10`.
+  for treating near-zero entries as zero when building the support graph
+  (which drives `classification`, `communicating_classes`, `period`, and
+  `hitting_probabilities`). It does **not** govern the absorbing-state
+  test: a state is absorbing only when `P[i, i]` equals 1 to an internal
+  fixed tolerance of `.Machine$double.eps^0.5`, independent of `tol` (so
+  raising `tol` to ignore tiny transition probabilities never
+  reclassifies a near-deterministic state as absorbing). Default
+  `1e-10`.
 
 ## Value
 
@@ -63,7 +69,9 @@ A `chain_structure` object: a list with elements
 
 - `absorbing_states`:
 
-  Character vector of states with `P[i, i] = 1`.
+  Character vector of states with `P[i, i] = 1` (tested exactly, to
+  within `.Machine$double.eps^0.5`; the user-facing `tol` does not relax
+  this).
 
 - `period`:
 
@@ -90,7 +98,11 @@ A `chain_structure` object: a list with elements
 
 - `hitting_probabilities`:
 
-  `n x n` matrix. `[i, j] = P(ever reach j starting from i)`.
+  `n x n` matrix. `[i, j] = P(ever reach j starting from i)`, computed
+  over the same `tol`-thresholded support graph that drives
+  `classification` so the two are mutually consistent (a state
+  classified `"absorbing"`/closed never shows hitting probability to
+  states outside its class).
 
 - `absorption_probabilities`:
 

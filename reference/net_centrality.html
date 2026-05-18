@@ -73,7 +73,11 @@ undirected networks the defaults are Closeness and Betweenness.</p>
 <dd><p>Character vector. Centrality measures to compute.
 Built-in: <code>"InStrength"</code>, <code>"OutStrength"</code>,
 <code>"Betweenness"</code>, <code>"InCloseness"</code>, <code>"OutCloseness"</code>,
-<code>"Closeness"</code>. Default depends on directedness.</p></dd>
+<code>"Closeness"</code>. <code>"Closeness"</code> is defined only for
+undirected networks; <code>"InCloseness"</code>/<code>"OutCloseness"</code>
+only for directed networks (requesting the wrong one for the
+network's directedness is an error). Default depends on
+directedness.</p></dd>
 
 
 <dt id="arg-loops">loops<a class="anchor" aria-label="anchor" href="#arg-loops"></a></dt>

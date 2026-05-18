@@ -68,8 +68,8 @@ avoid an export clash when both packages are attached.</p>
 <span>  xlab <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  ylab <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  range <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  top_angle <span class="op">=</span> <span class="fl">90</span>,</span>
-<span>  left_angle <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>  top_angle <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  left_angle <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  residuals <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"permutation"</span>, <span class="st">"asymptotic"</span><span class="op">)</span>,</span>
 <span>  n_perm <span class="op">=</span> <span class="fl">500L</span>,</span>
 <span>  seed <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -82,8 +82,8 @@ avoid an export clash when both packages are attached.</p>
 <span>  xlab <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  ylab <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  range <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  top_angle <span class="op">=</span> <span class="fl">90</span>,</span>
-<span>  left_angle <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>  top_angle <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  left_angle <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  residuals <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"permutation"</span>, <span class="st">"asymptotic"</span><span class="op">)</span>,</span>
 <span>  n_perm <span class="op">=</span> <span class="fl">500L</span>,</span>
 <span>  seed <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -97,8 +97,8 @@ avoid an export clash when both packages are attached.</p>
 <span>  xlab <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  ylab <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  range <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  top_angle <span class="op">=</span> <span class="fl">90</span>,</span>
-<span>  left_angle <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>  top_angle <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  left_angle <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  residuals <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"permutation"</span>, <span class="st">"asymptotic"</span><span class="op">)</span>,</span>
 <span>  n_perm <span class="op">=</span> <span class="fl">500L</span>,</span>
 <span>  seed <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -112,8 +112,8 @@ avoid an export clash when both packages are attached.</p>
 <span>  xlab <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  ylab <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  range <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  top_angle <span class="op">=</span> <span class="fl">90</span>,</span>
-<span>  left_angle <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>  top_angle <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  left_angle <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  residuals <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"permutation"</span>, <span class="st">"asymptotic"</span><span class="op">)</span>,</span>
 <span>  n_perm <span class="op">=</span> <span class="fl">500L</span>,</span>
 <span>  seed <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -233,8 +233,12 @@ sign and magnitude.</p></dd>
 each column, segment heights are proportional to that row's conditional
 distribution. Cell fill is the standardized residual from
 <code><a href="https://rdrr.io/r/stats/chisq.test.html" class="external-link">stats::chisq.test()</a></code>, with a diverging palette clipped to \(\pm 4\).
-Mosaics only make sense for integer-valued matrices, so this function rejects
-relative / glasso / correlation networks.</p>
+Mosaics need integer counts: when <code>$weights</code> is already integer
+(<code>method = "frequency"</code> / <code>"co_occurrence"</code>) it is used directly;
+for a single <code>netobject</code> / <code>htna</code> otherwise (relative, glasso,
+cor, ...) order-1 transition counts are recounted from the raw <code>$data</code>
+sequences. The function errors only when neither integer weights nor
+<code>$data</code> are available.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

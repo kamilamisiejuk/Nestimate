@@ -24,7 +24,9 @@ build_mogen(
 
 - max_order:
 
-  Integer. Maximum Markov order to test (default 5).
+  Integer. Maximum Markov order to test (default 5). Must be a whole
+  number; a non-integer value (e.g. `2.7`) is an error rather than being
+  silently truncated.
 
 - criterion:
 

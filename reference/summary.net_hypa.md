@@ -10,7 +10,7 @@ summary(
   object,
   n = 10L,
   type = c("all", "over", "under"),
-  order_by = c("sig", "freq", "ratio", "path"),
+  order_by = c("sig", "freq", "frequency", "ratio", "path"),
   ...
 )
 ```

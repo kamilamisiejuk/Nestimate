@@ -39,8 +39,11 @@ centrality_stability(
 
   Character vector. Centrality measures to assess. Built-in:
   `"InStrength"`, `"OutStrength"`, `"Betweenness"`, `"InCloseness"`,
-  `"OutCloseness"`, `"Closeness"`. Custom measures beyond these require
-  `centrality_fn`. Default:
+  `"OutCloseness"`, `"Closeness"`. `"Closeness"` is defined only for
+  undirected networks; `"InCloseness"`/`"OutCloseness"` only for
+  directed networks (requesting the wrong one for the network's
+  directedness is an error). Custom measures beyond these are valid only
+  when a `centrality_fn` is supplied to resolve them. Default:
   `c("InStrength", "OutStrength", "Betweenness")`.
 
 - iter:
@@ -71,10 +74,13 @@ centrality_stability(
 
   Optional function. A custom centrality function that takes a weight
   matrix and returns a named list of centrality vectors. When `NULL`
-  (default), only `"InStrength"` and `"OutStrength"` are computed via
-  `colSums`/`rowSums`. When provided, the function is called as
-  `centrality_fn(mat)` and should return a named list (e.g.,
-  `list(Betweenness = ..., Closeness = ...)`).
+  (default), all built-in measures are computed internally:
+  `"InStrength"`/`"OutStrength"` via `colSums`/`rowSums`, and
+  `"Betweenness"`/ `"InCloseness"`/`"OutCloseness"`/`"Closeness"` via an
+  internal Floyd-Warshall shortest-path routine. When provided, the
+  function is called as `centrality_fn(mat)` and is used only for
+  requested measures that are not one of the six built-ins; it should
+  return a named list (e.g., `list(my_metric = ...)`).
 
 - loops:
 

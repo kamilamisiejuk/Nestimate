@@ -65,7 +65,12 @@ build_gimme(
 - standardize:
 
   Logical. If `TRUE` (default `FALSE`), variables are standardized per
-  person before estimation.
+  person before estimation. Note: the returned coefficient network
+  (`$coefs`, `$psi`, `$temporal_avg`, `$contemporaneous_avg`,
+  `$group_paths`) is unaffected because Nestimate extracts the
+  standardized lavaan solution (`lavInspect(fit, "std")`), which is
+  invariant to input scaling. Only the scale-dependent `$fit` statistics
+  (chisq, aic, bic) change.
 
 - groupcutoff:
 

@@ -81,7 +81,8 @@ time-steps), or a <code>netobject</code> that carries the source data.</p></dd>
 <dt id="arg-order">order<a class="anchor" aria-label="anchor" href="#arg-order"></a></dt>
 <dd><p>Integer. Order of the conditioning context. <code>order = 2</code>
 (default) compares 2-step memory against 1-step; <code>order = 3</code>
-compares 3-step memory; etc.</p></dd>
+compares 3-step memory; etc. Must be a whole number; a non-integer
+value is an error rather than being silently truncated.</p></dd>
 
 
 <dt id="arg-min-count">min_count<a class="anchor" aria-label="anchor" href="#arg-min-count"></a></dt>

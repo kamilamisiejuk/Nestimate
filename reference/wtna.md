@@ -46,8 +46,10 @@ wtna(
 
 - window_size:
 
-  Integer. Number of consecutive rows to aggregate per window. Default:
-  1 (no windowing).
+  Integer (\>= 1). Number of consecutive rows to aggregate per window.
+  Default: 3 (windowed pairwise between-window counting). Set
+  `window_size = 1` for ordinary consecutive (t -\> t+1) transitions
+  with no windowing.
 
 - mode:
 

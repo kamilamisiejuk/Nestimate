@@ -15,7 +15,7 @@ build_mcml(
   x,
   clusters = NULL,
   method = c("sum", "mean", "median", "max", "min", "density", "geomean"),
-  type = c("tna", "frequency", "cooccurrence", "semi_markov", "raw"),
+  type = c("tna", "frequency", "cooccurrence", "raw"),
   directed = TRUE,
   compute_within = TRUE,
   actor = NULL,
@@ -122,8 +122,29 @@ build_mcml(
 
 - type:
 
-  Post-processing: "tna" (row-normalize), "cooccurrence" (symmetrize),
-  "semi_markov", or "raw". Default "tna".
+  Post-processing of the aggregated count matrix. One of:
+
+  "tna"
+
+  :   (default) Row-normalize so each row sums to 1 (first-order Markov
+      transition probabilities).
+
+  "raw"
+
+  :   Return the un-normalized count matrix.
+
+  "frequency"
+
+  :   Explicit alias of `"raw"` – identical raw count construction (kept
+      as a synonym for callers using frequency-network terminology).
+
+  "cooccurrence"
+
+  :   Symmetrize the matrix (undirected co-occurrence).
+
+  `"semi_markov"` is *not* accepted: the package does not implement a
+  semi-Markov / holding-time construction, so passing it errors rather
+  than silently aliasing `"tna"`.
 
 - directed:
 

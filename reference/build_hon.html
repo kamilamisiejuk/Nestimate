@@ -126,7 +126,10 @@ e.g., "A -&gt; B -&gt; C"), <code>from</code> (context/conditioning states),
 <code>to_order</code>.</p></dd>
 
 <dt>nodes</dt>
-<dd><p>Character vector of HON node names in arrow notation.</p></dd>
+<dd><p>data.frame with columns <code>id</code>, <code>label</code>,
+<code>name</code> (one row per HON node; <code>label</code>/<code>name</code> are the
+arrow-notation node names). Stored as a data.frame for
+<code>cograph_network</code> compatibility.</p></dd>
 
 <dt>n_nodes</dt>
 <dd><p>Number of HON nodes.</p></dd>

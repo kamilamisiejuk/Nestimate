@@ -172,7 +172,9 @@ Nestimate's base-R Floyd-Warshall, which handles negative weights.</p></dd>
 
 <dt id="arg-measures">measures<a class="anchor" aria-label="anchor" href="#arg-measures"></a></dt>
 <dd><p>Character vector of centrality measures to compare. Empty
-by default (no centrality block).</p></dd>
+by default (no centrality block). Valid names are <code>"InStrength"</code>,
+<code>"OutStrength"</code>, and <code>"Betweenness"</code>. Unknown names are
+ignored with a warning.</p></dd>
 
 
 <dt id="arg-network">network<a class="anchor" aria-label="anchor" href="#arg-network"></a></dt>

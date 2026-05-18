@@ -105,8 +105,13 @@ cluster_summary(
 
   "density"
 
-  :   Sum divided by number of possible edges. Normalizes by cluster
-      size combinations.
+  :   Sum of (non-zero) edge weights divided by the number of possible
+      edges between the two clusters (`n_i * n_j`). Normalizes by
+      cluster size combinations. Because zero/`NA` edges are stripped
+      before aggregation, this equals `"mean"` exactly when the
+      cluster-pair block is fully dense (no zero edges), and is strictly
+      smaller than `"mean"` when zero edges are present (it divides by
+      the larger possible-edge count).
 
   "geomean"
 

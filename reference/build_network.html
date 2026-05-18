@@ -95,13 +95,19 @@ square symmetric matrix (correlation or covariance).</p></dd>
 <dt id="arg-method">method<a class="anchor" aria-label="anchor" href="#arg-method"></a></dt>
 <dd><p>Character. Required. Name of a registered estimator.
 Built-in methods: <code>"relative"</code>, <code>"frequency"</code>,
-<code>"co_occurrence"</code>, <code>"cor"</code>, <code>"pcor"</code>, <code>"glasso"</code>.
+<code>"co_occurrence"</code>, <code>"cor"</code>, <code>"pcor"</code>, <code>"glasso"</code>,
+<code>"ising"</code>, <code>"mgm"</code>, <code>"attention"</code>, <code>"wtna"</code>,
+<code>"wtna_cooccurrence"</code>.
 Aliases: <code>"tna"</code> and <code>"transition"</code> map to <code>"relative"</code>;
 <code>"ftna"</code> and <code>"counts"</code> map to <code>"frequency"</code>;
-<code>"cna"</code> maps to <code>"co_occurrence"</code>;
+<code>"cna"</code> and <code>"wcna"</code> map to <code>"co_occurrence"</code>;
 <code>"corr"</code> and <code>"correlation"</code> map to <code>"cor"</code>;
 <code>"partial"</code> maps to <code>"pcor"</code>;
-<code>"ebicglasso"</code> and <code>"regularized"</code> map to <code>"glasso"</code>.</p></dd>
+<code>"ebicglasso"</code> and <code>"regularized"</code> map to <code>"glasso"</code>;
+<code>"isingfit"</code> maps to <code>"ising"</code>;
+<code>"atna"</code> maps to <code>"attention"</code>;
+<code>"mixed"</code> and <code>"mixed_graphical"</code> map to <code>"mgm"</code>;
+<code>"wtna_transition"</code> maps to <code>"wtna"</code>.</p></dd>
 
 
 <dt id="arg-actor">actor<a class="anchor" aria-label="anchor" href="#arg-actor"></a></dt>
@@ -149,8 +155,10 @@ Default: <code>3L</code>.</p></dd>
 
 
 <dt id="arg-mode">mode<a class="anchor" aria-label="anchor" href="#arg-mode"></a></dt>
-<dd><p>Character. Windowing mode: <code>"non-overlapping"</code> or
-<code>"overlapping"</code>. Default: <code>"non-overlapping"</code>.</p></dd>
+<dd><p>Character. Windowing mode for one-hot input only:
+<code>"non-overlapping"</code> or <code>"overlapping"</code>. Has no effect on
+wide or long sequence data (only the one-hot/wtna path reads it).
+Default: <code>"non-overlapping"</code>.</p></dd>
 
 
 <dt id="arg-scaling">scaling<a class="anchor" aria-label="anchor" href="#arg-scaling"></a></dt>
@@ -356,7 +364,6 @@ tests.</p>
 <span class="r-in"><span><span class="va">freq_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="convert_sequence_format.html">convert_sequence_format</a></span><span class="op">(</span><span class="va">seqs</span>, format <span class="op">=</span> <span class="st">"frequency"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">net_glasso</span> <span class="op">&lt;-</span> <span class="fu">build_network</span><span class="op">(</span><span class="va">freq_data</span>, method <span class="op">=</span> <span class="st">"glasso"</span>,</span></span>
 <span class="r-in"><span>                             params <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>gamma <span class="op">=</span> <span class="fl">0.5</span>, nlambda <span class="op">=</span> <span class="fl">50</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Dropping non-syntactic columns: 0, 1, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 2, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 3, 30, 4, 5, 6, 7, 8, 9</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># With scaling</span></span></span>
 <span class="r-in"><span><span class="va">net_scaled</span> <span class="op">&lt;-</span> <span class="fu">build_network</span><span class="op">(</span><span class="va">seqs</span>, method <span class="op">=</span> <span class="st">"relative"</span>,</span></span>

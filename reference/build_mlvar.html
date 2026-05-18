@@ -182,11 +182,14 @@ which numerical equivalence has been validated.</p></dd>
     <p>A dual-class <code>c("net_mlvar", "netobject_group")</code> object — a
 named list of three full netobjects, one per network, plus
 model-level metadata stored as attributes. Each element is a
-standard <code>c("netobject", "cograph_network")</code>, so
-<code>cograph::splot(fit$temporal)</code> plots directly through the standard
-cograph dispatch and existing <code>netobject_group</code> dispatch (e.g.
-<code>centrality()</code>, <code><a href="bootstrap_network.html">bootstrap_network()</a></code>) iterates over all three
-networks automatically. Structure:</p><dl><dt><code>fit$temporal</code></dt>
+standard <code>c("netobject", "cograph_network")</code> weight-matrix wrapper
+(no raw <code>$data</code>), so <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code>, <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code>, <code><a href="coefs.html">coefs()</a></code>, and
+<code>cograph::splot(fit$temporal)</code> work directly. The three constituents
+are matrix-wrapped and carry no underlying panel data, so
+data-resampling verbs such as <code><a href="bootstrap_network.html">bootstrap_network()</a></code> (and
+reliability/stability) cannot iterate over them — extract a single
+constituent and rebuild via <code><a href="build_network.html">build_network()</a></code> if you need those.
+Structure:</p><dl><dt><code>fit$temporal</code></dt>
 <dd><p>Directed netobject for the <code>d x d</code> matrix of
 fixed-effect lagged coefficients. <code>$weights[i, j]</code> is the effect
 of variable j at t-lag on variable i at t. <code>method = "mlvar_temporal"</code>, <code>directed = TRUE</code>.</p></dd>

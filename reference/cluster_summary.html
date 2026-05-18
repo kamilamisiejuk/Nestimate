@@ -138,8 +138,13 @@ Example: cluster with 5 nodes won't have 5x the weight of cluster with 1 node.</
 <dd><p>Minimum edge weight. Captures weakest connection.</p></dd>
 
 <dt>"density"</dt>
-<dd><p>Sum divided by number of possible edges. Normalizes
-by cluster size combinations.</p></dd>
+<dd><p>Sum of (non-zero) edge weights divided by the number
+of possible edges between the two clusters (<code>n_i * n_j</code>).
+Normalizes by cluster size combinations. Because zero/<code>NA</code>
+edges are stripped before aggregation, this equals <code>"mean"</code>
+exactly when the cluster-pair block is fully dense (no zero edges),
+and is strictly smaller than <code>"mean"</code> when zero edges are
+present (it divides by the larger possible-edge count).</p></dd>
 
 <dt>"geomean"</dt>
 <dd><p>Geometric mean of positive weights. Useful for

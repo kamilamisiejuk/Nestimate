@@ -108,7 +108,7 @@ iterations. Dashed horizontal line marks the stability threshold
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'net_casedrop_reliability_group'</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">object</span>, drop_prop <span class="op">=</span> <span class="fl">0.7</span>, <span class="va">...</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">object</span>, drop_prop <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'summary.net_casedrop_reliability_group'</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
@@ -138,7 +138,11 @@ iterations. Dashed horizontal line marks the stability threshold
 
 <dt id="arg-drop-prop">drop_prop<a class="anchor" aria-label="anchor" href="#arg-drop-prop"></a></dt>
 <dd><p>Drop proportion at which to report the four metrics
-(mean +/- sd per network). Default <code>0.7</code>.</p></dd>
+(mean +/- sd per network). Must be one of the drop proportions the
+object was built with. Defaults to the object's median grid value
+(the stored grid is used, not an assumed <code>0.7</code>); pass an explicit
+value not in the grid to get an error listing the available
+proportions.</p></dd>
 
 
 <dt id="arg-threshold">threshold<a class="anchor" aria-label="anchor" href="#arg-threshold"></a></dt>

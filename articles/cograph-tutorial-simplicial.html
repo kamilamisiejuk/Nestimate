@@ -68,7 +68,7 @@
       <img src="../logo.svg" class="logo" alt=""><h1>Higher-Order Network Analysis with Simplicial Complexes</h1>
       <p class="subtitle">From Transition Networks to Topological Analysis</p>
       <p class="author">Mohammed Saqr &amp; Sonsoles López-Pernas</p>
-      <p class="date">2026-05-17</p>
+      <p class="date">2026-05-18</p>
 
       <small class="dont-index">Source: <a href="https://github.com/mohsaqr/Nestimate/blob/main/vignettes/articles/cograph-tutorial-simplicial.qmd" class="external-link"><code>vignettes/articles/cograph-tutorial-simplicial.qmd</code></a></small>
       <div class="d-none name"><code></code></div>
@@ -336,7 +336,8 @@ order_4     4      2990    6136 -11469.73 35211.46 79913.83  AIC      &lt;--</co
   Stationary    H(pi)  = 2.983 bits    0.941
   Redundancy   H(pi)-h = 0.167 bits    0.056
 
-Normalised: raw / log_2(n_states); 0 = deterministic, 1 = uniform.</code></pre>
+Normalised: h(P) and H(pi) are raw / log_2(n_states) (0 = deterministic, 1 = uniform);
+  redundancy is the relative redundancy (H(pi) - h(P)) / H(pi), not raw / log_2(n_states).</code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">te</span><span class="op">)</span></span></code></pre></div>
