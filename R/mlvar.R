@@ -50,11 +50,14 @@
 #' @return A dual-class `c("net_mlvar", "netobject_group")` object — a
 #'   named list of three full netobjects, one per network, plus
 #'   model-level metadata stored as attributes. Each element is a
-#'   standard `c("netobject", "cograph_network")`, so
-#'   `cograph::splot(fit$temporal)` plots directly through the standard
-#'   cograph dispatch and existing `netobject_group` dispatch (e.g.
-#'   \code{centrality()}, [bootstrap_network()]) iterates over all three
-#'   networks automatically. Structure:
+#'   standard `c("netobject", "cograph_network")` weight-matrix wrapper
+#'   (no raw `$data`), so `print()`, `summary()`, [coefs()], and
+#'   `cograph::splot(fit$temporal)` work directly. The three constituents
+#'   are matrix-wrapped and carry no underlying panel data, so
+#'   data-resampling verbs such as [bootstrap_network()] (and
+#'   reliability/stability) cannot iterate over them — extract a single
+#'   constituent and rebuild via [build_network()] if you need those.
+#'   Structure:
 #'   \describe{
 #'     \item{`fit$temporal`}{Directed netobject for the `d x d` matrix of
 #'       fixed-effect lagged coefficients. `$weights[i, j]` is the effect

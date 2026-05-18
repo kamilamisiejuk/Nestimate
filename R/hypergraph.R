@@ -16,9 +16,11 @@
 #' @param p Probability in `[0, 1]` that each k-clique with k >= 3 becomes a
 #'   k-hyperedge. Default `1` (deterministic — every found clique is
 #'   included).
-#' @param method One of `"clique"` (cliques in the binarised adjacency) or
-#'   `"vr"` (Vietoris-Rips: cliques in the weight >= threshold graph).
-#'   Default `"clique"`.
+#' @param method Hyperedge enumeration. `"clique"` (default) promotes
+#'   k-cliques in the binarised adjacency to k-hyperedges. A metric
+#'   Vietoris-Rips construction is \strong{not implemented}; `"vr"` /
+#'   `"rips"` are accepted by `match.arg` but raise an error rather than
+#'   silently aliasing `"clique"`.
 #' @param include_pairwise Logical. Include 2-edges from the input network as
 #'   2-hyperedges. Default `TRUE`. Set `FALSE` for a "fully higher-order"
 #'   hypergraph containing only k-hyperedges with k >= 3.
@@ -86,12 +88,19 @@
 #' @export
 build_hypergraph <- function(net,
                               p = 1,
-                              method = c("clique", "vr"),
+                              method = c("clique", "vr", "rips"),
                               include_pairwise = TRUE,
                               max_size = 3L,
                               threshold = 0,
                               seed = NULL) {
   method <- match.arg(method)
+  if (method == "vr" || method == "rips") {
+    stop("method = \"vr\" (Vietoris-Rips) is not implemented. A genuine ",
+         "metric Vietoris-Rips construction requires a distance-ball ",
+         "graph, which this package does not build. Use ",
+         "method = \"clique\" (cliques in the binarised adjacency).",
+         call. = FALSE)
+  }
   stopifnot(
     is.numeric(p), length(p) == 1L, p >= 0, p <= 1,
     is.logical(include_pairwise), length(include_pairwise) == 1L,

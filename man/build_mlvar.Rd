@@ -38,11 +38,14 @@ which numerical equivalence has been validated.}
 A dual-class \code{c("net_mlvar", "netobject_group")} object — a
 named list of three full netobjects, one per network, plus
 model-level metadata stored as attributes. Each element is a
-standard \code{c("netobject", "cograph_network")}, so
-\code{cograph::splot(fit$temporal)} plots directly through the standard
-cograph dispatch and existing \code{netobject_group} dispatch (e.g.
-\code{centrality()}, \code{\link[=bootstrap_network]{bootstrap_network()}}) iterates over all three
-networks automatically. Structure:
+standard \code{c("netobject", "cograph_network")} weight-matrix wrapper
+(no raw \verb{$data}), so \code{print()}, \code{summary()}, \code{\link[=coefs]{coefs()}}, and
+\code{cograph::splot(fit$temporal)} work directly. The three constituents
+are matrix-wrapped and carry no underlying panel data, so
+data-resampling verbs such as \code{\link[=bootstrap_network]{bootstrap_network()}} (and
+reliability/stability) cannot iterate over them — extract a single
+constituent and rebuild via \code{\link[=build_network]{build_network()}} if you need those.
+Structure:
 \describe{
 \item{\code{fit$temporal}}{Directed netobject for the \verb{d x d} matrix of
 fixed-effect lagged coefficients. \verb{$weights[i, j]} is the effect

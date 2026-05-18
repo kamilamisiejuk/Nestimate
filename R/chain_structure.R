@@ -180,7 +180,13 @@
 #'   [passage_time()] for the same convention).
 #' @param tol Numerical tolerance for the reversibility check (detailed
 #'   balance) and for treating near-zero entries as zero when building the
-#'   support graph. Default `1e-10`.
+#'   support graph (which drives `classification`, `communicating_classes`,
+#'   `period`, and `hitting_probabilities`). It does **not** govern the
+#'   absorbing-state test: a state is absorbing only when `P[i, i]` equals
+#'   1 to an internal fixed tolerance of `.Machine$double.eps^0.5`,
+#'   independent of `tol` (so raising `tol` to ignore tiny transition
+#'   probabilities never reclassifies a near-deterministic state as
+#'   absorbing). Default `1e-10`.
 #' @return A `chain_structure` object: a list with elements
 #'   \describe{
 #'     \item{`states`}{Character vector of state names.}
@@ -191,7 +197,9 @@
 #'     \item{`recurrent_classes`}{Subset of `communicating_classes` that are
 #'       closed (no transitions leaving the class).}
 #'     \item{`transient_classes`}{Subset that are not closed.}
-#'     \item{`absorbing_states`}{Character vector of states with `P[i, i] = 1`.}
+#'     \item{`absorbing_states`}{Character vector of states with `P[i, i] = 1`
+#'       (tested exactly, to within `.Machine$double.eps^0.5`; the
+#'       user-facing `tol` does not relax this).}
 #'     \item{`period`}{Named integer vector. Period of each recurrent state;
 #'       `NA` for transient states.}
 #'     \item{`is_irreducible`}{Logical. `TRUE` iff there is exactly one
@@ -203,7 +211,10 @@
 #'       satisfies detailed balance against its stationary distribution.
 #'       `NA` for non-irreducible chains (no unique stationary).}
 #'     \item{`hitting_probabilities`}{`n x n` matrix. `[i, j] = P(ever reach j
-#'       starting from i)`.}
+#'       starting from i)`, computed over the same `tol`-thresholded support
+#'       graph that drives `classification` so the two are mutually
+#'       consistent (a state classified `"absorbing"`/closed never shows
+#'       hitting probability to states outside its class).}
 #'     \item{`absorption_probabilities`}{`n_transient x n_absorbing` matrix
 #'       or `NULL` if no transient -> absorbing pathway exists. `[i, j] =
 #'       P(eventual absorption in j | start in i)`.}
@@ -271,8 +282,15 @@ chain_structure <- function(x, normalize = TRUE, tol = 1e-10) {
     sort(unlist(recurrent_classes)) else integer(0)
   transient_idx <- if (length(transient_classes) > 0L)
     sort(unlist(transient_classes)) else integer(0)
+  # A state is absorbing iff P[i, i] == 1 exactly. The @return contract
+  # promises P[i, i] = 1, so this test must NOT use the user-facing `tol`
+  # (which is documented only for the support graph + reversibility);
+  # otherwise raising `tol` would silently relabel a near-deterministic
+  # recurrent state (e.g. P[a,a] = 0.99) as "absorbing". Use a fixed,
+  # tiny machine-precision tolerance independent of `tol`.
+  absorbing_tol <- .Machine$double.eps^0.5
   absorbing_mask <- vapply(seq_len(n), function(i)
-    abs(P[i, i] - 1) < tol, logical(1))
+    abs(P[i, i] - 1) < absorbing_tol, logical(1))
   absorbing_idx <- which(absorbing_mask)
 
   classification <- character(n)
@@ -305,7 +323,15 @@ chain_structure <- function(x, normalize = TRUE, tol = 1e-10) {
   } else NA
 
   # ---- Hitting probabilities and absorption analysis ----
-  H <- .cs_hitting(P)
+  # Drive hitting probabilities off the SAME tol-thresholded support graph
+  # `A` that classification uses, so the returned object is internally
+  # consistent. Without this, .cs_hitting() would rebuild its own support
+  # with a hard-coded `P > 0`, and a state classified "absorbing" via a
+  # sub-`tol` escape edge could still show hitting probability 1 to other
+  # states (a self-contradictory object).
+  reach <- .cs_reachability(A)
+  diag(reach) <- 1L
+  H <- .cs_hitting(P, reach = reach)
   abs_info <- .cs_absorption(P, transient_idx, absorbing_idx, state_names)
 
   structure(list(

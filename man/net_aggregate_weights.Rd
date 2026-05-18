@@ -8,13 +8,24 @@ net_aggregate_weights(w, method = "sum", n_possible = NULL)
 }
 \arguments{
 \item{w}{Numeric vector of finite edge weights. \code{NA} and zero weights
-are excluded before aggregation.}
+are excluded before aggregation, so every method (including
+\code{"density"}, \code{"min"}, \code{"max"}, \code{"prod"},
+\code{"geomean"}) operates on the non-zero, non-\code{NA} subset.}
 
 \item{method}{Single aggregation method: "sum", "mean", "median", "max",
-"min", "prod", "density", or "geomean".}
+"min", "prod", "density", or "geomean". Because zeros are stripped first,
+\code{"density"} (\code{sum(w) / n_possible}) and \code{"mean"}
+(\code{sum(w) / number of non-zero edges}) return the \emph{same} value
+whenever the block is fully dense -- i.e. when the count of non-zero
+edges equals \code{n_possible}. They diverge only when zero/\code{NA}
+edges are present (then \code{"density"} divides by the larger
+\code{n_possible}, \code{"mean"} by the smaller non-zero count).}
 
 \item{n_possible}{Optional single finite numeric number of possible edges
-for density calculation.}
+for density calculation. When omitted, \code{"density"} falls back to
+\code{sum(w) / length(w)} on the non-zero subset (equivalent to
+\code{"mean"}); supply \code{n_possible} (e.g. the block size
+\code{n_i * n_j}) for a true edge density.}
 }
 \value{
 Single aggregated value

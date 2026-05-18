@@ -26,7 +26,8 @@ statistic or residual magnitude. \code{"frequency"} ranks by total
 occurrence count across all groups.}
 
 \item{alpha}{Numeric. Significance threshold for p-value display in the
-pyramid. Default: 0.05.}
+pyramid: patterns with \code{p_value < alpha} are starred and drawn in
+bold dark text, the rest stay plain grey. Default: 0.05.}
 
 \item{show_residuals}{Logical. If \code{TRUE}, print the standardized
 residual value inside each pyramid bar. Default: \code{FALSE}. Ignored

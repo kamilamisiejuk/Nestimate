@@ -926,7 +926,19 @@ print.net_mmm <- function(x, digits = 3L, ...) {
 #' @param object A \code{net_mmm} object.
 #' @param ... Unsupported. Supplying unused arguments raises an error.
 #'
-#' @return The input object, invisibly.
+#' @return A per-component summary \code{data.frame}. The class and visibility
+#'   depend on whether the model was fitted with covariates:
+#'   \describe{
+#'     \item{No covariates}{A plain \code{data.frame} with one row per
+#'       component and columns \code{component}, \code{prior},
+#'       \code{n_assigned}, \code{mean_posterior}, \code{avepp}, returned
+#'       \emph{visibly} (so it auto-prints after the printed summary block).}
+#'     \item{With covariates}{A \code{tidy_covariates}/\code{data.frame}
+#'       (the tidied covariate table, with the per-component stats attached),
+#'       returned \emph{invisibly}.}
+#'   }
+#'   In both cases the printed summary (model fit, per-cluster transition
+#'   matrices, optional covariate profiles) is emitted as a side effect.
 #'
 #' @examples
 #' seqs <- data.frame(V1 = sample(c("A","B","C"), 30, TRUE),

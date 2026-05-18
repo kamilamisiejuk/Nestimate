@@ -28,7 +28,7 @@ casedrop_reliability(
 
 \method{print}{net_casedrop_reliability_group}(x, ...)
 
-\method{summary}{net_casedrop_reliability_group}(object, drop_prop = 0.7, ...)
+\method{summary}{net_casedrop_reliability_group}(object, drop_prop = NULL, ...)
 
 \method{print}{summary.net_casedrop_reliability_group}(x, ...)
 
@@ -46,7 +46,11 @@ casedrop_reliability(
 \item{iter}{Integer. Iterations per drop proportion. Default \code{1000}.}
 
 \item{drop_prop}{Drop proportion at which to report the four metrics
-(mean +/- sd per network). Default \code{0.7}.}
+(mean +/- sd per network). Must be one of the drop proportions the
+object was built with. Defaults to the object's median grid value
+(the stored grid is used, not an assumed \code{0.7}); pass an explicit
+value not in the grid to get an error listing the available
+proportions.}
 
 \item{threshold}{Numeric in \verb{[0, 1]}. Minimum edge-vector correlation
 for an iteration to count as stable. Default \code{0.7}.}

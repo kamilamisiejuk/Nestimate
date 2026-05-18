@@ -234,7 +234,15 @@ build_ising <- function(data, ...) {
             if (isTRUE(include_zeros)) {
               mat[] <- (mat - rng[1]) / (rng[2] - rng[1])
             } else {
-              mat[mat != 0] <- (mat[mat != 0] - rng[1]) / (rng[2] - rng[1])
+              # Structure-preserving min-max for association networks: the
+              # smallest genuine edge must not collide with the structural-
+              # zero value (which would drop a real edge and corrupt
+              # n_edges). Map the non-zero block into the strictly positive
+              # interval (eps, 1] so the block minimum becomes eps, not 0.
+              eps <- sqrt(.Machine$double.eps)
+              nz <- mat != 0
+              mat[nz] <- eps + (1 - eps) *
+                (mat[nz] - rng[1]) / (rng[2] - rng[1])
             }
             mat
           }

@@ -493,7 +493,8 @@ Topological data analysis (TDA) provides a suite of invariants for characterizin
 
 - `"clique"`: extracts all maximal cliques from the thresholded network.
 - `"pathway"`: treats each higher-order pathway as a simplex.
-- `"vr"`: Vietoris-Rips construction.
+
+A metric Vietoris-Rips filtration is not implemented; `type = "vr"` raises an error rather than silently returning a clique complex.
 
 ### Clique complex
 
@@ -509,14 +510,6 @@ sc
 #| fig-width: 13
 #| fig-height: 9
 plot(sc)
-```
-
-### Vietoris-Rips complex
-
-```{r}
-#| label: sc-vr
-sc_vr <- build_simplicial(net, type = "vr", threshold = 0.1)
-sc_vr
 ```
 
 ### Pathway complex

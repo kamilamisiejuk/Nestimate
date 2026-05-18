@@ -20,8 +20,8 @@ mosaic_plot(x, ...)
   xlab = NULL,
   ylab = NULL,
   range = NULL,
-  top_angle = 90,
-  left_angle = 0,
+  top_angle = NULL,
+  left_angle = NULL,
   residuals = c("permutation", "asymptotic"),
   n_perm = 500L,
   seed = NULL,
@@ -33,8 +33,8 @@ mosaic_plot(x, ...)
   xlab = NULL,
   ylab = NULL,
   range = NULL,
-  top_angle = 90,
-  left_angle = 0,
+  top_angle = NULL,
+  left_angle = NULL,
   residuals = c("permutation", "asymptotic"),
   n_perm = 500L,
   seed = NULL,
@@ -47,8 +47,8 @@ mosaic_plot(x, ...)
   xlab = NULL,
   ylab = NULL,
   range = NULL,
-  top_angle = 90,
-  left_angle = 0,
+  top_angle = NULL,
+  left_angle = NULL,
   residuals = c("permutation", "asymptotic"),
   n_perm = 500L,
   seed = NULL,
@@ -61,8 +61,8 @@ mosaic_plot(x, ...)
   xlab = NULL,
   ylab = NULL,
   range = NULL,
-  top_angle = 90,
-  left_angle = 0,
+  top_angle = NULL,
+  left_angle = NULL,
   residuals = c("permutation", "asymptotic"),
   n_perm = 500L,
   seed = NULL,
@@ -158,8 +158,12 @@ Column widths are proportional to row marginals of the weight matrix
 each column, segment heights are proportional to that row's conditional
 distribution. Cell fill is the standardized residual from
 \code{stats::chisq.test()}, with a diverging palette clipped to \eqn{\pm 4}.
-Mosaics only make sense for integer-valued matrices, so this function rejects
-relative / glasso / correlation networks.
+Mosaics need integer counts: when \code{$weights} is already integer
+(\code{method = "frequency"} / \code{"co_occurrence"}) it is used directly;
+for a single \code{netobject} / \code{htna} otherwise (relative, glasso,
+cor, ...) order-1 transition counts are recounted from the raw \code{$data}
+sequences. The function errors only when neither integer weights nor
+\code{$data} are available.
 }
 \examples{
 \dontrun{

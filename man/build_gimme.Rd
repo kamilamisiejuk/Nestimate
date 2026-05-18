@@ -39,7 +39,13 @@ When provided, data is sorted by \code{id} then \code{time} before lagging.}
 (each variable predicting itself at lag 1) are included as fixed paths.}
 
 \item{standardize}{Logical. If \code{TRUE} (default \code{FALSE}),
-variables are standardized per person before estimation.}
+variables are standardized per person before estimation. Note: the
+returned coefficient network (\code{$coefs}, \code{$psi},
+\code{$temporal_avg}, \code{$contemporaneous_avg}, \code{$group_paths})
+is unaffected because Nestimate extracts the standardized lavaan
+solution (\code{lavInspect(fit, "std")}), which is invariant to input
+scaling. Only the scale-dependent \code{$fit} statistics (chisq, aic,
+bic) change.}
 
 \item{groupcutoff}{Numeric between 0 and 1. Proportion of individuals for
 whom a path must be significant to be added at group level.

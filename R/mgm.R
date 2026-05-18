@@ -14,7 +14,13 @@
 #' @param type Character vector of length \code{ncol(data)}: \code{"g"} for
 #'   Gaussian (continuous), \code{"c"} for categorical.
 #' @param level Integer vector of length \code{ncol(data)}: number of levels
-#'   for categorical columns, \code{1} for continuous.
+#'   for categorical columns, \code{1} for continuous. Retained for
+#'   \code{mgm::mgm()} API parity and length-validated only; it does
+#'   \emph{not} enter the model fit, the EBIC penalty, or thresholding.
+#'   The EBIC neighbour count is derived from the non-zero coefficient
+#'   columns (\code{colSums(beta != 0)}), so categorical dummies are
+#'   penalised individually without needing an explicit level count.
+#'   Changing \code{level} has no effect on the returned network.
 #' @param lambdaGam EBIC gamma parameter. Default 0.25.
 #' @param ruleReg Symmetrization rule. \code{"AND"} (default) or \code{"OR"}.
 #' @param threshold Coefficient thresholding rule. \code{"LW"} (default) or
@@ -172,10 +178,27 @@
   if (is.null(type)) {
     type <- vapply(data, function(col) {
       if (is.factor(col) || is.character(col)) "c"
-      else if (is.numeric(col) && length(unique(col)) <= 10 &&
-               all(col == round(col))) "c"
+      else if (is.numeric(col) &&
+               length(unique(col[!is.na(col)])) <= 10 &&
+               all(col == round(col), na.rm = TRUE)) "c"
       else "g"
     }, character(1))
+    # Detection mirrors mgm::mgm()'s default (kept exactly so the
+    # machine-precision equivalence holds), but the surprising case -- a
+    # numeric column auto-classified CATEGORICAL via the <=10-integer rule
+    # (e.g. a Likert/count item) -- must never be silent: it changes the
+    # node's model from Gaussian to multinomial. Announce it; the user
+    # overrides with explicit `type=`/`level=`.
+    num_cat <- vapply(data, is.numeric, logical(1)) & type == "c"
+    if (any(num_cat)) {
+      warning(
+        "mgm: numeric column(s) auto-detected as CATEGORICAL ",
+        "(integer with <=10 distinct values): ",
+        paste(names(data)[num_cat], collapse = ", "),
+        ". If these are continuous, pass explicit `type=`/`level=`.",
+        call. = FALSE
+      )
+    }
   }
   if (is.null(level)) {
     level <- vapply(seq_along(type), function(i) {
@@ -290,6 +313,9 @@
 #' @param data Data frame or matrix.
 #' @param type Character vector of "g"/"c" per column.
 #' @param level Integer vector of levels per column (1 for continuous).
+#'   Retained for \code{mgm::mgm()} API parity and echoed back in the
+#'   returned structure only; it does \emph{not} enter the fit, the EBIC
+#'   penalty, or the conditioning. Changing it has no effect on the result.
 #' @param moderator Integer column index of the moderator variable.
 #' @param lambdaGam EBIC tuning parameter. Default 0.25.
 #' @param ruleReg Symmetrization rule. Default \code{"AND"}.

@@ -15,7 +15,9 @@ build_mogen(
 \item{data}{A data.frame (rows = trajectories, columns = time points) or
 a list of character/numeric vectors (one per trajectory).}
 
-\item{max_order}{Integer. Maximum Markov order to test (default 5).}
+\item{max_order}{Integer. Maximum Markov order to test (default 5).
+Must be a whole number; a non-integer value (e.g. \code{2.7}) is an
+error rather than being silently truncated.}
 
 \item{criterion}{Character. Model selection criterion: \code{"aic"}
 (default), \code{"bic"}, or \code{"lrt"} (likelihood ratio test).}

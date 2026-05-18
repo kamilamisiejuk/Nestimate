@@ -298,6 +298,7 @@ print.net_cluster_diagnostics <- function(x, digits = 3L, ...) {
          if (length(dots) == 1L) ": " else "s: ",
          paste(dot_names, collapse = ", "), call. = FALSE)
   }
+  .net_clustering_check_digits(digits)
   digits <- as.integer(digits)
   k <- x$k
   n <- x$n

@@ -84,7 +84,8 @@
 #'   time-steps), or a \code{netobject} that carries the source data.
 #' @param order Integer. Order of the conditioning context. \code{order = 2}
 #'   (default) compares 2-step memory against 1-step; \code{order = 3}
-#'   compares 3-step memory; etc.
+#'   compares 3-step memory; etc. Must be a whole number; a non-integer
+#'   value is an error rather than being silently truncated.
 #' @param min_count Integer. Drop contexts seen fewer than this many times.
 #'   Default 5. Very small samples produce noisy KL estimates.
 #' @param base Numeric. Logarithm base for entropy and KL. Default 2 (bits).
@@ -156,6 +157,11 @@
 #'
 #' @export
 path_dependence <- function(x, order = 2L, min_count = 5L, base = 2) {
+  stopifnot(
+    "'order' must be a whole number" =
+      is.numeric(order) && length(order) == 1L &&
+      order == round(order)
+  )
   order     <- as.integer(order)
   min_count <- as.integer(min_count)
   stopifnot(

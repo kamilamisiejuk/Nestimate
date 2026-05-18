@@ -9,8 +9,9 @@ mogen_transitions(x, order = NULL, min_count = 1L)
 \arguments{
 \item{x}{A \code{net_mogen} object from \code{build_mogen()}.}
 
-\item{order}{Integer. Which order's transitions to extract.
-Defaults to the optimal order selected by the model.}
+\item{order}{Integer. Which order's transitions to extract. Must be a
+whole number; a non-integer value is an error rather than being
+silently truncated. Defaults to the optimal order selected by the model.}
 
 \item{min_count}{Integer. Minimum observed count to include (default 1).
 Use this to filter out rare transitions that have unreliable probabilities.}

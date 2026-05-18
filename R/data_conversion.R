@@ -158,6 +158,7 @@ long_to_wide <- function(data,
   stopifnot(is.character(time_col), length(time_col) == 1)
   stopifnot(is.character(action_col), length(action_col) == 1)
   stopifnot(is.character(time_prefix), length(time_prefix) == 1)
+  stopifnot(is.logical(fill_na), length(fill_na) == 1)
 
   # Check required columns exist
   required_cols <- c(id_col, action_col)
@@ -193,13 +194,25 @@ long_to_wide <- function(data,
     }
     row
   })
-  # Align columns (sequences may differ in length)
-  all_cols <- unique(unlist(lapply(wide_list, names)))
-  wide_list <- lapply(wide_list, function(row) {
-    missing <- setdiff(all_cols, names(row))
-    for (m in missing) row[[m]] <- NA_character_
-    row[, all_cols, drop = FALSE]
-  })
+  # Align columns (sequences may differ in length).
+  # fill_na = TRUE  : pad shorter sequences' missing time points with NA so
+  #                    every row shares the same V1..Vn columns.
+  # fill_na = FALSE : do not fill missing time points with NA; keep only the
+  #                    time-point columns present in every sequence (truncate
+  #                    ragged tails) so no NA-padded cells are emitted.
+  if (fill_na) {
+    all_cols <- unique(unlist(lapply(wide_list, names)))
+    wide_list <- lapply(wide_list, function(row) {
+      missing <- setdiff(all_cols, names(row))
+      for (m in missing) row[[m]] <- NA_character_
+      row[, all_cols, drop = FALSE]
+    })
+  } else {
+    common_cols <- Reduce(intersect, lapply(wide_list, names))
+    wide_list <- lapply(wide_list, function(row) {
+      row[, common_cols, drop = FALSE]
+    })
+  }
   result <- do.call(rbind, wide_list)
 
   # Reorder columns to ensure V1, V2, V3... order
@@ -435,8 +448,9 @@ action_to_onehot <- function(data, action_col = "Action", states = NULL,
 #' @param interval Integer or NULL. Number of rows per time point in the
 #'   output. If NULL, all rows become a single time point group.
 #'   Default: NULL.
-#' @param window_size Integer. Number of consecutive rows to aggregate
-#'   into each window. Default: 1 (no windowing).
+#' @param window_size Integer (>= 1). Number of consecutive rows to aggregate
+#'   into each window. Default: 3. Set \code{window_size = 1} for no
+#'   windowing (each row is its own time point).
 #' @param window_type Character. \code{"non-overlapping"} (fixed, separate
 #'   windows) or \code{"overlapping"} (rolling, step = 1).
 #'   Default: \code{"non-overlapping"}.

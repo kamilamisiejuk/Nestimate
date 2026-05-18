@@ -25,7 +25,13 @@
 #' @param ar Logical. If \code{TRUE} (default), autoregressive paths
 #'   (each variable predicting itself at lag 1) are included as fixed paths.
 #' @param standardize Logical. If \code{TRUE} (default \code{FALSE}),
-#'   variables are standardized per person before estimation.
+#'   variables are standardized per person before estimation. Note: the
+#'   returned coefficient network (\code{$coefs}, \code{$psi},
+#'   \code{$temporal_avg}, \code{$contemporaneous_avg}, \code{$group_paths})
+#'   is unaffected because Nestimate extracts the standardized lavaan
+#'   solution (\code{lavInspect(fit, "std")}), which is invariant to input
+#'   scaling. Only the scale-dependent \code{$fit} statistics (chisq, aic,
+#'   bic) change.
 #' @param groupcutoff Numeric between 0 and 1. Proportion of individuals for
 #'   whom a path must be significant to be added at group level.
 #'   Default \code{0.75}.
@@ -119,6 +125,18 @@ build_gimme <- function(data,
          call. = FALSE)
   }
   stopifnot(is.numeric(groupcutoff), groupcutoff > 0, groupcutoff <= 1)
+  if (!is.null(exogenous)) {
+    stopifnot(is.character(exogenous))
+    bad_exog <- setdiff(exogenous, vars)
+    if (length(bad_exog) > 0L) {
+      stop("`exogenous` names must be among `vars`: ",
+           paste(bad_exog, collapse = ", "), call. = FALSE)
+    }
+    if (length(setdiff(vars, exogenous)) < 1L) {
+      stop("`exogenous` cannot include every variable -- ",
+           "at least one endogenous variable is required.", call. = FALSE)
+    }
+  }
 
   # --- Prepare per-person data ---
   ts_list <- .gimme_prepare_data(data, vars, id, time, standardize, exogenous)
@@ -294,39 +312,55 @@ build_gimme <- function(data,
 #' @noRd
 .gimme_build_syntax <- function(varnames, lag_names, endo_names, exog_names,
                                  ar, paths, exogenous, hybrid) {
-  # Endogenous variances and intercepts
-  var_endo <- paste0(endo_names, "~~", endo_names)
-  int_endo <- paste0(endo_names, "~1")
+  # Split current variables into effective-endogenous vs exogenous, mirroring
+  # gimme::setupBaseSyntax. A variable named in `exogenous` is treated as a
+  # predictor only: it is dropped from the endogenous variance/intercept set
+  # and from the regression-outcome (LHS) set, joins the exogenous
+  # covariance/mean block, gets nonsense paths so endogenous variables cannot
+  # predict it, and gets no AR self-path. `exogenous = NULL` is a no-op
+  # (endo_eff == endo_names, exog_cur empty), so output is unchanged.
+  exog_cur  <- intersect(endo_names, exogenous)
+  endo_eff  <- setdiff(endo_names, exog_cur)
+  # Exogenous block = lagged predictors plus any exogenous current variables.
+  exog_block <- c(exog_names, exog_cur)
 
-  # Exogenous (lagged) covariances and intercepts
-  exog_pairs <- outer(exog_names, exog_names, function(x, y) paste0(x, "~~", y))
+  # Endogenous variances and intercepts (effective-endogenous only)
+  var_endo <- paste0(endo_eff, "~~", endo_eff)
+  int_endo <- paste0(endo_eff, "~1")
+
+  # Exogenous covariances and intercepts (lagged + exogenous current)
+  exog_pairs <- outer(exog_block, exog_block,
+                      function(x, y) paste0(x, "~~", y))
   cov_exog <- exog_pairs[lower.tri(exog_pairs, diag = TRUE)]
-  int_exog <- paste0(exog_names, "~1")
+  int_exog <- paste0(exog_block, "~1")
 
-  # Nonsense paths: lagged cannot be predicted by current
-  nons_reg <- c(t(outer(exog_names, endo_names, function(x, y) {
+  # Nonsense paths: exogenous (lagged + exogenous current) cannot be
+  # predicted by effective-endogenous variables.
+  nons_reg <- c(t(outer(exog_block, endo_eff, function(x, y) {
     paste0(x, "~0*", y)
   })))
 
-  # Fixed paths (AR if requested + user-specified)
+  # Fixed paths (AR if requested + user-specified). Exogenous current
+  # variables get no AR self-path (they are not endogenous outcomes).
   fixed_paths <- paths
   if (ar) {
-    ar_paths <- paste0(varnames, "~", varnames, "lag")
+    ar_vars  <- setdiff(varnames, exog_cur)
+    ar_paths <- paste0(ar_vars, "~", ar_vars, "lag")
     fixed_paths <- c(fixed_paths, ar_paths)
   }
 
-  # All possible directed paths: endo ~ (endo + exog)
-  # Contemporaneous: endo_i ~ endo_j (i != j)
-  # Lagged (cross): endo_i ~ exog_j (where j is not i's own lag, if ar handles that)
-  all_poss <- c(t(outer(endo_names, c(endo_names, exog_names), function(x, y) {
+  # All possible directed paths: endo_eff ~ (endo_eff + exog_cur + lagged).
+  # Outcomes (LHS) are effective-endogenous only; predictors (RHS) include
+  # exogenous current variables and all lagged variables.
+  all_poss <- c(t(outer(endo_eff, c(endo_eff, exog_block), function(x, y) {
     paste0(x, "~", y)
   })))
   # Remove self-regression (endo_i ~ endo_i) -- these are variances
-  self_reg <- paste0(endo_names, "~", endo_names)
+  self_reg <- paste0(endo_eff, "~", endo_eff)
   all_poss <- setdiff(all_poss, self_reg)
 
-  # All possible residual covariances
-  corr_pairs <- outer(endo_names, endo_names, function(x, y) paste0(x, "~~", y))
+  # All possible residual covariances (effective-endogenous only)
+  corr_pairs <- outer(endo_eff, endo_eff, function(x, y) paste0(x, "~~", y))
   all_corr <- c(corr_pairs[lower.tri(corr_pairs)],
                 corr_pairs[upper.tri(corr_pairs)])
 

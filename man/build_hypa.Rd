@@ -4,7 +4,14 @@
 \alias{build_hypa}
 \title{Detect Path Anomalies via HYPA}
 \usage{
-build_hypa(data, k = 3L, alpha = 0.05, min_count = 5L, p_adjust = "BH")
+build_hypa(
+  data,
+  order = 2L,
+  alpha = 0.05,
+  min_count = 5L,
+  p_adjust = "BH",
+  k = NULL
+)
 }
 \arguments{
 \item{data}{A data.frame (rows = trajectories), list of character vectors,
@@ -12,31 +19,46 @@ build_hypa(data, k = 3L, alpha = 0.05, min_count = 5L, p_adjust = "BH")
 \code{tna}/\code{netobject}, numeric state IDs are automatically
 converted to label names.}
 
-\item{k}{Integer. Order of the De Bruijn graph (default 2). Detects
-anomalies in paths of length k.}
+\item{order}{Integer scalar or integer vector. Order(s) of the De Bruijn
+graph (default \code{2L}). An order of \code{k} detects anomalies in
+paths of length \code{k}. When a vector is supplied, one De Bruijn layer
+is built per order and the per-order results are stored in
+\code{$by_order} (named by order). The orders are sorted ascending
+internally, so the \code{cograph_network} slots
+(\code{$weights}, \code{$edges}, \code{$adjacency}, \code{$xi},
+\code{$nodes}, \code{$meta}) always describe the network of the
+\emph{lowest order that produced a layer} (a requested order with no
+edges is dropped from \code{$by_order}, \code{$order} and \code{$k}),
+regardless of the order in which the vector is given; \code{$scores}
+aggregates every built order.}
 
 \item{alpha}{Numeric. Significance threshold for anomaly classification
 (default 0.05). Paths with HYPA score < alpha are under-represented;
 paths with score > 1-alpha are over-represented.}
 
 \item{min_count}{Integer. Minimum observed count for a path to be
-classified as anomalous (default 2). Paths with fewer observations
+classified as anomalous (default 5). Paths with fewer observations
 are always classified as \code{"normal"} regardless of their
-HYPA score, since single occurrences are unreliable.}
+HYPA score, since rare occurrences are unreliable.}
 
 \item{p_adjust}{Character. Method for multiple testing correction of
 p-values. Default \code{"BH"} (Benjamini-Hochberg FDR control).
 Accepts any method from \code{\link[stats]{p.adjust.methods}} or
 \code{"none"} to skip correction. Under- and over-representation
 p-values are adjusted separately (two-sided testing).}
+
+\item{k}{Deprecated. Former name of \code{order}; if supplied it overrides
+\code{order} and emits a deprecation message. Use \code{order} instead.}
 }
 \value{
-An object of class \code{net_hypa} with components:
+An object of class \code{c("net_hypa", "cograph_network")} with
+components:
 \describe{
 \item{scores}{Data frame with path, from, to, observed, expected,
 ratio, p_value, p_under, p_over, p_adjusted_under,
-p_adjusted_over, anomaly
-columns. The \code{path} column shows the full state sequence
+p_adjusted_over, anomaly, order
+columns (one block of rows per requested order). The \code{path}
+column shows the full state sequence
 (e.g., "A -> B -> C"); \code{from} is the context (conditioning
 states); \code{to} is the next state; \code{ratio} is
 observed / expected; \code{p_value} is retained as an alias for
@@ -45,16 +67,28 @@ observed / expected; \code{p_value} is retained as an alias for
 \code{P(X >= observed)}; \code{p_adjusted_under} and
 \code{p_adjusted_over} are the corrected p-values for under- and
 over-representation tests respectively.}
-\item{adjacency}{Weighted adjacency matrix of the De Bruijn graph.}
-\item{xi}{Fitted propensity matrix.}
-\item{k}{Order of the De Bruijn graph.}
+\item{ho_edges}{Alias for \code{scores} (all orders, arrow notation).}
+\item{over}{Subset of \code{scores} classified as over-represented.}
+\item{under}{Subset of \code{scores} classified as under-represented.}
+\item{adjacency}{Weighted adjacency matrix of the lowest-order De
+Bruijn graph.}
+\item{weights}{cograph weight matrix of the lowest-order graph.}
+\item{xi}{Fitted propensity matrix of the lowest-order graph.}
+\item{edges}{cograph edge data.frame of the lowest-order graph.}
+\item{by_order}{Named list of per-order result lists.}
+\item{order}{Integer vector of orders actually built (sorted ascending).}
+\item{k}{Back-compatibility alias for \code{order}.}
 \item{alpha}{Significance threshold used.}
 \item{p_adjust}{Multiple testing correction method used.}
-\item{n_anomalous}{Number of anomalous paths detected.}
-\item{n_over}{Number of over-represented paths.}
-\item{n_under}{Number of under-represented paths.}
-\item{n_edges}{Total number of edges.}
-\item{nodes}{Node names in the De Bruijn graph.}
+\item{n_anomalous}{Number of anomalous paths detected (all orders).}
+\item{n_over}{Number of over-represented paths (all orders).}
+\item{n_under}{Number of under-represented paths (all orders).}
+\item{n_edges}{Total number of edges (all orders).}
+\item{nodes}{data.frame (\code{id}, \code{label}, \code{name}) of the
+lowest-order De Bruijn graph nodes (arrow notation).}
+\item{directed}{Logical. Always \code{TRUE}.}
+\item{meta}{cograph meta list of the lowest-order graph.}
+\item{node_groups}{Always \code{NULL}.}
 }
 }
 \description{
@@ -65,12 +99,12 @@ flagged as over- or under-represented.
 }
 \examples{
 seqs <- list(c("A","B","C"), c("B","C","A"), c("A","C","B"), c("A","B","C"))
-hyp <- build_hypa(seqs, k = 2)
+hyp <- build_hypa(seqs, order = 2)
 
 \donttest{
 trajs <- list(c("A","B","C"), c("A","B","C"), c("A","B","C"),
               c("A","B","D"), c("C","B","D"), c("C","B","A"))
-h <- build_hypa(trajs, k = 2)
+h <- build_hypa(trajs, order = 2)
 print(h)
 }
 
@@ -78,5 +112,5 @@ print(h)
 \references{
 LaRock, T., Nanumyan, V., Scholtes, I., Casiraghi, G., Eliassi-Rad, T.,
 & Schweitzer, F. (2020). HYPA: Efficient Detection of Path Anomalies in
-Time Series Data on Networks. \emph{SDM 2020}, 460–468.
+Time Series Data on Networks. \emph{SDM 2020}, 460-468.
 }

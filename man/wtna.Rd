@@ -31,8 +31,10 @@ if symmetric co-occurrence counts are required.}
 \item{codes}{Character vector or NULL. Names of the one-hot columns to use.
 If NULL, auto-detects binary columns. Default: NULL.}
 
-\item{window_size}{Integer. Number of consecutive rows to aggregate per
-window. Default: 1 (no windowing).}
+\item{window_size}{Integer (>= 1). Number of consecutive rows to aggregate
+per window. Default: 3 (windowed pairwise between-window counting). Set
+\code{window_size = 1} for ordinary consecutive (t -> t+1) transitions
+with no windowing.}
 
 \item{mode}{Character. Window mode: \code{"non-overlapping"} (fixed, separate
 windows) or \code{"overlapping"} (rolling, step = 1).

@@ -23,16 +23,29 @@ An object of class \code{"net_transition_entropy"} with:
 \describe{
 \item{row_entropy}{Named numeric vector, length \eqn{n}. Per-state
 branching entropy \eqn{H(P_{i\cdot}) = -\sum_j P_{ij} \log P_{ij}}.}
+\item{row_entropy_norm}{Named numeric vector. \code{row_entropy}
+divided by the ceiling \eqn{\log_b n} (in \eqn{[0, 1]}; all zeros
+when \eqn{n = 1}).}
 \item{stationary}{Named numeric vector. Stationary distribution
 \eqn{\pi}.}
 \item{stationary_entropy}{Scalar. \eqn{H(\pi) = -\sum_i \pi_i \log \pi_i}
 - the entropy of \eqn{\pi} treated as an i.i.d. distribution. Upper
 bound on the entropy rate.}
+\item{stationary_entropy_norm}{Scalar. \code{stationary_entropy}
+divided by the ceiling \eqn{\log_b n}.}
 \item{entropy_rate}{Scalar. \eqn{h(P) = \sum_i \pi_i H(P_{i\cdot})} -
 the Shannon-McMillan-Breiman entropy rate.}
+\item{entropy_rate_norm}{Scalar. \code{entropy_rate} divided by the
+ceiling \eqn{\log_b n}.}
 \item{redundancy}{Scalar. \eqn{H(\pi) - h(P)}, the entropy deficit
 attributable to serial dependence; zero for an i.i.d. chain (rows of
 \eqn{P} all equal \eqn{\pi}).}
+\item{redundancy_norm}{Scalar. The \emph{relative} redundancy
+\eqn{(H(\pi) - h(P)) / H(\pi)} (the fraction of the stationary
+entropy removed by order-1 memory), \strong{not}
+\code{redundancy} divided by \eqn{\log_b n}; \code{0} when
+\eqn{H(\pi) = 0}.}
+\item{max_entropy}{Scalar. The normalising ceiling \eqn{\log_b n}.}
 \item{base}{Logarithm base used.}
 \item{states}{Character vector of state names.}
 }

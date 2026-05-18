@@ -146,7 +146,11 @@ centrality <- function(x, ...) {
 #' @param measures Character vector. Centrality measures to compute.
 #'   Built-in: \code{"InStrength"}, \code{"OutStrength"},
 #'   \code{"Betweenness"}, \code{"InCloseness"}, \code{"OutCloseness"},
-#'   \code{"Closeness"}. Default depends on directedness.
+#'   \code{"Closeness"}. \code{"Closeness"} is defined only for
+#'   undirected networks; \code{"InCloseness"}/\code{"OutCloseness"}
+#'   only for directed networks (requesting the wrong one for the
+#'   network's directedness is an error). Default depends on
+#'   directedness.
 #' @param loops Logical. Include self-loops (diagonal) in computation?
 #'   Default: \code{FALSE}.
 #' @param centrality_fn Optional function. Custom centrality function that

@@ -9,9 +9,11 @@ persistent_homology(x, n_steps = 20L, max_dim = 3L)
 \arguments{
 \item{x}{A square matrix, \code{tna}, or \code{netobject}.}
 
-\item{n_steps}{Number of filtration steps (default 20).}
+\item{n_steps}{Number of filtration steps (default 20). Must be a single
+positive integer.}
 
-\item{max_dim}{Maximum simplex dimension to track (default 3).}
+\item{max_dim}{Maximum simplex dimension to track (default 3). Must be a
+single non-negative integer.}
 }
 \value{
 A \code{persistent_homology} object with:

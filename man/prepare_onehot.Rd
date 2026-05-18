@@ -30,8 +30,9 @@ sub-grouping within actors. Default: NULL.}
 output. If NULL, all rows become a single time point group.
 Default: NULL.}
 
-\item{window_size}{Integer. Number of consecutive rows to aggregate
-into each window. Default: 1 (no windowing).}
+\item{window_size}{Integer (>= 1). Number of consecutive rows to aggregate
+into each window. Default: 3. Set \code{window_size = 1} for no
+windowing (each row is its own time point).}
 
 \item{window_type}{Character. \code{"non-overlapping"} (fixed, separate
 windows) or \code{"overlapping"} (rolling, step = 1).

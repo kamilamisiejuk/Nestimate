@@ -112,41 +112,23 @@ test_that("build_simplicial on matrix without rownames assigns V-names", {
 
 
 # =========================================================================
-# build_simplicial — VR type
+# build_simplicial — VR type is not implemented (A04-F01)
+#
+# A genuine metric Vietoris-Rips filtration is not built by this package.
+# type = "vr" used to silently alias "clique"; it must now error cleanly
+# instead of returning a clique complex mislabelled as Vietoris-Rips.
 # =========================================================================
 
-test_that("build_simplicial VR produces correct class", {
+test_that("build_simplicial type='vr' errors instead of aliasing clique", {
   mat <- .make_sc_mat()
-  sc <- build_simplicial(mat, type = "vr", threshold = 0.3)
-  expect_s3_class(sc, "simplicial_complex")
-  expect_equal(sc$type, "vr")
-})
-
-test_that("build_simplicial VR symmetrizes matrix", {
-  # Asymmetric matrix: only A->B has weight, not B->A
-  mat <- matrix(0, 3, 3)
-  mat[1, 2] <- 1
-  rownames(mat) <- colnames(mat) <- c("A", "B", "C")
-  sc <- build_simplicial(mat, type = "vr", threshold = 0.5)
-  # Should still detect A-B edge (symmetrized)
-  expect_true(sc$n_simplices > sc$n_nodes)
-})
-
-test_that("build_simplicial VR high threshold gives disconnected graph", {
-  mat <- .make_sc_mat()
-  sc <- build_simplicial(mat, type = "vr", threshold = 0.9)
-  # All edges are 0.5 < 0.9 => no edges, only vertices
-  expect_equal(sc$dimension, 0L)
-  expect_equal(sc$n_simplices, 4L) # just the 4 vertices
-})
-
-test_that("build_simplicial VR excludes zero non-edges at threshold zero", {
-  mat <- matrix(0, 3, 3)
-  mat[1, 2] <- mat[2, 1] <- 1
-  rownames(mat) <- colnames(mat) <- c("A", "B", "C")
-
-  sc <- build_simplicial(mat, type = "vr", threshold = 0)
-  expect_equal(as.integer(sc$f_vector), c(3L, 1L))
+  expect_error(
+    build_simplicial(mat, type = "vr", threshold = 0.3),
+    "not implemented"
+  )
+  expect_error(
+    build_simplicial(mat, type = "rips", threshold = 0.3),
+    "not implemented"
+  )
 })
 
 
@@ -583,11 +565,15 @@ test_that("print.simplicial_complex suppresses nodes for large complexes", {
   expect_false(any(grepl("Nodes:", out)))
 })
 
-test_that("print.simplicial_complex shows VR label", {
+test_that("print.simplicial_complex never shows a Vietoris-Rips label", {
+  # type = "vr" no longer produces a complex (A04-F01), so the dead
+  # "Vietoris-Rips Complex" label can never be printed. A clique complex
+  # must print "Clique Complex".
   mat <- .make_sc_mat()
-  sc <- build_simplicial(mat, type = "vr", threshold = 0.3)
+  sc <- build_simplicial(mat, type = "clique", threshold = 0.3)
   out <- capture.output(print(sc))
-  expect_true(any(grepl("Vietoris-Rips", out)))
+  expect_true(any(grepl("Clique Complex", out)))
+  expect_false(any(grepl("Vietoris-Rips", out)))
 })
 
 test_that("print.simplicial_complex returns invisibly", {

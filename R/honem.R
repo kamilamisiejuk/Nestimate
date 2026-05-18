@@ -225,7 +225,10 @@ print.net_honem <- function(x, ...) {
 #' @param object A \code{net_honem} object.
 #' @param ... Additional arguments (ignored).
 #'
-#' @return The input object, invisibly.
+#' @return A data.frame with one row per node: column \code{node} (node
+#'   label) followed by \code{dim1}, \code{dim2}, ..., \code{dim}\emph{d}
+#'   embedding coordinates, returned visibly; the summary text is printed as
+#'   a side effect.
 #'
 #' @examples
 #' seqs <- list(c("A","B","C","D"), c("A","B","C","A"), c("B","C","D","A"))

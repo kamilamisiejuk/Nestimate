@@ -35,13 +35,19 @@ square symmetric matrix (correlation or covariance).}
 
 \item{method}{Character. Required. Name of a registered estimator.
 Built-in methods: \code{"relative"}, \code{"frequency"},
-\code{"co_occurrence"}, \code{"cor"}, \code{"pcor"}, \code{"glasso"}.
+\code{"co_occurrence"}, \code{"cor"}, \code{"pcor"}, \code{"glasso"},
+\code{"ising"}, \code{"mgm"}, \code{"attention"}, \code{"wtna"},
+\code{"wtna_cooccurrence"}.
 Aliases: \code{"tna"} and \code{"transition"} map to \code{"relative"};
 \code{"ftna"} and \code{"counts"} map to \code{"frequency"};
-\code{"cna"} maps to \code{"co_occurrence"};
+\code{"cna"} and \code{"wcna"} map to \code{"co_occurrence"};
 \code{"corr"} and \code{"correlation"} map to \code{"cor"};
 \code{"partial"} maps to \code{"pcor"};
-\code{"ebicglasso"} and \code{"regularized"} map to \code{"glasso"}.}
+\code{"ebicglasso"} and \code{"regularized"} map to \code{"glasso"};
+\code{"isingfit"} maps to \code{"ising"};
+\code{"atna"} maps to \code{"attention"};
+\code{"mixed"} and \code{"mixed_graphical"} map to \code{"mgm"};
+\code{"wtna_transition"} maps to \code{"wtna"}.}
 
 \item{actor}{Character. Name of the actor/person ID column for sequence
 grouping. Default: \code{NULL}.}
@@ -69,8 +75,10 @@ Default: \code{NULL}.}
 \item{window_size}{Integer. Window size for one-hot windowing.
 Default: \code{3L}.}
 
-\item{mode}{Character. Windowing mode: \code{"non-overlapping"} or
-\code{"overlapping"}. Default: \code{"non-overlapping"}.}
+\item{mode}{Character. Windowing mode for one-hot input only:
+\code{"non-overlapping"} or \code{"overlapping"}. Has no effect on
+wide or long sequence data (only the one-hot/wtna path reads it).
+Default: \code{"non-overlapping"}.}
 
 \item{scaling}{Character vector or NULL. Post-estimation scaling to apply
 (in order). Options: \code{"minmax"}, \code{"max"}, \code{"rank"},

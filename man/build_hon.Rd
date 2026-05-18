@@ -51,7 +51,10 @@ e.g., "A -> B -> C"), \code{from} (context/conditioning states),
 \code{to} (predicted next state), \code{count} (raw frequency),
 \code{probability} (transition probability), \code{from_order},
 \code{to_order}.}
-\item{nodes}{Character vector of HON node names in arrow notation.}
+\item{nodes}{data.frame with columns \code{id}, \code{label},
+\code{name} (one row per HON node; \code{label}/\code{name} are the
+arrow-notation node names). Stored as a data.frame for
+\code{cograph_network} compatibility.}
 \item{n_nodes}{Number of HON nodes.}
 \item{n_edges}{Number of edges.}
 \item{first_order_states}{Character vector of unique original states.}

@@ -12,7 +12,11 @@
 \item{...}{Additional arguments (ignored).}
 }
 \value{
-The input object, invisibly.
+A per-order model-selection data.frame with columns \code{order},
+\code{layer_dof}, \code{cum_dof}, \code{loglik}, \code{aic}, \code{bic},
+\code{best} (\code{"AIC"}/\code{"BIC"}/\code{"AIC+BIC"} marker) and
+\code{selected} (\code{"<--"} on the chosen order), returned visibly;
+the summary text is printed as a side effect.
 }
 \description{
 Summary Method for net_mogen

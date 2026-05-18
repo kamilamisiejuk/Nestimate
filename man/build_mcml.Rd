@@ -8,7 +8,7 @@ build_mcml(
   x,
   clusters = NULL,
   method = c("sum", "mean", "median", "max", "min", "density", "geomean"),
-  type = c("tna", "frequency", "cooccurrence", "semi_markov", "raw"),
+  type = c("tna", "frequency", "cooccurrence", "raw"),
   directed = TRUE,
   compute_within = TRUE,
   actor = NULL,
@@ -71,8 +71,20 @@ semantics -- the other methods are useful when aggregating
 weighted edge lists or pre-existing weight matrices, where each row
 already represents a measurement rather than a single observation.}
 
-\item{type}{Post-processing: "tna" (row-normalize), "cooccurrence"
-(symmetrize), "semi_markov", or "raw". Default "tna".}
+\item{type}{Post-processing of the aggregated count matrix. One of:
+\describe{
+\item{"tna"}{(default) Row-normalize so each row sums to 1
+(first-order Markov transition probabilities).}
+\item{"raw"}{Return the un-normalized count matrix.}
+\item{"frequency"}{Explicit alias of \code{"raw"} -- identical raw
+count construction (kept as a synonym for callers using
+frequency-network terminology).}
+\item{"cooccurrence"}{Symmetrize the matrix (undirected
+co-occurrence).}
+}
+\code{"semi_markov"} is \emph{not} accepted: the package does not
+implement a semi-Markov / holding-time construction, so passing it
+errors rather than silently aliasing \code{"tna"}.}
 
 \item{directed}{Logical. If \code{TRUE} (default), treat transitions as
 directed. If \code{FALSE}, symmetrize sequence- and edge-derived weights

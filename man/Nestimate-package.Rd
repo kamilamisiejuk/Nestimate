@@ -14,6 +14,7 @@ Estimate, compare, and analyze dynamic and psychological networks using a unifie
 Useful links:
 \itemize{
   \item \url{https://github.com/mohsaqr/Nestimate}
+  \item \url{https://saqr.me/Nestimate/}
   \item Report bugs at \url{https://github.com/mohsaqr/Nestimate/issues}
 }
 

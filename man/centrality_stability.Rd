@@ -23,7 +23,11 @@ centrality_stability(
 \item{measures}{Character vector. Centrality measures to assess.
 Built-in: \code{"InStrength"}, \code{"OutStrength"}, \code{"Betweenness"},
 \code{"InCloseness"}, \code{"OutCloseness"}, \code{"Closeness"}.
-Custom measures beyond these require \code{centrality_fn}.
+\code{"Closeness"} is defined only for undirected networks;
+\code{"InCloseness"}/\code{"OutCloseness"} only for directed
+networks (requesting the wrong one for the network's directedness
+is an error). Custom measures beyond these are valid only when a
+\code{centrality_fn} is supplied to resolve them.
 Default: \code{c("InStrength", "OutStrength", "Betweenness")}.}
 
 \item{iter}{Integer. Number of bootstrap iterations per drop
@@ -43,11 +47,14 @@ threshold (default: 0.95).}
 
 \item{centrality_fn}{Optional function. A custom centrality function
 that takes a weight matrix and returns a named list of centrality
-vectors. When \code{NULL} (default), only \code{"InStrength"} and
-\code{"OutStrength"} are computed via \code{colSums}/\code{rowSums}.
-When provided, the function is called as \code{centrality_fn(mat)}
-and should return a named list (e.g.,
-\code{list(Betweenness = ..., Closeness = ...)}).}
+vectors. When \code{NULL} (default), all built-in measures are
+computed internally: \code{"InStrength"}/\code{"OutStrength"} via
+\code{colSums}/\code{rowSums}, and \code{"Betweenness"}/
+\code{"InCloseness"}/\code{"OutCloseness"}/\code{"Closeness"} via an
+internal Floyd-Warshall shortest-path routine. When provided, the
+function is called as \code{centrality_fn(mat)} and is used only for
+requested measures that are not one of the six built-ins; it should
+return a named list (e.g., \code{list(my_metric = ...)}).}
 
 \item{loops}{Logical. If \code{FALSE} (default), self-loops (diagonal)
 are excluded from centrality computation. This does not modify the

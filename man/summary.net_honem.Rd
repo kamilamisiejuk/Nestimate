@@ -12,7 +12,10 @@
 \item{...}{Additional arguments (ignored).}
 }
 \value{
-The input object, invisibly.
+A data.frame with one row per node: column \code{node} (node
+label) followed by \code{dim1}, \code{dim2}, ..., \code{dim}\emph{d}
+embedding coordinates, returned visibly; the summary text is printed as
+a side effect.
 }
 \description{
 Summary Method for net_honem

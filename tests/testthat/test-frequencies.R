@@ -269,16 +269,26 @@ test_that("convert_sequence_format with seq_cols selects specific columns", {
   expect_false("Y" %in% names(result))
 })
 
-test_that("convert_sequence_format defaults id_col to first column", {
+test_that("convert_sequence_format does not guess id_col; explicit id_col honored (A11-F01 / Codex)", {
   wide_data <- data.frame(
     Student = c(1, 2),
     T1 = c("A", "B"), T2 = c("B", "A"),
     stringsAsFactors = FALSE
   )
 
-  result <- convert_sequence_format(wide_data, format = "frequency")
+  # id_col = NULL: NO value-based id inference (the old "first column = id"
+  # guess silently dropped the first time point). Every column is a state,
+  # so Student's values 1/2 are states and nothing is dropped.
+  el_noid <- convert_sequence_format(wide_data, format = "edgelist")
+  expect_equal(nrow(el_noid), 4L)
+  expect_true(any(c("1", "2") %in% c(el_noid$from, el_noid$to)))
 
-  expect_true("Student" %in% names(result))
+  # A genuine leading id now requires passing id_col explicitly.
+  el_id <- convert_sequence_format(wide_data, id_col = "Student",
+                                   format = "edgelist")
+  expect_equal(nrow(el_id), 2L)
+  expect_false(any(c("1", "2") %in% c(el_id$from, el_id$to)))
+  expect_true("Student" %in% names(el_id))
 })
 
 test_that("convert_sequence_format with multiple id_col from long", {

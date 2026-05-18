@@ -1064,7 +1064,10 @@
 #'     \code{to} (predicted next state), \code{count} (raw frequency),
 #'     \code{probability} (transition probability), \code{from_order},
 #'     \code{to_order}.}
-#'   \item{nodes}{Character vector of HON node names in arrow notation.}
+#'   \item{nodes}{data.frame with columns \code{id}, \code{label},
+#'     \code{name} (one row per HON node; \code{label}/\code{name} are the
+#'     arrow-notation node names). Stored as a data.frame for
+#'     \code{cograph_network} compatibility.}
 #'   \item{n_nodes}{Number of HON nodes.}
 #'   \item{n_edges}{Number of edges.}
 #'   \item{first_order_states}{Character vector of unique original states.}
@@ -1211,7 +1214,10 @@ print.net_hon <- function(x, ...) {
 #' @param object A \code{net_hon} object.
 #' @param ... Additional arguments (ignored).
 #'
-#' @return The input object, invisibly.
+#' @return The edge data.frame \code{object$edges} (columns \code{path},
+#'   \code{from}, \code{to}, \code{count}, \code{probability},
+#'   \code{from_order}, \code{to_order}), returned visibly; the summary text
+#'   is printed as a side effect.
 #'
 #' @examples
 #' seqs <- list(c("A","B","C","D"), c("A","B","C","A"), c("B","C","D","A"))

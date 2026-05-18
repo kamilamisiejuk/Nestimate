@@ -9,7 +9,7 @@
 build_hypergraph(
   net,
   p = 1,
-  method = c("clique", "vr"),
+  method = c("clique", "vr", "rips"),
   include_pairwise = TRUE,
   max_size = 3L,
   threshold = 0,
@@ -29,9 +29,11 @@ the underlying clique enumerator.}
 k-hyperedge. Default \code{1} (deterministic — every found clique is
 included).}
 
-\item{method}{One of \code{"clique"} (cliques in the binarised adjacency) or
-\code{"vr"} (Vietoris-Rips: cliques in the weight >= threshold graph).
-Default \code{"clique"}.}
+\item{method}{Hyperedge enumeration. \code{"clique"} (default) promotes
+k-cliques in the binarised adjacency to k-hyperedges. A metric
+Vietoris-Rips construction is \strong{not implemented}; \code{"vr"} /
+\code{"rips"} are accepted by \code{match.arg} but raise an error rather than
+silently aliasing \code{"clique"}.}
 
 \item{include_pairwise}{Logical. Include 2-edges from the input network as
 2-hyperedges. Default \code{TRUE}. Set \code{FALSE} for a "fully higher-order"

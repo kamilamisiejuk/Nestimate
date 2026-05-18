@@ -120,11 +120,22 @@ print.mcml_layer <- function(x, ...) {
 #' Compatible with igraph's edge.attr.comb parameter.
 #'
 #' @param w Numeric vector of finite edge weights. \code{NA} and zero weights
-#'   are excluded before aggregation.
+#'   are excluded before aggregation, so every method (including
+#'   \code{"density"}, \code{"min"}, \code{"max"}, \code{"prod"},
+#'   \code{"geomean"}) operates on the non-zero, non-\code{NA} subset.
 #' @param method Single aggregation method: "sum", "mean", "median", "max",
-#'   "min", "prod", "density", or "geomean".
+#'   "min", "prod", "density", or "geomean". Because zeros are stripped first,
+#'   \code{"density"} (\code{sum(w) / n_possible}) and \code{"mean"}
+#'   (\code{sum(w) / number of non-zero edges}) return the \emph{same} value
+#'   whenever the block is fully dense -- i.e. when the count of non-zero
+#'   edges equals \code{n_possible}. They diverge only when zero/\code{NA}
+#'   edges are present (then \code{"density"} divides by the larger
+#'   \code{n_possible}, \code{"mean"} by the smaller non-zero count).
 #' @param n_possible Optional single finite numeric number of possible edges
-#'   for density calculation.
+#'   for density calculation. When omitted, \code{"density"} falls back to
+#'   \code{sum(w) / length(w)} on the non-zero subset (equivalent to
+#'   \code{"mean"}); supply \code{n_possible} (e.g. the block size
+#'   \code{n_i * n_j}) for a true edge density.
 #' @return Single aggregated value
 #' @export
 #' @examples
@@ -238,8 +249,13 @@ net_aggregate_weights <- function(w, method = "sum", n_possible = NULL) {
 #'     \item{"median"}{Median edge weight. Robust to outliers.}
 #'     \item{"max"}{Maximum edge weight. Captures strongest connection.}
 #'     \item{"min"}{Minimum edge weight. Captures weakest connection.}
-#'     \item{"density"}{Sum divided by number of possible edges. Normalizes
-#'       by cluster size combinations.}
+#'     \item{"density"}{Sum of (non-zero) edge weights divided by the number
+#'       of possible edges between the two clusters (\code{n_i * n_j}).
+#'       Normalizes by cluster size combinations. Because zero/\code{NA}
+#'       edges are stripped before aggregation, this equals \code{"mean"}
+#'       exactly when the cluster-pair block is fully dense (no zero edges),
+#'       and is strictly smaller than \code{"mean"} when zero edges are
+#'       present (it divides by the larger possible-edge count).}
 #'     \item{"geomean"}{Geometric mean of positive weights. Useful for
 #'       multiplicative processes.}
 #'   }
@@ -680,8 +696,20 @@ cluster_summary <- function(x,
 #'   semantics -- the other methods are useful when aggregating
 #'   weighted edge lists or pre-existing weight matrices, where each row
 #'   already represents a measurement rather than a single observation.
-#' @param type Post-processing: "tna" (row-normalize), "cooccurrence"
-#'   (symmetrize), "semi_markov", or "raw". Default "tna".
+#' @param type Post-processing of the aggregated count matrix. One of:
+#'   \describe{
+#'     \item{"tna"}{(default) Row-normalize so each row sums to 1
+#'       (first-order Markov transition probabilities).}
+#'     \item{"raw"}{Return the un-normalized count matrix.}
+#'     \item{"frequency"}{Explicit alias of \code{"raw"} -- identical raw
+#'       count construction (kept as a synonym for callers using
+#'       frequency-network terminology).}
+#'     \item{"cooccurrence"}{Symmetrize the matrix (undirected
+#'       co-occurrence).}
+#'   }
+#'   \code{"semi_markov"} is \emph{not} accepted: the package does not
+#'   implement a semi-Markov / holding-time construction, so passing it
+#'   errors rather than silently aliasing \code{"tna"}.
 #' @param directed Logical. If \code{TRUE} (default), treat transitions as
 #'   directed. If \code{FALSE}, symmetrize sequence- and edge-derived weights
 #'   before returning raw/frequency weights or before row-normalizing
@@ -732,7 +760,7 @@ build_mcml <- function(x,
                        method = c("sum", "mean", "median", "max",
                                   "min", "density", "geomean"),
                        type = c("tna", "frequency", "cooccurrence",
-                                "semi_markov", "raw"),
+                                "raw"),
                        directed = TRUE,
                        compute_within = TRUE,
                        actor = NULL,
@@ -758,6 +786,18 @@ build_mcml <- function(x,
   # Remember whether the caller passed `type` explicitly -- used below to
   # warn when type is applied to matrix input, where it has no effect.
   type_explicit <- !missing(type)
+
+  # No semi-Markov / holding-time construction exists in the package. Reject
+  # "semi_markov" explicitly instead of silently aliasing "tna" (which the
+  # shared row-normalisation branch used to do while print.mcml claimed a
+  # semi-Markov model).
+  if (is.character(type) && length(type) == 1L &&
+      !is.na(type) && type == "semi_markov") {
+    stop("type = \"semi_markov\" is not implemented: Nestimate has no ",
+         "semi-Markov / holding-time construction. Use type = \"tna\" for a ",
+         "first-order Markov transition matrix, or \"raw\"/\"cooccurrence\".",
+         call. = FALSE)
+  }
 
   type <- match.arg(type)
   method <- match.arg(method)
@@ -1310,8 +1350,8 @@ build_mcml <- function(x,
 
       if (n_i <= 1) {
         # Singleton cluster: aggregate self-loop weight, then route through
-        # .process_weights so type = "tna"/"semi_markov" row-normalises just
-        # like the multi-node branch (1x1 [N] -> [1.0]; 1x1 [0] stays [0]).
+        # .process_weights so type = "tna" row-normalises just like the
+        # multi-node branch (1x1 [N] -> [1.0]; 1x1 [0] stays [0]).
         keep_self <- w_from %in% cl_nodes & w_to %in% cl_nodes
         self_weight <- if (any(keep_self)) {
           net_aggregate_weights(w_w[keep_self], method)
@@ -1587,7 +1627,7 @@ build_mcml <- function(x,
   if (!is.character(type) || length(type) != 1L || is.na(type)) {
     stop("'type' must be a single non-missing character value.", call. = FALSE)
   }
-  valid_types <- c("raw", "frequency", "cooccurrence", "tna", "semi_markov")
+  valid_types <- c("raw", "frequency", "cooccurrence", "tna")
   if (!type %in% valid_types) {
     stop("'type' must be one of: ",
          paste(valid_types, collapse = ", "), call. = FALSE)
@@ -1608,7 +1648,7 @@ build_mcml <- function(x,
     return(raw_weights)
   }
 
-  if (type == "tna" || type == "semi_markov") {
+  if (type == "tna") {
     # Row-normalize so rows sum to 1
     rs <- rowSums(raw_weights, na.rm = TRUE)
     processed <- raw_weights / ifelse(rs == 0 | is.na(rs), 1, rs)
@@ -1714,7 +1754,7 @@ as_tna <- function(x) {
 as_tna.mcml <- function(x) {
   # Determine the method to record on the wrapped netobjects:
   #   * "raw"/"frequency"/"aggregate" -> "frequency" (matrix-path or counts)
-  #   * "tna"/"semi_markov" etc.      -> "relative" (already row-normalised)
+  #   * "tna" (already row-normalised) -> "relative"
   meta_type <- x$meta$type
   net_method <- if (is.null(meta_type) ||
                     meta_type %in% c("raw", "frequency", "aggregate")) {

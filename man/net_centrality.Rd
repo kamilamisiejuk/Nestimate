@@ -13,7 +13,11 @@ net_centrality(x, measures = NULL, loops = FALSE, centrality_fn = NULL, ...)
 \item{measures}{Character vector. Centrality measures to compute.
 Built-in: \code{"InStrength"}, \code{"OutStrength"},
 \code{"Betweenness"}, \code{"InCloseness"}, \code{"OutCloseness"},
-\code{"Closeness"}. Default depends on directedness.}
+\code{"Closeness"}. \code{"Closeness"} is defined only for
+undirected networks; \code{"InCloseness"}/\code{"OutCloseness"}
+only for directed networks (requesting the wrong one for the
+network's directedness is an error). Default depends on
+directedness.}
 
 \item{loops}{Logical. Include self-loops (diagonal) in computation?
 Default: \code{FALSE}.}

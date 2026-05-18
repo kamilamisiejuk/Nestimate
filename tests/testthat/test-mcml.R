@@ -1148,10 +1148,11 @@ test_that(".process_weights applies undirected symmetrisation before type proces
   expect_equal(Nestimate:::.process_weights(raw, "tna", directed = FALSE),
                matrix(c(0, 1, 1, 0), 2, 2,
                       dimnames = dimnames(raw)))
-  expect_equal(Nestimate:::.process_weights(raw, "semi_markov",
+  # "semi_markov" was an undocumented silent alias of "tna" (no holding-time
+  # model exists). It is now rejected rather than aliased (A06-F01).
+  expect_error(Nestimate:::.process_weights(raw, "semi_markov",
                                             directed = FALSE),
-               matrix(c(0, 1, 1, 0), 2, 2,
-                      dimnames = dimnames(raw)))
+               "'type' must be one of: ", fixed = TRUE)
 })
 
 test_that(".process_weights validates arguments strictly", {

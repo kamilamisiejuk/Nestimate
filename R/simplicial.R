@@ -14,7 +14,7 @@
 #'
 #' @description
 #' Constructs a simplicial complex from a network or higher-order pathway
-#' object. Three construction methods are available:
+#' object. Two construction methods are available:
 #'
 #' \itemize{
 #'   \item \strong{Clique complex} (\code{"clique"}): every clique in the
@@ -23,20 +23,22 @@
 #'     from graph theory to algebraic topology.
 #'   \item \strong{Pathway complex} (\code{"pathway"}): each higher-order
 #'     pathway from a \code{net_hon} or \code{net_hypa} becomes a simplex.
-#'   \item \strong{Vietoris-Rips} (\code{"vr"}): nodes with edge weight
-#'     \eqn{\geq} \code{threshold} and non-zero are connected; all cliques in
-#'     the resulting graph become simplices.
 #' }
+#'
+#' A metric Vietoris-Rips filtration is \strong{not implemented}; passing
+#' \code{type = "vr"} (or \code{"rips"}) raises an error rather than silently
+#' returning a clique complex.
 #'
 #' @param x A square matrix, \code{tna}, \code{netobject},
 #'   \code{net_hon}, \code{net_hypa}, or \code{net_mogen}.
-#' @param type Construction type: \code{"clique"} (default),
-#'   \code{"pathway"}, or \code{"vr"}.
+#' @param type Construction type: \code{"clique"} (default) or
+#'   \code{"pathway"}. \code{"vr"} / \code{"rips"} are accepted by
+#'   \code{match.arg} but not implemented and will error.
 #' @param threshold Minimum non-zero absolute edge weight to include an edge
-#'   (default 0). Edges below this are ignored; zero-weight non-edges are
-#'   never included.
-#' @param max_dim Maximum simplex dimension (default 10). A k-simplex
-#'   has k+1 nodes.
+#'   (default 0). Must be a single non-negative number. Edges below this are
+#'   ignored; zero-weight non-edges are never included.
+#' @param max_dim Maximum simplex dimension (default 10). Must be a single
+#'   non-negative integer. A k-simplex has k+1 nodes.
 #' @param max_pathways For \code{type = "pathway"}: maximum number of
 #'   pathways to include, ranked by count (HON) or ratio (HYPA).
 #'   \code{NULL} includes all. Default \code{NULL}.
@@ -63,8 +65,22 @@
 build_simplicial <- function(x, type = "clique", threshold = 0,
                               max_dim = 10L, max_pathways = NULL,
                               anomaly = c("all", "over", "under"), ...) {
-  type <- match.arg(type, c("clique", "pathway", "vr"))
+  type <- match.arg(type, c("clique", "pathway", "vr", "rips"))
   anomaly <- match.arg(anomaly)
+  stopifnot(
+    is.numeric(threshold), length(threshold) == 1L,
+    !is.na(threshold), threshold >= 0,
+    is.numeric(max_dim), length(max_dim) == 1L,
+    !is.na(max_dim), max_dim >= 0, max_dim == as.integer(max_dim)
+  )
+
+  if (type == "vr" || type == "rips") {
+    stop("type = \"vr\" (Vietoris-Rips) is not implemented. A genuine ",
+         "metric Vietoris-Rips filtration requires a distance-ball graph, ",
+         "which this package does not build. Use type = \"clique\" for a ",
+         "clique complex or type = \"pathway\" for a pathway complex.",
+         call. = FALSE)
+  }
 
   if (type == "pathway") {
     return(.build_simplicial_pathway(x, max_dim, max_pathways,
@@ -72,12 +88,7 @@ build_simplicial <- function(x, type = "clique", threshold = 0,
   }
 
   mat <- .sc_extract_matrix(x)
-
-  if (type == "clique") {
-    .build_simplicial_clique(mat, threshold, max_dim)
-  } else {
-    .build_simplicial_vr(mat, threshold, max_dim)
-  }
+  .build_simplicial_clique(mat, threshold, max_dim)
 }
 
 # =========================================================================
@@ -98,19 +109,6 @@ build_simplicial <- function(x, type = "clique", threshold = 0,
   simplices <- .find_all_cliques(adj, max_dim)
 
   .make_simplicial_complex(simplices, nodes, "clique")
-}
-
-#' @noRd
-.build_simplicial_vr <- function(mat, threshold, max_dim = 10L) {
-  stopifnot(is.matrix(mat), nrow(mat) == ncol(mat))
-  nodes <- rownames(mat) %||% paste0("V", seq_len(nrow(mat)))
-
-  adj <- .sc_threshold_adjacency(mat, threshold, inclusive = TRUE)
-  diag(adj) <- FALSE
-
-  simplices <- .find_all_cliques(adj, max_dim)
-
-  .make_simplicial_complex(simplices, nodes, "vr")
 }
 
 #' @noRd
@@ -472,8 +470,10 @@ euler_characteristic <- function(sc) {
 #' individual homology classes.
 #'
 #' @param x A square matrix, \code{tna}, or \code{netobject}.
-#' @param n_steps Number of filtration steps (default 20).
-#' @param max_dim Maximum simplex dimension to track (default 3).
+#' @param n_steps Number of filtration steps (default 20). Must be a single
+#'   positive integer.
+#' @param max_dim Maximum simplex dimension to track (default 3). Must be a
+#'   single non-negative integer.
 #'
 #' @return A \code{persistent_homology} object with:
 #' \describe{
@@ -494,6 +494,12 @@ euler_characteristic <- function(sc) {
 #'
 #' @export
 persistent_homology <- function(x, n_steps = 20L, max_dim = 3L) {
+  stopifnot(
+    is.numeric(n_steps), length(n_steps) == 1L,
+    !is.na(n_steps), n_steps >= 1L, n_steps == as.integer(n_steps),
+    is.numeric(max_dim), length(max_dim) == 1L,
+    !is.na(max_dim), max_dim >= 0, max_dim == as.integer(max_dim)
+  )
   mat <- .sc_extract_matrix(x)
   mat <- abs(mat)
   mat <- pmax(mat, t(mat))
@@ -834,8 +840,7 @@ verify_simplicial <- function(mat, threshold = 0) {
 #' @export
 print.simplicial_complex <- function(x, ...) {
   labels <- c("clique" = "Clique Complex",
-              "pathway" = "Pathway Complex",
-              "vr" = "Vietoris-Rips Complex")
+              "pathway" = "Pathway Complex")
   cat(labels[x$type] %||% "Simplicial Complex", "\n")
 
   betti <- .compute_betti(x)

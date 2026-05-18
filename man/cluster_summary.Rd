@@ -56,8 +56,13 @@ Example: cluster with 5 nodes won't have 5x the weight of cluster with 1 node.}
 \item{"median"}{Median edge weight. Robust to outliers.}
 \item{"max"}{Maximum edge weight. Captures strongest connection.}
 \item{"min"}{Minimum edge weight. Captures weakest connection.}
-\item{"density"}{Sum divided by number of possible edges. Normalizes
-by cluster size combinations.}
+\item{"density"}{Sum of (non-zero) edge weights divided by the number
+of possible edges between the two clusters (\code{n_i * n_j}).
+Normalizes by cluster size combinations. Because zero/\code{NA}
+edges are stripped before aggregation, this equals \code{"mean"}
+exactly when the cluster-pair block is fully dense (no zero edges),
+and is strictly smaller than \code{"mean"} when zero edges are
+present (it divides by the larger possible-edge count).}
 \item{"geomean"}{Geometric mean of positive weights. Useful for
 multiplicative processes.}
 }}

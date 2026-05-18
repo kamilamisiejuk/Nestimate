@@ -37,13 +37,25 @@ Default \code{FALSE} (set \code{TRUE} only on Unix-like systems).}
 An object of class \code{net_markov_order} with elements:
 \describe{
 \item{optimal_order}{Integer. Selected order via sequential permutation test.}
+\item{bic_order}{Integer. Order minimising BIC (reported by
+\code{print}/\code{plot}; not used in the permutation selection).}
+\item{aic_order}{Integer. Order minimising AIC (reported by
+\code{print}/\code{plot}; not used in the permutation selection).}
 \item{test_table}{Tidy data.frame, one row per order tested with
-columns \code{order}, \code{loglik}, \code{df}, \code{g2},
-\code{p_permutation}, \code{p_asymptotic}, \code{significant}.}
+columns \code{order}, \code{loglik}, \code{AIC}, \code{BIC},
+\code{df}, \code{g2}, \code{p_permutation}, \code{p_asymptotic},
+\code{significant}. \code{AIC}/\code{BIC} are the
+information-criterion values used for the \code{ic} plot panel and
+to derive \code{aic_order}/\code{bic_order}; the order-0 row has
+\code{NA} for the test columns (\code{df}, \code{g2},
+\code{p_permutation}, \code{p_asymptotic}, \code{significant}).}
 \item{permutation_null}{List of numeric vectors (length \code{max_order}),
 one empirical null \eqn{G^2} distribution per order.}
 \item{logliks}{Named numeric vector of log-likelihoods per order
 (for AIC / BIC panel only, not used in the test).}
+\item{layer_dofs}{Named integer vector of model degrees of freedom per
+order (free parameters added at each layer), used to compute the
+AIC / BIC columns.}
 \item{transition_matrices}{List of fitted transition matrices.}
 \item{states}{Character vector of observed state labels.}
 \item{n_sequences, n_observations}{Data summary.}

@@ -12,7 +12,19 @@
 \item{...}{Unsupported. Supplying unused arguments raises an error.}
 }
 \value{
-The input object, invisibly.
+A per-component summary \code{data.frame}. The class and visibility
+depend on whether the model was fitted with covariates:
+\describe{
+\item{No covariates}{A plain \code{data.frame} with one row per
+component and columns \code{component}, \code{prior},
+\code{n_assigned}, \code{mean_posterior}, \code{avepp}, returned
+\emph{visibly} (so it auto-prints after the printed summary block).}
+\item{With covariates}{A \code{tidy_covariates}/\code{data.frame}
+(the tidied covariate table, with the per-component stats attached),
+returned \emph{invisibly}.}
+}
+In both cases the printed summary (model fit, per-cluster transition
+matrices, optional covariate profiles) is emitted as a side effect.
 }
 \description{
 Summary Method for net_mmm

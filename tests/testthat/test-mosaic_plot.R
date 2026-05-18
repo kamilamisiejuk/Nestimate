@@ -21,7 +21,11 @@ test_that("mosaic_plot.netobject returns a ggplot for a frequency network", {
   expect_s3_class(p, "ggplot")
 })
 
-test_that("mosaic_plot rejects non-integer-weighted networks", {
+test_that("mosaic_plot recounts non-integer nets from $data, errors without it", {
+  # A12-F03: a relative netobject that carries $data must NOT hard-error;
+  # the documented fallback recounts order-1 transition counts from the
+  # raw sequences (mirroring the netobject_group path). It errors with
+  # 'integer-valued' only when $data is also absent.
   set.seed(13)
   seqs <- replicate(20, sample(c("A", "B", "C"), size = 6, replace = TRUE),
                     simplify = FALSE)
@@ -31,7 +35,22 @@ test_that("mosaic_plot rejects non-integer-weighted networks", {
   }))
   net_rel <- build_network(df, method = "relative",
                            id_col = "id", time_col = "time", action = "state")
-  expect_error(mosaic_plot(net_rel), "integer-valued")
+  expect_false(is.null(net_rel$data))
+  p_rel <- mosaic_plot(net_rel, residuals = "asymptotic")
+  expect_s3_class(p_rel, "ggplot")
+  # Recount must equal the frequency-network mosaic on the same data.
+  net_freq <- build_network(df, method = "frequency",
+                            id_col = "id", time_col = "time", action = "state")
+  p_freq <- mosaic_plot(net_freq, residuals = "asymptotic")
+  expect_equal(ggplot2::layer_data(p_rel), ggplot2::layer_data(p_freq))
+  # Strict integer guard fires only with NO count source: non-integer
+  # weights, no $data, and no stored $frequency_matrix. (Codex P2: the
+  # estimator's stored counts are a valid source, so removing only $data
+  # no longer forces an error.)
+  net_nocounts <- net_rel
+  net_nocounts$data <- NULL
+  net_nocounts$frequency_matrix <- NULL
+  expect_error(mosaic_plot(net_nocounts), "integer-valued")
 })
 
 test_that("mosaic_plot.netobject_group returns one (group x state) mosaic", {

@@ -17,7 +17,13 @@ matrix are renormalized to sum to 1 before analysis (see
 
 \item{tol}{Numerical tolerance for the reversibility check (detailed
 balance) and for treating near-zero entries as zero when building the
-support graph. Default \code{1e-10}.}
+support graph (which drives \code{classification}, \code{communicating_classes},
+\code{period}, and \code{hitting_probabilities}). It does \strong{not} govern the
+absorbing-state test: a state is absorbing only when \code{P[i, i]} equals
+1 to an internal fixed tolerance of \code{.Machine$double.eps^0.5},
+independent of \code{tol} (so raising \code{tol} to ignore tiny transition
+probabilities never reclassifies a near-deterministic state as
+absorbing). Default \code{1e-10}.}
 }
 \value{
 A \code{chain_structure} object: a list with elements
@@ -30,7 +36,9 @@ sublist is a strongly connected component of the support graph.}
 \item{\code{recurrent_classes}}{Subset of \code{communicating_classes} that are
 closed (no transitions leaving the class).}
 \item{\code{transient_classes}}{Subset that are not closed.}
-\item{\code{absorbing_states}}{Character vector of states with \code{P[i, i] = 1}.}
+\item{\code{absorbing_states}}{Character vector of states with \code{P[i, i] = 1}
+(tested exactly, to within \code{.Machine$double.eps^0.5}; the
+user-facing \code{tol} does not relax this).}
 \item{\code{period}}{Named integer vector. Period of each recurrent state;
 \code{NA} for transient states.}
 \item{\code{is_irreducible}}{Logical. \code{TRUE} iff there is exactly one
@@ -41,7 +49,10 @@ period 1.}
 \item{\code{is_reversible}}{Logical or \code{NA}. \code{TRUE} iff the chain
 satisfies detailed balance against its stationary distribution.
 \code{NA} for non-irreducible chains (no unique stationary).}
-\item{\code{hitting_probabilities}}{\verb{n x n} matrix. \verb{[i, j] = P(ever reach j starting from i)}.}
+\item{\code{hitting_probabilities}}{\verb{n x n} matrix. \verb{[i, j] = P(ever reach j starting from i)}, computed over the same \code{tol}-thresholded support
+graph that drives \code{classification} so the two are mutually
+consistent (a state classified \code{"absorbing"}/closed never shows
+hitting probability to states outside its class).}
 \item{\code{absorption_probabilities}}{\verb{n_transient x n_absorbing} matrix
 or \code{NULL} if no transient -> absorbing pathway exists. \verb{[i, j] = P(eventual absorption in j | start in i)}.}
 \item{\code{mean_absorption_time}}{Named numeric vector or \code{NULL}. Expected

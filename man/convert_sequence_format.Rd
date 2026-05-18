@@ -20,9 +20,13 @@ convert_sequence_format(
 states (for wide format input). If NULL, all columns except \code{id_col}
 are used. Default: NULL.}
 
-\item{id_col}{Character vector. Name(s) of the ID column(s). For wide
-format, defaults to the first column. For long format, required.
-Default: NULL.}
+\item{id_col}{Character vector. Name(s) of the ID column(s). For long
+format, required. For wide format, optional: if NULL, the first column
+is used as the id only when it is a genuine identifier (its values are
+disjoint from the states in the remaining columns); for canonical wide
+sequence data with no id column (e.g. \code{V1..Vn} / \code{T1..Tn}), a
+row-index id is synthesized and every column is treated as a sequence
+column. Default: NULL.}
 
 \item{action}{Character or NULL. Name of the column containing actions/states
 (for long format input). If provided, data is treated as long format.

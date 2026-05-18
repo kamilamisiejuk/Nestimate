@@ -107,9 +107,13 @@ summary.nest_transition_counts <- function(object, ...) {
 #' @param seq_cols Character vector. Names of columns containing sequential
 #'   states (for wide format input). If NULL, all columns except \code{id_col}
 #'   are used. Default: NULL.
-#' @param id_col Character vector. Name(s) of the ID column(s). For wide
-#'   format, defaults to the first column. For long format, required.
-#'   Default: NULL.
+#' @param id_col Character vector. Name(s) of the ID column(s). For long
+#'   format, required. For wide format, optional: if NULL, the first column
+#'   is used as the id only when it is a genuine identifier (its values are
+#'   disjoint from the states in the remaining columns); for canonical wide
+#'   sequence data with no id column (e.g. \code{V1..Vn} / \code{T1..Tn}), a
+#'   row-index id is synthesized and every column is treated as a sequence
+#'   column. Default: NULL.
 #' @param action Character or NULL. Name of the column containing actions/states
 #'   (for long format input). If provided, data is treated as long format.
 #'   Default: NULL.
@@ -158,7 +162,16 @@ convert_sequence_format <- function(data,
     id_col <- long$id_col
     long <- long$data
   } else {
-    if (is.null(id_col)) id_col <- names(data)[1]
+    if (is.null(id_col)) {
+      # No id column declared. Never infer one from the data: value-based id
+      # detection silently drops the first time point whenever a start-only
+      # state does not recur later (audit A11-F01; Codex review). Synthesize a
+      # row-index id (the same safe pattern as wide_to_long()) and treat every
+      # column as a state, so no event is ever dropped. Callers with a genuine
+      # leading id column must pass `id_col` explicitly.
+      data[[".rid"]] <- seq_len(nrow(data))
+      id_col <- ".rid"
+    }
     if (is.null(seq_cols)) seq_cols <- setdiff(names(data), id_col)
     .validate_cols(data, c(id_col, seq_cols))
     long <- .pivot_wide_to_long(data, id_col, seq_cols)

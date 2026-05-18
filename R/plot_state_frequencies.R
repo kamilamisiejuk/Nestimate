@@ -336,8 +336,12 @@ plot_mosaic <- function(data,
 #' each column, segment heights are proportional to that row's conditional
 #' distribution. Cell fill is the standardized residual from
 #' \code{stats::chisq.test()}, with a diverging palette clipped to \eqn{\pm 4}.
-#' Mosaics only make sense for integer-valued matrices, so this function rejects
-#' relative / glasso / correlation networks.
+#' Mosaics need integer counts: when \code{$weights} is already integer
+#' (\code{method = "frequency"} / \code{"co_occurrence"}) it is used directly;
+#' for a single \code{netobject} / \code{htna} otherwise (relative, glasso,
+#' cor, ...) order-1 transition counts are recounted from the raw \code{$data}
+#' sequences. The function errors only when neither integer weights nor
+#' \code{$data} are available.
 #'
 #' @param x One of the four data-bearing Nestimate classes:
 #'   \code{netobject} (single mosaic of \code{$weights}),
@@ -412,8 +416,8 @@ mosaic_plot.netobject <- function(x,
                                   xlab = NULL,
                                   ylab = NULL,
                                   range = NULL,
-                                  top_angle = 90,
-                                  left_angle = 0,
+                                  top_angle = NULL,
+                                  left_angle = NULL,
                                   residuals = c("permutation", "asymptotic"),
                                   n_perm = 500L,
                                   seed = NULL,
@@ -431,8 +435,8 @@ mosaic_plot.htna <- function(x,
                              xlab = NULL,
                              ylab = NULL,
                              range = NULL,
-                             top_angle = 90,
-                             left_angle = 0,
+                             top_angle = NULL,
+                             left_angle = NULL,
                              residuals = c("permutation", "asymptotic"),
                              n_perm = 500L,
                              seed = NULL,
@@ -451,8 +455,8 @@ mosaic_plot.mcml <- function(x,
                              xlab = NULL,
                              ylab = NULL,
                              range = NULL,
-                             top_angle = 90,
-                             left_angle = 0,
+                             top_angle = NULL,
+                             left_angle = NULL,
                              residuals = c("permutation", "asymptotic"),
                              n_perm = 500L,
                              seed = NULL,
@@ -488,8 +492,8 @@ mosaic_plot.netobject_group <- function(x,
                                         xlab = NULL,
                                         ylab = NULL,
                                         range = NULL,
-                                        top_angle = 90,
-                                        left_angle = 0,
+                                        top_angle = NULL,
+                                        left_angle = NULL,
                                         residuals = c("permutation",
                                                       "asymptotic"),
                                         n_perm = 500L,
@@ -537,7 +541,7 @@ mosaic_plot.matrix <- function(x, ...) mosaic_plot.table(as.table(x), ...)
                               level = "macro",
                               xlab = NULL, ylab = NULL,
                               range = NULL,
-                              top_angle = 90, left_angle = 0,
+                              top_angle = NULL, left_angle = NULL,
                               residuals = "permutation",
                               n_perm = 500L, seed = NULL,
                               ncol = 2L, values = FALSE, ...) {
@@ -817,13 +821,37 @@ mosaic_plot.matrix <- function(x, ...) mosaic_plot.table(as.table(x), ...)
 
 
 # Resolve a transition count matrix for a single netobject. Mosaic residuals
-# are defined for count tables, so the stored weights must already be finite,
-# non-negative, integer-valued counts from a count-based network.
+# are defined for count tables. If $weights is already integer-valued
+# (method = "frequency" / "co_occurrence") use it directly. Otherwise, when
+# the raw $data sequences are available, recount order-1 transition counts
+# from them so the mosaic works on any estimation method (relative, glasso,
+# cor, ...) -- mirroring the documented fallback honored by the
+# netobject_group path. Falls through to the strict integer guard only when
+# $data is also absent.
 .mosaic_count_or_stop <- function(x) {
   w <- x$weights
-  if (is.matrix(w) && is.numeric(w) && all(is.finite(w)) &&
-      all(w >= 0) && all(abs(w - round(w)) <= 1e-8) && sum(w) > 0) {
-    return(w)
+  is_count_mat <- function(m) {
+    is.matrix(m) && is.numeric(m) && all(is.finite(m)) &&
+      all(m >= 0) && all(abs(m - round(m)) <= 1e-8) && sum(m) > 0
+  }
+  # 1. $weights are already integer counts (method = "frequency" /
+  #    "co_occurrence") -- use them directly.
+  if (is_count_mat(w)) return(w)
+  # 2. The estimator's own stored transition counts. Every build_network
+  #    netobject preserves $frequency_matrix, which reflects the actual
+  #    count construction (begin_state/end_state/concat/weighted params,
+  #    one-hot WTNA, ...). Prefer it over a naive raw recount so the mosaic
+  #    agrees with the network and does not break on one-hot data (Codex
+  #    review).
+  fm <- x$frequency_matrix
+  if (is_count_mat(fm)) return(fm)
+  # 3. Last resort: recount plain order-1 transitions from raw $data.
+  if (!is.null(x$data) &&
+      (is.data.frame(x$data) || is.matrix(x$data))) {
+    alphabet <- rownames(w) %||% colnames(w)
+    counts <- .count_transitions(as.data.frame(x$data), format = "wide",
+                                 id = NULL, alphabet = alphabet)
+    return(.mosaic_weights_or_stop(counts, "frequency"))
   }
   .mosaic_weights_or_stop(w, x$method)
 }
@@ -1876,6 +1904,28 @@ plot_state_frequencies.default <- function(x, ...) {
 }
 
 
+# Collapse the per-state fill onto a smaller categorical legend keyed by
+# semantic group, per the `node_groups` @param. `node_groups` is a named
+# character vector mapping state (node) labels to group labels. States not
+# present in the mapping keep their own name (no states are dropped or
+# invented). Counts are re-aggregated per (group, mapped-state) and the
+# within-group proportion recomputed -- the same pattern as
+# .abbreviate_states. `NULL` (default) is a no-op.
+.collapse_states_to_groups <- function(freq_df, node_groups) {
+  if (is.null(node_groups)) return(freq_df)
+  stopifnot(is.character(node_groups), length(node_groups) >= 1L,
+            !is.null(names(node_groups)))
+  lookup <- node_groups
+  s <- as.character(freq_df$state)
+  mapped <- unname(lookup[s])
+  freq_df$state <- ifelse(is.na(mapped), s, mapped)
+  agg <- aggregate(count ~ group + state, data = freq_df, FUN = sum)
+  totals <- ave(agg$count, agg$group, FUN = sum)
+  agg$proportion <- agg$count / totals
+  agg[, c("group", "state", "count", "proportion")]
+}
+
+
 # ------------------------------------------------------------------------------
 # state_distribution(): public tidy frequency extractor
 # ------------------------------------------------------------------------------
@@ -2111,14 +2161,29 @@ knit_print.state_freq <- function(x, options = list(), ...) {
     stop("No state observations available to plot.", call. = FALSE)
   }
 
+  # node_groups: collapse the per-state fill onto the semantic groups
+  # before any renderer sees the frame, so bars / treemap / hierarchical /
+  # per-facet all colour by group (smaller categorical legend) per the
+  # @param. NULL is a no-op.
+  collapsed <- !is.null(node_groups)
+  freq_df <- .collapse_states_to_groups(freq_df, node_groups)
+  # When the fill now encodes group rather than state, relabel the fill
+  # legend accordingly for ggplot-returning renderers.
+  relabel_fill <- function(p) {
+    if (collapsed && inherits(p, "ggplot")) {
+      p <- p + ggplot2::labs(fill = "Group")
+    }
+    p
+  }
+
   # Per-facet legend mode applies to the marimekko/treemap path only.
   # For style = "bars", per_facet doesn't make sense (bars already
   # facet-wrap with shared legend), so fall back to a right-side legend.
   if (identical(legend, "per_facet")) {
     if (style == "bars") {
-      return(.plot_state_bars(freq_df, sort_states, colors,
+      return(relabel_fill(.plot_state_bars(freq_df, sort_states, colors,
                               label, label_size, metric,
-                              "right", legend_dir, legend_frame))
+                              "right", legend_dir, legend_frame)))
     }
     return(.plot_per_facet_grid(freq_df, sort_states, colors,
                                  label, label_size,
@@ -2130,18 +2195,18 @@ knit_print.state_freq <- function(x, options = list(), ...) {
   }
 
   if (style == "bars") {
-    return(.plot_state_bars(freq_df, sort_states, colors,
+    return(relabel_fill(.plot_state_bars(freq_df, sort_states, colors,
                             label, label_size, metric,
-                            legend, legend_dir, legend_frame))
+                            legend, legend_dir, legend_frame)))
   }
 
   if (isTRUE(hierarchical)) {
-    .plot_marimekko_hierarchical(freq_df, sort_states, colors,
+    relabel_fill(.plot_marimekko_hierarchical(freq_df, sort_states, colors,
                                   label, label_size,
-                                  legend, legend_dir, legend_frame)
+                                  legend, legend_dir, legend_frame))
   } else {
-    .plot_treemap_panels(freq_df, sort_states, colors,
+    relabel_fill(.plot_treemap_panels(freq_df, sort_states, colors,
                           label, label_size,
-                          legend, legend_dir, legend_frame)
+                          legend, legend_dir, legend_frame))
   }
 }

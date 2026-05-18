@@ -17,8 +17,10 @@
 #'   if symmetric co-occurrence counts are required.
 #' @param codes Character vector or NULL. Names of the one-hot columns to use.
 #'   If NULL, auto-detects binary columns. Default: NULL.
-#' @param window_size Integer. Number of consecutive rows to aggregate per
-#'   window. Default: 1 (no windowing).
+#' @param window_size Integer (>= 1). Number of consecutive rows to aggregate
+#'   per window. Default: 3 (windowed pairwise between-window counting). Set
+#'   \code{window_size = 1} for ordinary consecutive (t -> t+1) transitions
+#'   with no windowing.
 #' @param mode Character. Window mode: \code{"non-overlapping"} (fixed, separate
 #'   windows) or \code{"overlapping"} (rolling, step = 1).
 #'   Default: \code{"non-overlapping"}.
@@ -86,6 +88,13 @@ wtna <- function(data,
   method <- match.arg(method)
   type <- match.arg(type)
   mode <- match.arg(mode)
+  # Mirror prepare_onehot()'s window_size guard so an invalid value (non-
+  # integer, zero, negative) errors cleanly instead of producing a distinct
+  # garbage matrix (2.7) or silently falling to the non-windowed branch (0/-5).
+  stopifnot(length(window_size) == 1L, is.numeric(window_size),
+            !is.na(window_size), window_size == as.integer(window_size))
+  window_size <- as.integer(window_size)
+  stopifnot(window_size >= 1L)
 
   df <- as.data.frame(data)
   codes <- .resolve_codes(df, codes, exclude = actor)
@@ -434,7 +443,7 @@ wtna <- function(data,
 #'
 #' @param data Data frame with one-hot columns.
 #' @param codes Character vector or NULL. One-hot column names.
-#' @param window_size Integer. Window size. Default: 1.
+#' @param window_size Integer (>= 1). Window size. Default: 3.
 #' @param mode Character. "non-overlapping" or "overlapping".
 #' @param actor Character or NULL. Actor grouping column.
 #' @param wtna_method Character. "transition" or "cooccurrence".

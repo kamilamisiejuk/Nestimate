@@ -12,7 +12,10 @@
 \item{...}{Additional arguments (ignored).}
 }
 \value{
-The input object, invisibly.
+The edge data.frame \code{object$edges} (columns \code{path},
+\code{from}, \code{to}, \code{count}, \code{probability},
+\code{from_order}, \code{to_order}), returned visibly; the summary text
+is printed as a side effect.
 }
 \description{
 Summary Method for net_hon

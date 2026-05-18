@@ -18,15 +18,16 @@ build_simplicial(
 \item{x}{A square matrix, \code{tna}, \code{netobject},
 \code{net_hon}, \code{net_hypa}, or \code{net_mogen}.}
 
-\item{type}{Construction type: \code{"clique"} (default),
-\code{"pathway"}, or \code{"vr"}.}
+\item{type}{Construction type: \code{"clique"} (default) or
+\code{"pathway"}. \code{"vr"} / \code{"rips"} are accepted by
+\code{match.arg} but not implemented and will error.}
 
 \item{threshold}{Minimum non-zero absolute edge weight to include an edge
-(default 0). Edges below this are ignored; zero-weight non-edges are
-never included.}
+(default 0). Must be a single non-negative number. Edges below this are
+ignored; zero-weight non-edges are never included.}
 
-\item{max_dim}{Maximum simplex dimension (default 10). A k-simplex
-has k+1 nodes.}
+\item{max_dim}{Maximum simplex dimension (default 10). Must be a single
+non-negative integer. A k-simplex has k+1 nodes.}
 
 \item{max_pathways}{For \code{type = "pathway"}: maximum number of
 pathways to include, ranked by count (HON) or ratio (HYPA).
@@ -45,7 +46,7 @@ A \code{simplicial_complex} object.
 }
 \description{
 Constructs a simplicial complex from a network or higher-order pathway
-object. Three construction methods are available:
+object. Two construction methods are available:
 
 \itemize{
 \item \strong{Clique complex} (\code{"clique"}): every clique in the
@@ -54,10 +55,11 @@ weight \eqn{\geq} \code{threshold} are retained. The standard bridge
 from graph theory to algebraic topology.
 \item \strong{Pathway complex} (\code{"pathway"}): each higher-order
 pathway from a \code{net_hon} or \code{net_hypa} becomes a simplex.
-\item \strong{Vietoris-Rips} (\code{"vr"}): nodes with edge weight
-\eqn{\geq} \code{threshold} and non-zero are connected; all cliques in
-the resulting graph become simplices.
 }
+
+A metric Vietoris-Rips filtration is \strong{not implemented}; passing
+\code{type = "vr"} (or \code{"rips"}) raises an error rather than silently
+returning a clique complex.
 }
 \examples{
 mat <- matrix(c(0,.6,.5,.6,0,.4,.5,.4,0), 3, 3)

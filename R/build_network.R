@@ -10,13 +10,19 @@
 #'   square symmetric matrix (correlation or covariance).
 #' @param method Character. Required. Name of a registered estimator.
 #'   Built-in methods: \code{"relative"}, \code{"frequency"},
-#'   \code{"co_occurrence"}, \code{"cor"}, \code{"pcor"}, \code{"glasso"}.
+#'   \code{"co_occurrence"}, \code{"cor"}, \code{"pcor"}, \code{"glasso"},
+#'   \code{"ising"}, \code{"mgm"}, \code{"attention"}, \code{"wtna"},
+#'   \code{"wtna_cooccurrence"}.
 #'   Aliases: \code{"tna"} and \code{"transition"} map to \code{"relative"};
 #'   \code{"ftna"} and \code{"counts"} map to \code{"frequency"};
-#'   \code{"cna"} maps to \code{"co_occurrence"};
+#'   \code{"cna"} and \code{"wcna"} map to \code{"co_occurrence"};
 #'   \code{"corr"} and \code{"correlation"} map to \code{"cor"};
 #'   \code{"partial"} maps to \code{"pcor"};
-#'   \code{"ebicglasso"} and \code{"regularized"} map to \code{"glasso"}.
+#'   \code{"ebicglasso"} and \code{"regularized"} map to \code{"glasso"};
+#'   \code{"isingfit"} maps to \code{"ising"};
+#'   \code{"atna"} maps to \code{"attention"};
+#'   \code{"mixed"} and \code{"mixed_graphical"} map to \code{"mgm"};
+#'   \code{"wtna_transition"} maps to \code{"wtna"}.
 #' @param params Named list. Method-specific parameters passed to the estimator
 #'   function (e.g. \code{list(gamma = 0.5)} for glasso, or
 #'   \code{list(format = "wide")} for transition methods). This is the key
@@ -60,8 +66,10 @@
 #'   \code{"long"}, or \code{"onehot"}. Default: \code{"auto"}.
 #' @param window_size Integer. Window size for one-hot windowing.
 #'   Default: \code{3L}.
-#' @param mode Character. Windowing mode: \code{"non-overlapping"} or
-#'   \code{"overlapping"}. Default: \code{"non-overlapping"}.
+#' @param mode Character. Windowing mode for one-hot input only:
+#'   \code{"non-overlapping"} or \code{"overlapping"}. Has no effect on
+#'   wide or long sequence data (only the one-hot/wtna path reads it).
+#'   Default: \code{"non-overlapping"}.
 #' @param time_threshold Numeric. Maximum time gap (seconds) for long format
 #'   session splitting. Default: \code{900}.
 #' @param predictability Logical. If \code{TRUE} (default), compute and store
@@ -241,6 +249,62 @@ build_network <- function(data,
 
   stopifnot(is.character(method), length(method) == 1)
   stopifnot(is.list(params))
+
+  # ---- mgm's `level`/`threshold` collide with build_network's own
+  # same-named formals. build_network's `level` is the "between"/"within"/
+  # "both" multilevel-decomposition enum; its `threshold` is a numeric
+  # edge-weight cutoff. mgm instead documents an integer `level` vector and
+  # a "LW"/"none" `threshold` enum. Route mgm's variants into `params`
+  # (the estimator's own argument channel) so the documented mgm values are
+  # reachable via build_network(method = "mgm", ...) directly, and error
+  # clearly for invalid values. Other methods keep build_network's
+  # numeric-`threshold` / enum-`level` semantics unchanged.
+  resolved_method <- .resolve_method_alias(method)
+  if (identical(resolved_method, "mgm")) {
+    if (!is.numeric(threshold)) {
+      if (length(threshold) == 1L && threshold %in% c("LW", "none")) {
+        if (is.null(.param_get(params, "threshold"))) {
+          params$threshold <- threshold
+        }
+        threshold <- 0
+      } else {
+        stop(
+          "For method = \"mgm\", `threshold` must be \"LW\" or \"none\" ",
+          "(coefficient thresholding rule); got: ",
+          paste(threshold, collapse = ", "), ".",
+          call. = FALSE
+        )
+      }
+    }
+    if (!is.null(level) && is.numeric(level)) {
+      # mgm `level` is one entry per MODELED variable. When `group=` is set
+      # the grouping column(s) are dropped before estimation (the group
+      # dispatch below recurses on data minus `group`), so validate against
+      # the modeled-variable count -- not raw ncol -- otherwise a correct
+      # `level` is rejected here, or a group-padded one is forwarded too
+      # long to .estimator_mgm() in the per-group call.
+      df0 <- as.data.frame(data)
+      group_cols <- if (is.null(group)) character(0) else
+        intersect(group, names(df0))
+      n_modeled <- ncol(df0) - length(group_cols)
+      if (length(level) == n_modeled) {
+        if (is.null(.param_get(params, "level"))) {
+          params$level <- level
+        }
+        level <- NULL
+      } else {
+        stop(
+          "For method = \"mgm\", numeric `level` must be an integer vector ",
+          "of length ", n_modeled, " (one level per modeled variable, 1 ",
+          "for continuous; any `group` column is excluded). To trigger ",
+          "build_network's between-/within-person decomposition instead, ",
+          "pass level = \"between\"/\"within\"/\"both\".",
+          call. = FALSE
+        )
+      }
+    }
+  }
+
   stopifnot(is.numeric(threshold), length(threshold) == 1, threshold >= 0)
   mode <- match.arg(mode)
 
@@ -515,6 +579,21 @@ build_network <- function(data,
 
   # Get estimator from registry
   estimator <- get_estimator(method)
+
+  # Multilevel decomposition is only defined for undirected association
+  # methods. For directed transition estimators the decomposition is a
+  # numeric no-op, so accepting `level` silently produced a pooled network
+  # falsely labelled "[between-person]" (and a fake netobject_ml with
+  # byte-identical between/within). Error clearly instead of mislabelling.
+  if (!is.null(level) && isTRUE(estimator$directed)) {
+    stop(
+      "'level' (multilevel decomposition) is only supported for undirected ",
+      "association methods (cor, pcor, glasso). Method '", method,
+      "' is a directed estimator and has no between-/within-person ",
+      "decomposition.",
+      call. = FALSE
+    )
+  }
 
   # level = "both": recursive dispatch
   if (identical(level, "both")) {

@@ -12,7 +12,8 @@ time-steps), or a \code{netobject} that carries the source data.}
 
 \item{order}{Integer. Order of the conditioning context. \code{order = 2}
 (default) compares 2-step memory against 1-step; \code{order = 3}
-compares 3-step memory; etc.}
+compares 3-step memory; etc. Must be a whole number; a non-integer
+value is an error rather than being silently truncated.}
 
 \item{min_count}{Integer. Drop contexts seen fewer than this many times.
 Default 5. Very small samples produce noisy KL estimates.}

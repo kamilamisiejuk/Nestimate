@@ -202,6 +202,8 @@
 #' @param data A data.frame (rows = trajectories, columns = time points) or
 #'   a list of character/numeric vectors (one per trajectory).
 #' @param max_order Integer. Maximum Markov order to test (default 5).
+#'   Must be a whole number; a non-integer value (e.g. \code{2.7}) is an
+#'   error rather than being silently truncated.
 #' @param criterion Character. Model selection criterion: \code{"aic"}
 #'   (default), \code{"bic"}, or \code{"lrt"} (likelihood ratio test).
 #' @param lrt_alpha Numeric. Significance threshold for LRT (default 0.01).
@@ -246,13 +248,16 @@ build_mogen <- function(data, max_order = 5L, criterion = c("aic", "bic", "lrt")
                         lrt_alpha = 0.01) {
   data <- .coerce_sequence_input(data)
   criterion <- match.arg(criterion)
-  max_order <- as.integer(max_order)
   stopifnot(
     "'data' must be a data.frame or list" =
       is.data.frame(data) || is.list(data),
+    "'max_order' must be a whole number" =
+      is.numeric(max_order) && length(max_order) == 1L &&
+      max_order == round(max_order),
     "'max_order' must be >= 1" = max_order >= 1L,
     "'lrt_alpha' must be in (0, 1)" = lrt_alpha > 0 && lrt_alpha < 1
   )
+  max_order <- as.integer(max_order)
 
   trajectories <- .hon_parse_input(data, collapse_repeats = FALSE)
   if (length(trajectories) == 0L) {
@@ -391,8 +396,9 @@ build_mogen <- function(data, max_order = 5L, criterion = c("aic", "bic", "lrt")
 #' The \code{path} column reconstructs this full sequence for readability.
 #'
 #' @param x A \code{net_mogen} object from \code{build_mogen()}.
-#' @param order Integer. Which order's transitions to extract.
-#'   Defaults to the optimal order selected by the model.
+#' @param order Integer. Which order's transitions to extract. Must be a
+#'   whole number; a non-integer value is an error rather than being
+#'   silently truncated. Defaults to the optimal order selected by the model.
 #' @param min_count Integer. Minimum observed count to include (default 1).
 #'   Use this to filter out rare transitions that have unreliable probabilities.
 #' @return A data frame with columns:
@@ -420,6 +426,11 @@ build_mogen <- function(data, max_order = 5L, criterion = c("aic", "bic", "lrt")
 mogen_transitions <- function(x, order = NULL, min_count = 1L) {
   stopifnot(inherits(x, "net_mogen"))
   if (is.null(order)) order <- x$optimal_order
+  stopifnot(
+    "'order' must be a whole number" =
+      is.numeric(order) && length(order) == 1L &&
+      order == round(order)
+  )
   order <- as.integer(order)
   min_count <- as.integer(min_count)
   stopifnot(
@@ -480,7 +491,9 @@ mogen_transitions <- function(x, order = NULL, min_count = 1L) {
 #' @param data A list of character vectors (trajectories) or a data.frame
 #'   (rows = trajectories, columns = time points).
 #' @param k Integer. Length of the path / n-gram (default 2). A k of 2 counts
-#'   individual transitions; k of 3 counts two-step paths, etc.
+#'   individual transitions; k of 3 counts two-step paths, etc. Must be a
+#'   whole number; a non-integer value is an error rather than being
+#'   silently truncated.
 #' @param top Integer or NULL. If set, returns only the top N most frequent
 #'   paths (default NULL = all).
 #' @return A data frame with columns: \code{path}, \code{count},
@@ -497,6 +510,10 @@ mogen_transitions <- function(x, order = NULL, min_count = 1L) {
 #' @export
 path_counts <- function(data, k = 2L, top = NULL) {
   data <- .coerce_sequence_input(data)
+  stopifnot(
+    "'k' must be a whole number" =
+      is.numeric(k) && length(k) == 1L && k == round(k)
+  )
   k <- as.integer(k)
   stopifnot("'k' must be >= 2" = k >= 2L)
 
@@ -626,7 +643,11 @@ print.net_mogen <- function(x, ...) {
 #' @param object A \code{net_mogen} object.
 #' @param ... Additional arguments (ignored).
 #'
-#' @return The input object, invisibly.
+#' @return A per-order model-selection data.frame with columns \code{order},
+#'   \code{layer_dof}, \code{cum_dof}, \code{loglik}, \code{aic}, \code{bic},
+#'   \code{best} (\code{"AIC"}/\code{"BIC"}/\code{"AIC+BIC"} marker) and
+#'   \code{selected} (\code{"<--"} on the chosen order), returned visibly;
+#'   the summary text is printed as a side effect.
 #'
 #' @examples
 #' seqs <- list(c("A","B","C","D"), c("A","B","C","A"), c("B","C","D","A"))

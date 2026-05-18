@@ -22,17 +22,23 @@
 #' @param nlambda Integer. Number of lambda values in the regularization
 #'   path (default: 100).
 #' @param centrality Character vector. Centrality measures to compute.
-#'   Built-in: \code{"strength"}, \code{"expected_influence"},
-#'   \code{"betweenness"}, \code{"closeness"}.
-#'   Custom measures beyond these require \code{centrality_fn}.
+#'   All four built-in measures (\code{"strength"},
+#'   \code{"expected_influence"}, \code{"betweenness"},
+#'   \code{"closeness"}) are computed internally with no extra
+#'   dependencies and are always taken from the built-in path even if
+#'   \code{centrality_fn} is supplied. Names that are not one of these
+#'   four are valid only when a \code{centrality_fn} is supplied; that
+#'   function is then responsible for returning them.
 #'   Default: \code{c("strength", "expected_influence", "betweenness", "closeness")}.
 #' @param centrality_fn Optional function. A custom centrality function
 #'   that takes a weight matrix and returns a named list of centrality
-#'   vectors. When \code{NULL} (default), only \code{"strength"} and
-#'   \code{"expected_influence"} are computed via \code{rowSums}/
-#'   \code{colSums}. When provided, the function is called as
-#'   \code{centrality_fn(mat)} and should return a named list (e.g.,
-#'   \code{list(closeness = ..., betweenness = ...)}).
+#'   vectors. When \code{NULL} (default), all four built-in measures are
+#'   computed internally: \code{"strength"}/\code{"expected_influence"}
+#'   via \code{rowSums}, and \code{"betweenness"}/\code{"closeness"} via
+#'   an internal Floyd-Warshall shortest-path routine. When provided, the
+#'   function is called as \code{centrality_fn(mat)} and is used only for
+#'   requested measures that are not one of the four built-ins; it should
+#'   return a named list (e.g., \code{list(my_metric = ...)}).
 #' @param cor_method Character. Correlation method: \code{"pearson"}
 #'   (default), \code{"spearman"}, or \code{"kendall"}.
 #' @param ncores Integer. Number of parallel cores for mclapply
@@ -133,12 +139,24 @@ boot_glasso <- function(x,
   nlambda <- as.integer(nlambda)
   ncores <- as.integer(ncores)
   cor_method <- match.arg(cor_method, c("pearson", "spearman", "kendall"))
-  centrality <- match.arg(centrality, c("strength", "expected_influence",
-                                         "closeness", "betweenness"),
-                          several.ok = TRUE)
+  builtin_centrality <- c("strength", "expected_influence",
+                          "closeness", "betweenness")
 
   if (!is.null(centrality_fn)) {
     stopifnot("centrality_fn must be a function" = is.function(centrality_fn))
+    # With a centrality_fn, custom (non-builtin) names are valid: they are
+    # resolved by the function. Only validate the builtin subset against the
+    # whitelist; pass custom names through to .bg_compute_centrality, which
+    # routes them via centrality_fn.
+    is_builtin <- centrality %in% builtin_centrality
+    if (any(is_builtin)) {
+      centrality[is_builtin] <- match.arg(centrality[is_builtin],
+                                          builtin_centrality,
+                                          several.ok = TRUE)
+    }
+  } else {
+    centrality <- match.arg(centrality, builtin_centrality,
+                            several.ok = TRUE)
   }
 
   if (!is.null(seed)) {

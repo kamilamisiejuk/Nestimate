@@ -373,14 +373,30 @@ print.net_casedrop_reliability_group <- function(x, ...) {
 #'
 #' @param object A `net_casedrop_reliability_group`.
 #' @param drop_prop Drop proportion at which to report the four metrics
-#'   (mean +/- sd per network). Default `0.7`.
+#'   (mean +/- sd per network). Must be one of the drop proportions the
+#'   object was built with. Defaults to the object's median grid value
+#'   (the stored grid is used, not an assumed `0.7`); pass an explicit
+#'   value not in the grid to get an error listing the available
+#'   proportions.
 #' @param ... Additional arguments (ignored).
 #' @return A data frame with one row per network containing
 #'   `cor`, `mean_abs_dev`, `median_abs_dev`, `max_abs_dev` formatted as
 #'   "mean +/- sd".
 #' @rdname casedrop_reliability
 #' @export
-summary.net_casedrop_reliability_group <- function(object, drop_prop = 0.7, ...) {
+summary.net_casedrop_reliability_group <- function(object,
+                                                   drop_prop = NULL, ...) {
+  grid <- sort(object[[1L]]$drop_prop)
+  if (is.null(drop_prop)) {
+    # Default to the object's actual middle grid point (no assumed 0.7).
+    drop_prop <- grid[ceiling(length(grid) / 2)]
+  }
+  stopifnot(is.numeric(drop_prop), length(drop_prop) == 1L)
+  if (!any(abs(grid - drop_prop) < 1e-9)) {
+    stop("drop_prop = ", drop_prop, " is not in the object's grid. ",
+         "Available proportions: ", paste(grid, collapse = ", "),
+         call. = FALSE)
+  }
   fmt <- function(m, s) sprintf("%.3f +/- %.3f", m, s)
   one_row <- function(e) {
     s <- e$summary

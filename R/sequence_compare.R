@@ -446,7 +446,8 @@ summary.net_sequence_comparison <- function(object, ...) {
 #'   statistic or residual magnitude. \code{"frequency"} ranks by total
 #'   occurrence count across all groups.
 #' @param alpha Numeric. Significance threshold for p-value display in the
-#'   pyramid. Default: 0.05.
+#'   pyramid: patterns with \code{p_value < alpha} are starred and drawn in
+#'   bold dark text, the rest stay plain grey. Default: 0.05.
 #' @param show_residuals Logical. If \code{TRUE}, print the standardized
 #'   residual value inside each pyramid bar. Default: \code{FALSE}. Ignored
 #'   for the heatmap (which always shows residuals).
@@ -541,12 +542,21 @@ plot.net_sequence_comparison <- function(x, top_n = 10L,
   )
 
   if (has_pval) {
+    p_num <- ifelse(pat$p_value < 0.001, "<.001",
+              ifelse(pat$p_value < 0.01,
+                     sprintf("%.3f", pat$p_value),
+                     sprintf("%.2f", pat$p_value)))
+    # `alpha` is the significance threshold for the pyramid's p-value
+    # display: patterns with p < alpha are starred and drawn bold/dark,
+    # the rest stay plain grey so the reader sees which patterns clear
+    # the chosen level.
+    p_sig <- !is.na(pat$p_value) & pat$p_value < alpha
     p_df <- data.frame(
-      yidx = y_num,
-      p_label = ifelse(pat$p_value < 0.001, "<.001",
-                ifelse(pat$p_value < 0.01,
-                       sprintf("%.3f", pat$p_value),
-                       sprintf("%.2f", pat$p_value))),
+      yidx       = y_num,
+      p_label    = ifelse(p_sig, paste0(p_num, "*"), p_num),
+      sig        = p_sig,
+      p_face     = ifelse(p_sig, "bold.italic", "italic"),
+      p_color    = ifelse(p_sig, "grey15", "grey55"),
       stringsAsFactors = FALSE
     )
   }
@@ -578,7 +588,7 @@ plot.net_sequence_comparison <- function(x, top_n = 10L,
     {if (has_pval)
       geom_text(data = p_df,
                 aes(x = 0, y = yidx, label = p_label),
-                size = 2.5, color = "grey40", fontface = "italic")
+                size = 2.5, color = p_df$p_color, fontface = p_df$p_face)
     } +
     scale_fill_gradient2(low = "#CB181D", mid = "white", high = "#2171B5",
                          midpoint = 0, limits = c(-3, 3),

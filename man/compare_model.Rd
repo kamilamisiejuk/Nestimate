@@ -69,7 +69,9 @@ compatible with \code{network = TRUE} because the side-by-side metrics use
 Nestimate's base-R Floyd-Warshall, which handles negative weights.}
 
 \item{measures}{Character vector of centrality measures to compare. Empty
-by default (no centrality block).}
+by default (no centrality block). Valid names are \code{"InStrength"},
+\code{"OutStrength"}, and \code{"Betweenness"}. Unknown names are
+ignored with a warning.}
 
 \item{network}{Logical. Include side-by-side network metrics from
 \code{summary()}? Default \code{TRUE}.}
