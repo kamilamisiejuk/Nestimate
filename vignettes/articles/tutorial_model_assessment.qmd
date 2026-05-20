@@ -19,7 +19,6 @@ format:
 execute:
   warning: false
   message: false
-  eval: false
 ---
 
 
@@ -27,7 +26,7 @@ execute:
 
 ### Split-half reliability, case-dropping stability, and Markov-order adequacy
 
-``` r
+```{r}
 library(Nestimate)
 ```
 
@@ -48,20 +47,14 @@ Each of the four functions below answers one question. Run them together when yo
 
 `ai_long` contains coded actions from AI-side turns in a human–AI vibe-coding study. Each row is one action, tagged with the session it belongs to and a timestamp.
 
-``` r
+```{r}
 data(ai_long)
 dim(ai_long)
-#> [1] 8551    9
 head(ai_long, 3)
 ```
 
-``` r
+```{r}
 table(ai_long$code)
-#> 
-#>         Ask    Delegate     Execute     Explain Investigate        Plan 
-#>          99         295        3258         524        2317        1620 
-#>      Repair      Report 
-#>         257         181
 ```
 
 Eight codes, 8,551 actions, spread over several hundred sessions. The most common actions are `Execute` and `Investigate`; `Ask` and `Report` are rare. That imbalance is one reason we want stability checks — rare codes produce unreliable edges because there are few observations of them.
@@ -72,7 +65,7 @@ Eight codes, 8,551 actions, spread over several hundred sessions. The most commo
 
 The four assessments all work on the same network, so we estimate it once. We use the row-stochastic transition network (`method = "relative"`): each edge is the probability of going from one code to another.
 
-``` r
+```{r}
 net <- build_network(
   ai_long,
   method = "relative",
@@ -81,29 +74,6 @@ net <- build_network(
   time   = "timestamp"
 )
 net
-#> Transition Network (relative probabilities) [directed]
-#>   Weights: [0.004, 0.624]  |  mean: 0.125
-#> 
-#>   Weight matrix:
-#>                 Ask Delegate Execute Explain Investigate  Plan Repair Report
-#>   Ask         0.033    0.033   0.286   0.484       0.099 0.033  0.022  0.011
-#>   Delegate    0.007    0.025   0.183   0.050       0.093 0.624  0.014  0.004
-#>   Execute     0.010    0.022   0.509   0.055       0.247 0.116  0.031  0.010
-#>   Explain     0.018    0.012   0.259   0.133       0.311 0.070  0.084  0.112
-#>   Investigate 0.009    0.016   0.251   0.036       0.219 0.440  0.018  0.012
-#>   Plan        0.010    0.048   0.471   0.059       0.303 0.033  0.038  0.038
-#>   Repair      0.052    0.040   0.472   0.172       0.236 0.016  0.008  0.004
-#>   Report      0.006    0.057   0.373   0.114       0.285 0.032  0.089  0.044 
-#> 
-#>   Initial probabilities:
-#>   Investigate   0.642  ████████████████████████████████████████
-#>   Delegate      0.166  ██████████
-#>   Execute       0.131  ████████
-#>   Plan          0.035  ██
-#>   Explain       0.012  █
-#>   Ask           0.008  
-#>   Repair        0.006  
-#>   Report        0.002
 ```
 
 The network has eight nodes (one per code) and a full 8×8 weight matrix of transition probabilities. The question now is: how much of that matrix can we trust?
@@ -114,14 +84,9 @@ The network has eight nodes (one per code) and a full 8×8 weight matrix of tran
 
 **Question.** If I split my sessions randomly in half and fit the network on each half, how close are the two halves?
 
-``` r
+```{r}
 rel <- network_reliability(net, iter = 500L, seed = 1)
 rel
-#> Split-Half Reliability (500 iterations, split = 50%)
-#>   Mean Abs. Diff.     mean = 0.0233  sd = 0.0032
-#>   Median Abs. Diff.   mean = 0.0136  sd = 0.0020
-#>   Pearson             mean = 0.9721  sd = 0.0107
-#>   Max Abs. Diff.      mean = 0.1431  sd = 0.0479
 ```
 
 `network_reliability()` runs 500 random 50/50 splits. For each split it fits the network on each half and compares the two 8×8 weight matrices along four metrics:
@@ -131,11 +96,10 @@ rel
 
 The numbers above show the average over iterations. The distribution matters too — if `cor` averages 0.95 but occasionally dips to 0.4, that is a very different story from a tight distribution centred on 0.95.
 
-``` r
+```{r}
 plot(rel)
 ```
 
-<img src="tutorial_model_assessment_files/img-01.png" style="width:100.0%" role="img" aria-label="" />
 
 Each panel is the histogram of one metric across the 500 iterations, with a dashed line at the mean. The correlation panel is the one to read first: values concentrated near 1.0 say the split-half networks are near-identical, values spread over a wide range say the network shape depends on which sessions happen to be in which half.
 
@@ -145,37 +109,23 @@ Each panel is the histogram of one metric across the 500 iterations, with a dash
 
 **Question.** If I randomly drop a fraction of my sessions (10%, 20%, …, 75%) and re-estimate the network, how correlated is the resulting edge vector with the edge vector from the full data?
 
-``` r
+```{r}
 edge_stab <- casedrop_reliability(net, iter = 200L, seed = 1)
 edge_stab
-#> Edge-weight Case-dropping Stability
-#>   Cases (rows of $data) : 519
-#>   Edges assessed        : 56 (diagonal excluded)
-#>   Iterations / prop     : 200
-#>   Correlation method    : spearman
-#>   CS-coefficient (r)    : 0.90  (threshold=0.70, certainty=0.95)
-#> 
-#> Model-level reliability across iterations (mean +/- sd per drop):
-#>   drop_prop      p=0.1        p=0.2        p=0.3        p=0.4        p=0.5        p=0.6        p=0.7        p=0.8        p=0.9      
-#>   mean|diff|      0.004+- 0.001   0.006+- 0.001   0.008+- 0.001   0.009+- 0.001   0.012+- 0.002   0.014+- 0.002   0.018+- 0.003   0.024+- 0.004   0.035+- 0.006
-#>   MAD             0.002+- 0.000   0.003+- 0.001   0.004+- 0.001   0.005+- 0.001   0.007+- 0.001   0.008+- 0.001   0.010+- 0.002   0.013+- 0.003   0.019+- 0.004
-#>   cor             0.997+- 0.002   0.992+- 0.003   0.987+- 0.006   0.981+- 0.007   0.973+- 0.010   0.963+- 0.012   0.948+- 0.016   0.920+- 0.026   0.855+- 0.046
-#>   max|diff|       0.023+- 0.008   0.036+- 0.014   0.045+- 0.018   0.057+- 0.018   0.073+- 0.026   0.088+- 0.029   0.112+- 0.042   0.154+- 0.062   0.230+- 0.099
 ```
 
 The printed summary reports the **CS-coefficient** — the largest drop proportion at which the correlation with the original network stays above 0.7 in at least 95% of iterations. A CS-coefficient of 0.75 means we can drop up to three-quarters of sessions and still recover essentially the same edge map; a CS-coefficient of 0.1 means dropping even 10% of sessions changes the edge map materially. Epskamp, Borsboom and Fried (2018) recommend interpreting CS \> 0.5 as “very stable”, 0.25–0.5 as “moderate”, and below 0.25 as “do not interpret”.
 
 The `$summary` data frame gives the mean correlation at each drop proportion, which is useful for seeing *where* the stability breaks down rather than just the single summary.
 
-``` r
+```{r}
 edge_stab$summary
 ```
 
-``` r
+```{r}
 plot(edge_stab)
 ```
 
-<img src="tutorial_model_assessment_files/img-02.png" style="width:100.0%" role="img" aria-label="" />
 
 The curve should stay near 1 for small drops and decline as we drop more. A curve that drops sharply at low proportions means a few influential sessions are carrying the edge estimates — a warning that the network is not a population-level summary but a description of those particular sessions.
 
@@ -185,7 +135,7 @@ The curve should stay near 1 for small drops and decline as we drop more. A curv
 
 **Question.** The edges are one thing; the *rankings* of nodes by centrality are what most applied readers focus on (which code is the most “central”, which is the least, etc.). If I case-drop, do those rankings survive?
 
-``` r
+```{r}
 cent_stab <- centrality_stability(
   net,
   measures = c("InStrength", "OutStrength", "Betweenness"),
@@ -193,24 +143,16 @@ cent_stab <- centrality_stability(
   seed     = 1
 )
 cent_stab
-#> Centrality Stability (200 iterations, threshold = 0.7)
-#>   Drop proportions: 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9
-#> 
-#>   CS-coefficients:
-#>     InStrength       0.90
-#>     OutStrength      0.90
-#>     Betweenness      0.70
 ```
 
 `centrality_stability()` produces one CS-coefficient per centrality measure. The machinery is the same as `casedrop_reliability()` — drop cases, re-estimate, correlate — but the correlation is computed between the centrality vectors, not the edge vectors. A node can have stable edges and unstable centrality (or vice versa) because centrality sums many edges and rank ties can flip even when individual edges barely move.
 
 The interpretation thresholds are the same: above 0.5 is stable enough to report, 0.25–0.5 means report with caution, below 0.25 means do not rank.
 
-``` r
+```{r}
 plot(cent_stab)
 ```
 
-<img src="tutorial_model_assessment_files/img-03.png" style="width:100.0%" role="img" aria-label="" />
 
 Each curve is one centrality measure. When two measures diverge — for example, `InStrength` stays stable but `Betweenness` collapses — that is a statement about which kind of finding the data can support. Strength centralities are sums over all incoming/outgoing edges and average out sampling noise; betweenness depends on shortest paths and can rewire with small changes, so it is often the first to become unstable.
 
@@ -224,49 +166,30 @@ Each curve is one centrality measure. When two measures diverge — for example,
 
 The function wants sequences (one per unit), not a netobject. We split `ai_long` by `session_id` and keep sessions with at least three actions (the minimum needed to see a second-order transition).
 
-``` r
+```{r}
 seqs <- split(ai_long$code, ai_long$session_id)
 seqs <- seqs[lengths(seqs) >= 3L]
 length(seqs)
-#> [1] 416
 summary(lengths(seqs))
-#>    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-#>     3.0     8.0    13.0    20.5    25.0   138.0
 ```
 
-``` r
+```{r}
 mo <- markov_order_test(seqs, max_order = 3L, n_perm = 200L, seed = 1)
 mo
-#> Markov Order Test  [within-w permutation, n_perm = 200, alpha = 0.050]
-#>   416 sequences / 8530 observations / 8 states
-#> 
-#>   Selected order  BIC: 1   AIC: 3   permutation-LRT: 3
-#> 
-#>  order    loglik      AIC      BIC   df      g2 p_permutation p_asymptotic
-#>      0 -13321.97 26657.94 26707.30   NA      NA            NA           NA
-#>      1 -12217.11 24560.22 25004.45   49 2167.65   0.004975124 0.000000e+00
-#>      2 -11930.62 24549.24 26974.90  392  544.55   0.004975124 5.001998e-07
-#>      3 -11173.07 24468.14 31949.62 1470 1490.32   0.004975124 3.499674e-01
-#>  significant
-#>           NA
-#>         TRUE
-#>         TRUE
-#>         TRUE
 ```
 
 The `test_table` reports, for each order $k$, the log-likelihood, degrees of freedom, observed $G^2$ statistic, permutation p-value, and whether the increment from $k$ to $k+1$ is significant at $\alpha = 0.05$.
 
-``` r
+```{r}
 mo$test_table
 ```
 
 Two orders to pay attention to: the **permutation-selected** order (smallest $k$ whose increment is not significant — the highest order the data provides evidence for) and the **BIC-selected** order (smallest BIC, a penalised-likelihood criterion). They often agree. When they disagree — BIC says “keep it simple, order 1”, permutation says “order 2 is really different from order 1” — the correct reading is that the effect is real but small; whether to use the larger model depends on what you plan to do with it.
 
-``` r
+```{r}
 plot(mo)
 ```
 
-<img src="tutorial_model_assessment_files/img-04.png" style="width:100.0%" role="img" aria-label="" />
 
 The left panel shows log-likelihood, AIC, and BIC by order, with both selected orders marked. The right panel shows the permutation null for each order with the observed $G^2$ overlaid — a red line far out in the right tail of the null is the visual signature of a significant order increment.
 

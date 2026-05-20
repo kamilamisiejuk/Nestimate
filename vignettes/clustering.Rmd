@@ -36,26 +36,16 @@ Clusters represent subgroups within the data that share similar patterns. Such p
 To illustrate clustering, we will use the `human_long` dataset, which contains 10,796 coded human interactions from 429 human-AI pair programming sessions across 34 projects. Each row represents a single interaction event with a timestamp, session identifier, and action label.
 
 ```{r data}
+library(cograph)
 library(Nestimate)
 data("human_long")
-
-# Subsample for vignette speed (CRAN build-time limit). Keep only
-# sessions of at least 5 turns -- some metrics are undefined on very
-# short sequences and downstream sequence_plot row-ordering uses an
-# LCS-distance hclust that needs >= 2 observed turns per row.
-set.seed(1)
-session_lengths <- table(human_long$session_id)
-long_enough     <- names(session_lengths)[session_lengths >= 5]
-keep            <- sample(long_enough, 80)
-human_sub       <- human_long[human_long$session_id %in% keep, ]
-
-head(human_sub)
+head(human_long)
 ```
 
 We can build a transition network using this dataset using `build_network`. We need to determine the `actor` (`session_id`), the `action` (`cluster`), and the `time` (`timestamp`). We will use the overall network object as the starting point to find subgroups since it structures the raw data into the appropriate units of analysis to perform clustering.
 
 ```{r}
-net <- build_network(human_sub,
+net <- build_network(human_long,
                      method = "tna",
                      action = "cluster",
                      actor  = "session_id",
@@ -256,25 +246,64 @@ plot(diag_mmm, type = "posterior")
 
 ## Building Networks per Cluster
 
-Nestimate provides two consistent functions for clustering + network building that both return `netobject_group`:
+Once sequences are grouped, the goal is usually to compare *how
+transitions behave within each group*. A single transition network
+estimated on all sequences averages across the groups and hides the
+contrast. Estimating one network per cluster preserves each group's
+distinct dynamics — same nodes, different edge weights.
+
+The result is a `netobject_group`: a list of `netobject`s sharing the
+same node set, one per cluster. Every group network supports the same
+downstream operations as a single `netobject` — plotting via `plot()`,
+resampling via `bootstrap_network()`, group-level edge comparison via
+`permutation()`.
+
+Two paths produce the same `netobject_group`:
+
+1. **Manual** — fit clustering with `build_clusters()`, then pass the
+   result to `build_network()` to build one network per cluster.
+2. **Shortcut** — `cluster_network()` and `cluster_mmm()` collapse both
+   steps into one call.
+
+The distance-based shortcut (`cluster_network()`) groups sessions by
+sequence similarity. The model-based shortcut (`cluster_mmm()`) groups
+them by which Markov model best explains each sequence's transitions.
 
 | Function | Clustering method | Returns |
 |----------|------------------|---------|
 | `cluster_network()` | Distance-based (Hamming, LCS, etc.) | `netobject_group` |
 | `cluster_mmm()` | Model-based (MMM) | `netobject_group` |
 
-### Using `cluster_network()` (distance-based)
+### From `build_clusters()` to per-cluster networks
+
+`build_clusters()` returns clustering only; pass it to `build_network()`
+to get one network per cluster as a `netobject_group` (group networks).
+The shortcut `cluster_network()` (below) does both steps in one call.
 
 ```{r cluster-networks}
-# One-shot: cluster + build networks
+clust <- build_clusters(net, k = 2, method = "ward.D2")
+cluster_net <- build_network(clust)
+cluster_net
+```
+
+```{r cluster-networks-plot, fig.alt = "Per-cluster transition networks"}
+plot(cluster_net)
+```
+
+### Shortcut: `cluster_network()` (distance-based)
+
+Combines `build_clusters()` + `build_network()` into one call.
+
+```{r cluster-network-shortcut}
 grp_dist <- cluster_network(net, k = 2, cluster_by = "ward.D2")
 grp_dist
 ```
 
-### Using `cluster_mmm()` (model-based)
+### Shortcut: `cluster_mmm()` (model-based)
+
+Model-based equivalent: fits a mixture of Markov models and returns per-cluster networks.
 
 ```{r cluster-mmm}
-# One-shot: MMM cluster + networks
 grp_mmm <- cluster_mmm(net, k = 2)
 grp_mmm
 ```
@@ -288,30 +317,6 @@ attr(grp_mmm, "clustering")$assignments[1:10]
 
 # Access individual cluster networks
 grp_dist[[1]]$weights[1:3, 1:3]
-```
-
-### Visualizing Clustered Sequences
-
-Both `netobject_group` results can be passed directly to `sequence_plot()` for visualization:
-
-```{r cluster-seqplot, fig.alt = "Sequence plot by cluster"}
-sequence_plot(grp_dist, type = "index", main = "Distance-based clusters")
-```
-
-```{r cluster-seqplot-mmm, fig.alt = "Sequence plot by MMM cluster"}
-sequence_plot(grp_mmm, type = "index", main = "MMM clusters")
-```
-
-### Converting `build_clusters()` to networks
-
-If you used `build_clusters()` directly, you can convert to `netobject_group` via `build_network()`:
-
-```{r}
-# build_clusters() returns clustering only (no networks)
-clust <- build_clusters(net, k = 2, method = "ward.D2")
-
-# Convert to netobject_group
-cluster_net <- build_network(clust)
 ```
 
 ### Comparing Clusters

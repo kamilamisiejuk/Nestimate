@@ -246,7 +246,7 @@ cs
 ```{r}
 #| label: fig-stability
 #| fig-cap: "Centrality stability --- correlation with original ranking as cases are dropped"
-#splot(cs)
+splot(cs)
 ```
 
 A CS-coefficient above 0.5 is generally considered acceptable; above 0.7 is good (Epskamp et al., 2018). The horizontal dashed line marks the 0.7 threshold.
@@ -302,7 +302,7 @@ gboot <- bootstrap_network(grp_net, iter = 500)
 #| fig-cap: "Group-level bootstrap --- original networks per cluster"
 #| fig-width: 12
 #| fig-height: 6
-#splot(gboot)
+splot(gboot)
 ```
 
 ---
@@ -367,7 +367,7 @@ gperm <- permutation(grp_net, iter = 1000)
 ```{r}
 #| label: fig-group-perm
 #| fig-cap: "Group-level permutation test --- all pairwise comparisons"
-#splot(gperm)
+splot(gperm)
 ```
 
 ---
@@ -417,8 +417,8 @@ When no strong theoretical grouping exists, `cluster_network()` discovers cluste
 
 ```{r}
 #| label: mcml-datadriven
-#grp_clustered <- cluster_network(group_regulation_long, k = 3)
-#names(grp_clustered)
+grp_clustered <- Nestimate::cluster_network(group_regulation_long, k = 3)
+names(grp_clustered)
 ```
 
 ```{r}
@@ -426,7 +426,7 @@ When no strong theoretical grouping exists, `cluster_network()` discovers cluste
 #| fig-cap: "Data-driven 3-cluster partition --- separate network per cluster"
 #| fig-width: 12
 #| fig-height: 5
-#splot(grp_clustered)
+splot(grp_clustered)
 ```
 
 ## Converting MCML to individual network objects

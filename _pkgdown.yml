@@ -181,8 +181,5 @@ articles:
   contents:
   - starts_with("articles/cograph-tutorial-nestimate")
   - starts_with("articles/cograph-tutorial-simplicial")
-  - starts_with("articles/cograph-tutorial-mcml")
   - starts_with("articles/tutorial_model_assessment")
-  - starts_with("articles/tutorial_markov_order")
-  - starts_with("articles/higher-order-networks")
 

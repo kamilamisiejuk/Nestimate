@@ -1,9 +1,10 @@
 Package: Nestimate
 Title: Network Estimation, Bootstrap, and Higher-Order Analysis
-Version: 0.5.9
+Version: 0.5.10
 Authors@R: c(
     person("Mohammed", "Saqr", email = "saqr@saqr.me", role = c("aut", "cre", "cph")),
-    person("Sonsoles", "López-Pernas", email = "sonsoles.lopez@uef.fi", role = "aut")
+    person("Sonsoles", "López-Pernas", email = "sonsoles.lopez@uef.fi", role = "aut"),
+    person("Kamila", "Misiejuk", role = "aut")
     )
 Description: Estimate, compare, and analyze dynamic and psychological networks
     using a unified interface. Provides transition network analysis

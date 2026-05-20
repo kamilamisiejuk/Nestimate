@@ -44,11 +44,7 @@ set.seed(20260413)
 
 ```{r load}
 data(human_long, package = "Nestimate")
-dat <- as.data.frame(human_long)
-cat("rows:", nrow(dat),
-    "| sessions:", length(unique(dat$session_id)),
-    "| projects:", length(unique(dat$project)), "\n\n")
-print(table(dat$cluster))
+head(human_long)
 ```
 
 ## 2. Split by time — early vs late interactions
@@ -56,11 +52,11 @@ print(table(dat$cluster))
 For each session, the first half of its actions is labeled `"early"` and the second half `"late"`. Base R `ave()` does both jobs — per-session count and per-session position — and then a single `ifelse()` writes the label.
 
 ```{r split}
-dat <- dat[order(dat$session_id, dat$order_in_session), ]
+dat <- human_long[order(human_long$session_id, human_long$order_in_session), ]
 n_per <- ave(dat$order_in_session, dat$session_id, FUN = length)
 pos   <- ave(dat$order_in_session, dat$session_id, FUN = seq_along)
 dat$half <- ifelse(pos <= n_per %/% 2, "early", "late")
-print(table(dat$half))
+table(dat$half)
 ```
 
 ## 3. Build the grouped network
@@ -83,13 +79,7 @@ net
 `sequence_compare()` accepts a `netobject_group` directly — group labels are read from the list names, no separate `group` argument needed. Pattern lengths 3–5, minimum frequency 25, chi-square test with FDR correction.
 
 ```{r compare}
-res <- sequence_compare(
-  net,
-  sub      = 3:5,
-  min_freq = 25L,
-  test     = "chisq",
-  adjust   = "fdr"
-)
+res <- sequence_compare(net, min_freq = 25L, test = "chisq")
 res
 ```
 

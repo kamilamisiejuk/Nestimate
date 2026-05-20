@@ -26,25 +26,8 @@ knitr::opts_chunk$set(
   fig.height = 5,
   dpi = 96,
   warning = FALSE,
-  message = FALSE,
-  output.lines = 40
+  message = FALSE
 )
-local({
-  hook_output <- knitr::knit_hooks$get("output")
-  knitr::knit_hooks$set(output = function(x, options) {
-    n <- options$output.lines
-    if (!is.null(n)) {
-      lines <- strsplit(x, "\n", fixed = TRUE)[[1]]
-      if (length(lines) > n) {
-        x <- paste(c(utils::head(lines, n),
-                     sprintf("#> [... %d more lines ...]", length(lines) - n)),
-                   collapse = "\n")
-      }
-    }
-    hook_output(x, options)
-  })
-})
-options(max.print = 100)
 ```
 
 `Nestimate` is a unified framework for estimating, validating, and comparing networks from sequential and cross-sectional data. It implements two complementary paradigms: **Transition Network Analysis (TNA)**, which models the relational dynamics of temporal processes as weighted directed networks using stochastic Markov models; and **Psychological Network Analysis (PNA)**, which estimates the conditional dependency structure among variables using regularized partial correlations and graphical models. Both paradigms share the same `build_network()` interface, the same validation engine (bootstrap, permutation, centrality stability), and the same output format --- enabling researchers to apply a consistent analytic workflow across fundamentally different data types.
@@ -67,13 +50,7 @@ The `human_long` dataset contains 10,796 coded human interaction turns from 429 
 
 ```{r data}
 library(Nestimate)
-
-# Subsample for vignette speed (CRAN build-time limit)
-set.seed(1)
-keep <- sample(unique(human_long$session_id), 100)
-human_sub <- human_long[human_long$session_id %in% keep, ]
-
-head(human_sub)
+head(human_long)
 ```
 
 The dataset is in long format: `code` records what happened, `session_id` who did it, and `timestamp` when. Additional columns like `project` and `cluster` are automatically preserved as metadata for downstream covariate analysis.
@@ -93,7 +70,7 @@ Under the hood, `build_network()` automatically converts the long-format event l
 The standard TNA method estimates a first-order Markov model from sequence data. Given a sequence of events, the transition probability $P(v_j | v_i)$ is estimated as the ratio of observed transitions from state $v_i$ to state $v_j$ to the total number of outgoing transitions from $v_i$. These probabilities are assembled into a **transition matrix** $T$, where each element $T_{ij}$ represents the estimated probability of transitioning from $v_i$ to $v_j$ (Saqr et al., 2025a).
 
 ```{r tna}
-net_tna <- build_network(human_sub, method = "tna",
+net_tna <- build_network(human_long, method = "tna",
                          action = "code", actor = "session_id",
                          time = "timestamp")
 print(net_tna)
@@ -105,7 +82,7 @@ print(net_tna)
 The frequency method preserves raw transition counts rather than normalizing to conditional probabilities. This is useful when absolute frequencies matter --- a transition occurring 500 times from a common state may be more practically important than one occurring 5 times from a rare state, even if the latter has a higher conditional probability.
 
 ```{r ftna}
-net_ftna <- build_network(human_sub, method = "ftna",
+net_ftna <- build_network(human_long, method = "ftna",
                           action = "code", actor = "session_id",
                           time = "timestamp")
 print(net_ftna)
@@ -117,7 +94,7 @@ print(net_ftna)
 The attention method applies temporal decay weighting, giving more importance to recent transitions within each sequence. The `lambda` parameter controls the decay rate: higher values produce faster decay. This captures the idea that later events in a process may be more indicative of the underlying dynamics than early ones.
 
 ```{r atna}
-net_atna <- build_network(human_sub, method = "atna",
+net_atna <- build_network(human_long, method = "atna",
                           action = "code", actor = "session_id",
                           time = "timestamp")
 print(net_atna)

@@ -44,3 +44,4 @@
 ^vignettes/.*\.html$
 ^vignettes/articles$
 ^vignettes/\.quarto
+^vignettes/_archive$
