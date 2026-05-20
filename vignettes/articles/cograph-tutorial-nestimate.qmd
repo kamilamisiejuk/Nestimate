@@ -411,24 +411,6 @@ mcml_built <- build_mcml(net, clusters, type = "tna")
 splot(mcml_built)
 ```
 
-## Approach 3: Data-driven clusters
-
-When no strong theoretical grouping exists, `cluster_network()` discovers clusters algorithmically. It clusters the raw sequence data (using PAM by default) and builds a separate network per cluster, returning a `netobject_group`:
-
-```{r}
-#| label: mcml-datadriven
-grp_clustered <- Nestimate::cluster_network(group_regulation_long, k = 3)
-names(grp_clustered)
-```
-
-```{r}
-#| label: fig-cluster-group
-#| fig-cap: "Data-driven 3-cluster partition --- separate network per cluster"
-#| fig-width: 12
-#| fig-height: 5
-splot(grp_clustered)
-```
-
 ## Converting MCML to individual network objects
 
 `as_tna()` converts an MCML result into a `netobject_group` --- a named list containing the macro network and each per-cluster network as individual `netobject` objects. This is useful when you want to analyze each cluster's network independently (e.g., compute centrality, run bootstrap) or pass them to other functions.
