@@ -154,6 +154,10 @@ Topological analysis of networks
   : Build a Simplicial Complex
 - [`persistent_homology()`](https://saqr.me/Nestimate/reference/persistent_homology.md)
   : Persistent Homology
+- [`bottleneck_distance()`](https://saqr.me/Nestimate/reference/bottleneck_distance.md)
+  : Bottleneck Distance Between Persistence Diagrams
+- [`persistence_landscape()`](https://saqr.me/Nestimate/reference/persistence_landscape.md)
+  : Persistence Landscape
 - [`q_analysis()`](https://saqr.me/Nestimate/reference/q_analysis.md) :
   Q-Analysis
 - [`betti_numbers()`](https://saqr.me/Nestimate/reference/betti_numbers.md)
@@ -419,6 +423,9 @@ Print, summary, and plot methods for package classes
 - [`print(`*`<netobject_ml>`*`)`](https://saqr.me/Nestimate/reference/print.netobject_ml.md)
   : Print Method for Multilevel Network Object
 
+- [`print(`*`<persistence_landscape>`*`)`](https://saqr.me/Nestimate/reference/print.persistence_landscape.md)
+  : Print Persistence Landscape
+
 - [`print(`*`<persistent_homology>`*`)`](https://saqr.me/Nestimate/reference/print.persistent_homology.md)
   : Print persistent homology results
 
@@ -635,6 +642,9 @@ Print, summary, and plot methods for package classes
   :
 
   Plot method for `net_transition_entropy`
+
+- [`plot(`*`<persistence_landscape>`*`)`](https://saqr.me/Nestimate/reference/plot.persistence_landscape.md)
+  : Plot Persistence Landscape
 
 - [`plot(`*`<persistent_homology>`*`)`](https://saqr.me/Nestimate/reference/plot.persistent_homology.md)
   : Plot Persistent Homology

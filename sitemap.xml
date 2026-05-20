@@ -25,6 +25,7 @@
 <url><loc>https://saqr.me/Nestimate/reference/bipartite_groups.html</loc></url>
 <url><loc>https://saqr.me/Nestimate/reference/boot_glasso.html</loc></url>
 <url><loc>https://saqr.me/Nestimate/reference/bootstrap_network.html</loc></url>
+<url><loc>https://saqr.me/Nestimate/reference/bottleneck_distance.html</loc></url>
 <url><loc>https://saqr.me/Nestimate/reference/build_atna.html</loc></url>
 <url><loc>https://saqr.me/Nestimate/reference/build_clusters.html</loc></url>
 <url><loc>https://saqr.me/Nestimate/reference/build_cna.html</loc></url>
@@ -104,6 +105,7 @@
 <url><loc>https://saqr.me/Nestimate/reference/path_dependence.html</loc></url>
 <url><loc>https://saqr.me/Nestimate/reference/pathways.html</loc></url>
 <url><loc>https://saqr.me/Nestimate/reference/permutation.html</loc></url>
+<url><loc>https://saqr.me/Nestimate/reference/persistence_landscape.html</loc></url>
 <url><loc>https://saqr.me/Nestimate/reference/persistent_homology.html</loc></url>
 <url><loc>https://saqr.me/Nestimate/reference/plot.boot_glasso.html</loc></url>
 <url><loc>https://saqr.me/Nestimate/reference/plot.chain_structure.html</loc></url>
@@ -124,6 +126,7 @@
 <url><loc>https://saqr.me/Nestimate/reference/plot.net_sequence_comparison.html</loc></url>
 <url><loc>https://saqr.me/Nestimate/reference/plot.net_stability.html</loc></url>
 <url><loc>https://saqr.me/Nestimate/reference/plot.net_transition_entropy.html</loc></url>
+<url><loc>https://saqr.me/Nestimate/reference/plot.persistence_landscape.html</loc></url>
 <url><loc>https://saqr.me/Nestimate/reference/plot.persistent_homology.html</loc></url>
 <url><loc>https://saqr.me/Nestimate/reference/plot.q_analysis.html</loc></url>
 <url><loc>https://saqr.me/Nestimate/reference/plot.simplicial_complex.html</loc></url>
@@ -173,6 +176,7 @@
 <url><loc>https://saqr.me/Nestimate/reference/print.netobject.html</loc></url>
 <url><loc>https://saqr.me/Nestimate/reference/print.netobject_group.html</loc></url>
 <url><loc>https://saqr.me/Nestimate/reference/print.netobject_ml.html</loc></url>
+<url><loc>https://saqr.me/Nestimate/reference/print.persistence_landscape.html</loc></url>
 <url><loc>https://saqr.me/Nestimate/reference/print.persistent_homology.html</loc></url>
 <url><loc>https://saqr.me/Nestimate/reference/print.q_analysis.html</loc></url>
 <url><loc>https://saqr.me/Nestimate/reference/print.simplicial_complex.html</loc></url>

@@ -11,9 +11,15 @@ object. Two construction methods are available:
 - **Pathway complex** (`"pathway"`): each higher-order pathway from a
   `net_hon` or `net_hypa` becomes a simplex.
 
-A metric Vietoris-Rips filtration is **not implemented**; passing
-`type = "vr"` (or `"rips"`) raises an error rather than silently
-returning a clique complex.
+For `type = "vr"` (or alias `"rips"`), the input is treated as a
+non-negative distance / dissimilarity matrix and a Vietoris-Rips
+filtration is constructed: each k-simplex \\\sigma\\ enters at
+\\\max\_{(i,j) \in \sigma} d(i,j)\\. Use `max_scale` to cap the
+filtration diameter; edges with `d(i,j) > max_scale` are excluded.
+Filtration values are attached as `$filtration` on the returned object
+so
+[`persistent_homology()`](https://saqr.me/Nestimate/reference/persistent_homology.md)
+can read them directly.
 
 ## Usage
 
@@ -25,6 +31,7 @@ build_simplicial(
   max_dim = 10L,
   max_pathways = NULL,
   anomaly = c("all", "over", "under"),
+  max_scale = NULL,
   ...
 )
 ```
@@ -38,15 +45,15 @@ build_simplicial(
 
 - type:
 
-  Construction type: `"clique"` (default) or `"pathway"`. `"vr"` /
-  `"rips"` are accepted by `match.arg` but not implemented and will
-  error.
+  Construction type: `"clique"` (default), `"pathway"`, or `"vr"` (alias
+  `"rips"`).
 
 - threshold:
 
-  Minimum non-zero absolute edge weight to include an edge (default 0).
-  Must be a single non-negative number. Edges below this are ignored;
-  zero-weight non-edges are never included.
+  For `type = "clique"`: minimum non-zero absolute edge weight to
+  include an edge (default 0). Edges below this are ignored; zero-weight
+  non-edges are never included. Ignored for `type = "vr"` — use
+  `max_scale` instead.
 
 - max_dim:
 
@@ -65,6 +72,11 @@ build_simplicial(
   paths are ranked by smallest observed/expected ratio; over-represented
   paths are ranked by largest ratio.
 
+- max_scale:
+
+  For `type = "vr"`: maximum edge length to include in the filtration.
+  `NULL` (default) uses `max(d)`.
+
 - ...:
 
   Additional arguments passed to
@@ -73,7 +85,8 @@ build_simplicial(
 
 ## Value
 
-A `simplicial_complex` object.
+A `simplicial_complex` object. For `type = "vr"` an additional
+`$filtration` numeric vector is attached (parallel to `$simplices`).
 
 ## See also
 
@@ -98,4 +111,9 @@ print(sc)
 betti_numbers(sc)
 #> b0 b1 b2 
 #>  1  0  0 
+
+# Vietoris-Rips on a distance matrix:
+d <- 1 - mat
+diag(d) <- 0
+sc_vr <- build_simplicial(d, type = "vr", max_scale = 0.6)
 ```

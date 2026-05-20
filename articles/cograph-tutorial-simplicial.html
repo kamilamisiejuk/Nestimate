@@ -28,7 +28,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">Nestimate</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.5</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.9</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -67,8 +67,8 @@
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.svg" class="logo" alt=""><h1>Higher-Order Network Analysis with Simplicial Complexes</h1>
       <p class="subtitle">From Transition Networks to Topological Analysis</p>
-      <p class="author">Mohammed Saqr &amp; Sonsoles López-Pernas</p>
-      <p class="date">2026-05-18</p>
+      <p class="author">Mohammed SaqrSonsoles López-PernasKamila Misiejuk</p>
+      <p class="date">2026-05-20</p>
 
       <small class="dont-index">Source: <a href="https://github.com/mohsaqr/Nestimate/blob/main/vignettes/articles/cograph-tutorial-simplicial.qmd" class="external-link"><code>vignettes/articles/cograph-tutorial-simplicial.qmd</code></a></small>
       <div class="d-none name"><code></code></div>
@@ -104,20 +104,7 @@
 <div class="cell">
 <div class="sourceCode cell-code" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/mohsaqr/Nestimate" class="external-link">Nestimate</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://sonsoles.me/cograph/" class="external-link">cograph</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Guard cograph::plot_simplicial() against grDevices::chull() failing on</span></span>
-<span><span class="co"># degenerate pathway clouds (collinear / single-point). Falls back to</span></span>
-<span><span class="co"># splot() and emits a warning so the vignette always renders.</span></span>
-<span><span class="va">plot_simplicial</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">...</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">args</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">...</span><span class="op">)</span></span>
-<span>  <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="fu">cograph</span><span class="fu">::</span><span class="va"><a href="https://sonsoles.me/cograph/reference/plot_simplicial.html" class="external-link">plot_simplicial</a></span>, <span class="va">args</span><span class="op">)</span>,</span>
-<span>           error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="op">{</span></span>
-<span>             <span class="kw"><a href="https://rdrr.io/r/base/warning.html" class="external-link">warning</a></span><span class="op">(</span><span class="st">"plot_simplicial fell back to splot(): "</span>,</span>
-<span>                     <span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">conditionMessage</a></span><span class="op">(</span><span class="va">e</span><span class="op">)</span>, call. <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span>             <span class="fu"><a href="https://sonsoles.me/cograph/reference/splot.html" class="external-link">splot</a></span><span class="op">(</span><span class="va">args</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
-<span>           <span class="op">}</span><span class="op">)</span></span>
-<span><span class="op">}</span></span></code></pre></div>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://sonsoles.me/cograph/" class="external-link">cograph</a></span><span class="op">)</span></span></code></pre></div>
 </div>
 <p><strong>cograph</strong> provides the simplicial visualization (<code><a href="https://sonsoles.me/cograph/reference/plot_simplicial.html" class="external-link">plot_simplicial()</a></code>). <strong>Nestimate</strong> provides the higher-order network construction (<code>build_hon</code>, <code>build_hypa</code>, <code>build_mogen</code>) and simplicial complex analysis (<code>build_simplicial</code>, <code>betti_numbers</code>, <code>persistent_homology</code>, <code>q_analysis</code>).</p>
 </section></section><section class="level2"><h2 id="building-the-network">Building the Network<a class="anchor" aria-label="anchor" href="#building-the-network"></a>
@@ -258,13 +245,8 @@ order_4     4      2990    6136 -11469.73 35211.46 79913.83  AIC      &lt;--</co
 <p><code><a href="https://sonsoles.me/cograph/reference/plot_simplicial.html" class="external-link">plot_simplicial()</a></code> accepts the <code><a href="../reference/mogen_transitions.html">mogen_transitions()</a></code> data.frame directly. It takes the top pathways by count and renders each as a smooth blob over a shared circular layout, with the path’s intermediate states in blue and the target state in red. Repeated states (like <code>Specify -&gt; Command -&gt; Specify</code>) get distinct positions so the blob covers three visually distinct nodes rather than collapsing to a line.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Guarded against cograph::.smooth_blob() -&gt; grDevices::chull()</span></span>
-<span><span class="co"># "finite coordinates are needed" on degenerate pathway clouds.</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span></span>
-<span>  <span class="fu"><a href="https://sonsoles.me/cograph/reference/plot_simplicial.html" class="external-link">plot_simplicial</a></span><span class="op">(</span><span class="va">net</span>, pathways <span class="op">=</span> <span class="va">mt</span>, max_pathways <span class="op">=</span> <span class="fl">6</span>,</span>
-<span>                  title <span class="op">=</span> <span class="st">"Top 6 second-order pathways"</span><span class="op">)</span>,</span>
-<span>  error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="fu"><a href="https://sonsoles.me/cograph/reference/splot.html" class="external-link">splot</a></span><span class="op">(</span><span class="va">net</span>, title <span class="op">=</span> <span class="st">"Top 6 second-order pathways"</span><span class="op">)</span></span>
-<span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://sonsoles.me/cograph/reference/plot_simplicial.html" class="external-link">plot_simplicial</a></span><span class="op">(</span><span class="va">net</span>, pathways <span class="op">=</span> <span class="va">mt</span>, max_pathways <span class="op">=</span> <span class="fl">6</span>,</span>
+<span>                title <span class="op">=</span> <span class="st">"Top 6 second-order pathways"</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
 <div>
 <figure><p><img src="cograph-tutorial-simplicial_files/figure-html/mogen-transitions-simplicial-1.png" width="1056"></p>
@@ -275,10 +257,7 @@ order_4     4      2990    6136 -11469.73 35211.46 79913.83  AIC      &lt;--</co
 <p>To zoom in on the single most frequent pathway, set <code>max_pathways = 1</code> and let the data.frame drive the selection. Because <code><a href="../reference/mogen_transitions.html">mogen_transitions()</a></code> returns rows already sorted by count, <code>max_pathways = N</code> always picks the top <code>N</code>:</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span></span>
-<span>  <span class="fu"><a href="https://sonsoles.me/cograph/reference/plot_simplicial.html" class="external-link">plot_simplicial</a></span><span class="op">(</span><span class="va">net</span>, pathways <span class="op">=</span> <span class="va">mt</span>, max_pathways <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
-<span>  error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="fu"><a href="https://sonsoles.me/cograph/reference/splot.html" class="external-link">splot</a></span><span class="op">(</span><span class="va">net</span><span class="op">)</span></span>
-<span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://sonsoles.me/cograph/reference/plot_simplicial.html" class="external-link">plot_simplicial</a></span><span class="op">(</span><span class="va">net</span>, pathways <span class="op">=</span> <span class="va">mt</span>, max_pathways <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
 <div>
 <figure><p><img src="cograph-tutorial-simplicial_files/figure-html/mogen-transitions-single-1.png" width="864"></p>
@@ -714,11 +693,11 @@ Normalised: h(P) and H(pi) are raw / log_2(n_states) (0 = deterministic, 1 = uni
 <div class="cell-output cell-output-stdout">
 <pre><code>Persistent Homology
   25 filtration steps [0.6197 → 0.0062]
-  Features: b0: 8 (1 persistent)  |  b1: 2 (0 persistent)  |  b3: 70 (70 persistent)
+  Features: b0: 8 (1 persistent)  |  b1: 3 (0 persistent)  |  b3: 70 (70 persistent)
   Longest-lived:
     b0: 0.6197 → 0.0000 (life: 0.6197)
-    b0: 0.6197 → 0.1596 (life: 0.4601)
-    b0: 0.6197 → 0.1851 (life: 0.4346)</code></pre>
+    b0: 0.6197 → 0.1707 (life: 0.4491)
+    b0: 0.6197 → 0.1958 (life: 0.4239)</code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb50"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">ph</span><span class="op">)</span></span></code></pre></div>

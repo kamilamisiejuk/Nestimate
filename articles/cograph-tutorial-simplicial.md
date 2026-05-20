@@ -47,19 +47,6 @@ using simplicial complexes.
 
 library(Nestimate)
 library(cograph)
-
-# Guard cograph::plot_simplicial() against grDevices::chull() failing on
-# degenerate pathway clouds (collinear / single-point). Falls back to
-# splot() and emits a warning so the vignette always renders.
-plot_simplicial <- function(...) {
-  args <- list(...)
-  tryCatch(do.call(cograph::plot_simplicial, args),
-           error = function(e) {
-             warning("plot_simplicial fell back to splot(): ",
-                     conditionMessage(e), call. = FALSE)
-             splot(args[[1]])
-           })
-}
 ```
 
 **cograph** provides the simplicial visualization
@@ -242,13 +229,8 @@ line.
 
 ``` r
 
-# Guarded against cograph::.smooth_blob() -> grDevices::chull()
-# "finite coordinates are needed" on degenerate pathway clouds.
-tryCatch(
-  plot_simplicial(net, pathways = mt, max_pathways = 6,
-                  title = "Top 6 second-order pathways"),
-  error = function(e) splot(net, title = "Top 6 second-order pathways")
-)
+plot_simplicial(net, pathways = mt, max_pathways = 6,
+                title = "Top 6 second-order pathways")
 ```
 
 ![](cograph-tutorial-simplicial_files/figure-html/mogen-transitions-simplicial-1.png)
@@ -261,10 +243,7 @@ the top `N`:
 
 ``` r
 
-tryCatch(
-  plot_simplicial(net, pathways = mt, max_pathways = 1),
-  error = function(e) splot(net)
-)
+plot_simplicial(net, pathways = mt, max_pathways = 1)
 ```
 
 ![](cograph-tutorial-simplicial_files/figure-html/mogen-transitions-single-1.png)
@@ -794,11 +773,11 @@ ph
 
     Persistent Homology
       25 filtration steps [0.6197 → 0.0062]
-      Features: b0: 8 (1 persistent)  |  b1: 2 (0 persistent)  |  b3: 70 (70 persistent)
+      Features: b0: 8 (1 persistent)  |  b1: 3 (0 persistent)  |  b3: 70 (70 persistent)
       Longest-lived:
         b0: 0.6197 → 0.0000 (life: 0.6197)
-        b0: 0.6197 → 0.1596 (life: 0.4601)
-        b0: 0.6197 → 0.1851 (life: 0.4346)
+        b0: 0.6197 → 0.1707 (life: 0.4491)
+        b0: 0.6197 → 0.1958 (life: 0.4239)
 
 ``` r
 

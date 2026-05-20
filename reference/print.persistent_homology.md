@@ -35,5 +35,5 @@ print(ph)
 #>   Features: b0: 2 (1 persistent) 
 #>   Longest-lived:
 #>     b0: 0.6000 → 0.0000 (life: 0.6000)
-#>     b0: 0.6000 → 0.4680 (life: 0.1320)
+#>     b0: 0.6000 → 0.5000 (life: 0.1000)
 ```
