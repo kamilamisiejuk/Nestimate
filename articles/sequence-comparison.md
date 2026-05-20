@@ -11,15 +11,21 @@ projects**. Every row is a single action taken during a session with a
 ``` r
 
 data(human_long, package = "Nestimate")
-dat <- as.data.frame(human_long)
-cat("rows:", nrow(dat),
-    "| sessions:", length(unique(dat$session_id)),
-    "| projects:", length(unique(dat$project)), "\n\n")
-#> rows: 10796 | sessions: 429 | projects: 34
-print(table(dat$cluster))
-#> 
-#>     Directive    Evaluative Metacognitive 
-#>          6024          3029          1743
+head(human_long)
+#>   message_id   project   session_id  timestamp session_date      code
+#> 1       3439 Project_7 0086cabebd15 1772661600   2026-03-05   Specify
+#> 2       3439 Project_7 0086cabebd15 1772661600   2026-03-05   Command
+#> 3       3439 Project_7 0086cabebd15 1772661600   2026-03-05   Specify
+#> 4       3440 Project_7 0086cabebd15 1772661600   2026-03-05 Interrupt
+#> 5       3442 Project_7 0086cabebd15 1772661600   2026-03-05    Verify
+#> 6       3444 Project_7 0086cabebd15 1772661600   2026-03-05   Specify
+#>         cluster code_order order_in_session
+#> 1     Directive          1                1
+#> 2     Directive          2                2
+#> 3     Directive          3                3
+#> 4 Metacognitive          1                4
+#> 5    Evaluative          1                7
+#> 6     Directive          1               10
 ```
 
 ## 2. Split by time — early vs late interactions
@@ -32,11 +38,11 @@ count and per-session position — and then a single
 
 ``` r
 
-dat <- dat[order(dat$session_id, dat$order_in_session), ]
+dat <- human_long[order(human_long$session_id, human_long$order_in_session), ]
 n_per <- ave(dat$order_in_session, dat$session_id, FUN = length)
 pos   <- ave(dat$order_in_session, dat$session_id, FUN = seq_along)
 dat$half <- ifelse(pos <= n_per %/% 2, "early", "late")
-print(table(dat$half))
+table(dat$half)
 #> 
 #> early  late 
 #>  5287  5509
@@ -75,13 +81,7 @@ minimum frequency 25, chi-square test with FDR correction.
 
 ``` r
 
-res <- sequence_compare(
-  net,
-  sub      = 3:5,
-  min_freq = 25L,
-  test     = "chisq",
-  adjust   = "fdr"
-)
+res <- sequence_compare(net, min_freq = 25L, test = "chisq")
 res
 #> Sequence Comparison  [100 patterns | 2 groups: early, late]
 #>   Lengths: 3, 4, 5  |  min_freq: 25  |  chi-square  (fdr)

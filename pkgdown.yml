@@ -3,17 +3,14 @@ pkgdown: 2.2.0
 pkgdown_sha: ~
 articles:
   clustering: clustering.html
-  articles/cograph-tutorial-mcml: cograph-tutorial-mcml.html
   articles/cograph-tutorial-nestimate: cograph-tutorial-nestimate.html
   articles/cograph-tutorial-simplicial: cograph-tutorial-simplicial.html
-  articles/higher-order-networks: higher-order-networks.html
   markov-stability: markov-stability.html
   sequence-comparison: sequence-comparison.html
   sequence-plots: sequence-plots.html
   transition-networks: transition-networks.html
-  articles/tutorial_markov_order: tutorial_markov_order.html
   articles/tutorial_model_assessment: tutorial_model_assessment.html
-last_built: 2026-05-20T17:48Z
+last_built: 2026-05-20T22:01Z
 urls:
   reference: https://saqr.me/Nestimate/reference
   article: https://saqr.me/Nestimate/articles

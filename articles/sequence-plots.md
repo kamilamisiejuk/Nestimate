@@ -175,7 +175,7 @@ sequence_plot(trajectories, type = "index", row_gap = 0.25,
 
 ``` r
 
-cl <- build_clusters(as.data.frame(trajectories), k = 3L,
+cl <- build_clusters(trajectories, k = 3L,
                    dissimilarity = "hamming", method = "ward.D2")
 sequence_plot(cl, type = "index",
               main = "index faceted by build_clusters(k = 3)")
@@ -252,16 +252,46 @@ sequence_plot(cl, type = "distribution",
 
 # Always explore first with the default:
 sequence_plot(trajectories)
+```
+
+![](sequence-plots_files/figure-html/cheatsheet-1.png)
+
+``` r
+
 
 # Zoom in on cluster structure:
 sequence_plot(trajectories, k = 3)
+```
+
+![](sequence-plots_files/figure-html/cheatsheet-2.png)
+
+``` r
+
 sequence_plot(trajectories, sort = "hamming", k = 4)
+```
+
+![](sequence-plots_files/figure-html/cheatsheet-3.png)
+
+``` r
+
 
 # Compare cluster compositions:
-cl <- build_clusters(as.data.frame(trajectories), k = 3,
+cl <- build_clusters(trajectories, k = 3,
                    dissimilarity = "hamming", method = "ward.D2")
 sequence_plot(cl, type = "index")
+```
+
+![](sequence-plots_files/figure-html/cheatsheet-4.png)
+
+``` r
+
 sequence_plot(cl, type = "distribution")
+```
+
+![](sequence-plots_files/figure-html/cheatsheet-5.png)
+
+``` r
+
 
 # Polish for a paper:
 sequence_plot(trajectories, k = 3,
@@ -271,3 +301,5 @@ sequence_plot(trajectories, k = 3,
               cell_border = "grey70",
               main = "Student engagement trajectories")
 ```
+
+![](sequence-plots_files/figure-html/cheatsheet-6.png)

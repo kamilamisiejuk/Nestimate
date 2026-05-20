@@ -25,7 +25,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">Nestimate</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.9</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.11</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -127,50 +127,19 @@ Disengaged.</p>
 <p>We keep learners who were Active <strong>more than half the
 time</strong> (&gt; 7 of 15 steps).</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">trajectories</span><span class="op">)</span></span>
-<span><span class="va">active_count</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">rowSums</a></span><span class="op">(</span><span class="va">df</span> <span class="op">==</span> <span class="st">"Active"</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="va">mostly_active</span> <span class="op">&lt;-</span> <span class="va">active_count</span> <span class="op">&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">ncol</a></span><span class="op">(</span><span class="va">df</span><span class="op">)</span> <span class="op">/</span> <span class="fl">2</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">mostly_active</span><span class="op">)</span>, <span class="st">"of"</span>, <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">df</span><span class="op">)</span>, <span class="st">"learners qualify\n"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; 42 of 138 learners qualify</span></span>
-<span><span class="va">sub</span> <span class="op">&lt;-</span> <span class="va">df</span><span class="op">[</span><span class="va">mostly_active</span>, <span class="op">]</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">sub</span> <span class="op">&lt;-</span> <span class="va">trajectories</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">rowSums</a></span><span class="op">(</span><span class="va">trajectories</span> <span class="op">==</span> <span class="st">"Active"</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">7</span>, <span class="op">]</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">sub</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 42</span></span></code></pre></div>
 <hr>
 </div>
 <div class="section level2">
 <h2 id="sequence-plots">Sequence plots<a class="anchor" aria-label="anchor" href="#sequence-plots"></a>
 </h2>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">state_pal</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>Active <span class="op">=</span> <span class="st">"#1a7a1a"</span>, Average <span class="op">=</span> <span class="st">"#E69F00"</span>, Disengaged <span class="op">=</span> <span class="st">"#CC79A7"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="../reference/sequence_plot.html">sequence_plot</a></span><span class="op">(</span></span>
-<span>  <span class="va">df</span>,</span>
-<span>  type         <span class="op">=</span> <span class="st">"heatmap"</span>,</span>
-<span>  sort         <span class="op">=</span> <span class="st">"lcs"</span>,</span>
-<span>  k            <span class="op">=</span> <span class="fl">3</span>,</span>
-<span>  k_color      <span class="op">=</span> <span class="st">"white"</span>,</span>
-<span>  k_line_width <span class="op">=</span> <span class="fl">2</span>,</span>
-<span>  state_colors <span class="op">=</span> <span class="va">state_pal</span>,</span>
-<span>  na_color     <span class="op">=</span> <span class="st">"grey88"</span>,</span>
-<span>  main         <span class="op">=</span> <span class="st">"Full sample - all 138 learners"</span>,</span>
-<span>  time_label   <span class="op">=</span> <span class="st">"Time-step"</span>,</span>
-<span>  y_label      <span class="op">=</span> <span class="st">"Learner"</span>,</span>
-<span>  legend       <span class="op">=</span> <span class="st">"bottom"</span></span>
-<span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/sequence_plot.html">sequence_plot</a></span><span class="op">(</span><span class="va">trajectories</span>, type <span class="op">=</span> <span class="st">"heatmap"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="markov-stability_files/figure-html/unnamed-chunk-4-1.png" class="r-plt" alt="" width="100%"></p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/sequence_plot.html">sequence_plot</a></span><span class="op">(</span></span>
-<span>  <span class="va">sub</span>,</span>
-<span>  type         <span class="op">=</span> <span class="st">"heatmap"</span>,</span>
-<span>  sort         <span class="op">=</span> <span class="st">"lcs"</span>,</span>
-<span>  k            <span class="op">=</span> <span class="fl">2</span>,</span>
-<span>  k_color      <span class="op">=</span> <span class="st">"white"</span>,</span>
-<span>  k_line_width <span class="op">=</span> <span class="fl">2</span>,</span>
-<span>  state_colors <span class="op">=</span> <span class="va">state_pal</span>,</span>
-<span>  na_color     <span class="op">=</span> <span class="st">"grey88"</span>,</span>
-<span>  main         <span class="op">=</span> <span class="st">"Mostly-active learners - Active &gt; 7 of 15 steps (n = 42)"</span>,</span>
-<span>  time_label   <span class="op">=</span> <span class="st">"Time-step"</span>,</span>
-<span>  y_label      <span class="op">=</span> <span class="st">"Learner"</span>,</span>
-<span>  legend       <span class="op">=</span> <span class="st">"bottom"</span></span>
-<span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/sequence_plot.html">sequence_plot</a></span><span class="op">(</span><span class="va">sub</span>, type <span class="op">=</span> <span class="st">"heatmap"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="markov-stability_files/figure-html/unnamed-chunk-5-1.png" class="r-plt" alt="" width="100%"></p>
 <hr>
 </div>
@@ -178,7 +147,7 @@ time</strong> (&gt; 7 of 15 steps).</p>
 <h2 id="transition-networks">Transition networks<a class="anchor" aria-label="anchor" href="#transition-networks"></a>
 </h2>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">net_all</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/build_network.html">build_network</a></span><span class="op">(</span><span class="va">df</span>,  method <span class="op">=</span> <span class="st">"relative"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">net_all</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/build_network.html">build_network</a></span><span class="op">(</span><span class="va">trajectories</span>, method <span class="op">=</span> <span class="st">"relative"</span><span class="op">)</span></span>
 <span><span class="va">net_sub</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/build_network.html">build_network</a></span><span class="op">(</span><span class="va">sub</span>, method <span class="op">=</span> <span class="st">"relative"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">net_all</span><span class="op">$</span><span class="va">weights</span>, <span class="fl">3</span><span class="op">)</span></span>
@@ -338,7 +307,7 @@ effectively unreachable.</p>
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by <a href="https://saqr.me" class="external-link">Mohammed Saqr</a>, <a href="https://sonsoles.me" class="external-link">Sonsoles López-Pernas</a>.</p>
+  <p>Developed by <a href="https://saqr.me" class="external-link">Mohammed Saqr</a>, <a href="https://sonsoles.me" class="external-link">Sonsoles López-Pernas</a>, Kamila Misiejuk.</p>
 </div>
 
 <div class="pkgdown-footer-right">

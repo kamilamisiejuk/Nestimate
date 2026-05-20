@@ -61,27 +61,21 @@ see [Saqr
 ``` r
 
 library(Nestimate)
-
-# Subsample for vignette speed (CRAN build-time limit)
-set.seed(1)
-keep <- sample(unique(human_long$session_id), 100)
-human_sub <- human_long[human_long$session_id %in% keep, ]
-
-head(human_sub)
-#>     message_id   project   session_id  timestamp session_date      code
-#> 395       2902 Project_7 0605767ae57f 1772229600   2026-02-28   Specify
-#> 396       2902 Project_7 0605767ae57f 1772229600   2026-02-28   Command
-#> 397       2902 Project_7 0605767ae57f 1772229600   2026-02-28   Request
-#> 398       2902 Project_7 0605767ae57f 1772229600   2026-02-28   Specify
-#> 399       2903 Project_7 0605767ae57f 1772229600   2026-02-28 Interrupt
-#> 400       2905 Project_7 0605767ae57f 1772229600   2026-02-28   Command
-#>           cluster code_order order_in_session
-#> 395     Directive          1                1
-#> 396     Directive          2                2
-#> 397     Directive          3                3
-#> 398     Directive          4                4
-#> 399 Metacognitive          1                5
-#> 400     Directive          1                8
+head(human_long)
+#>   message_id   project   session_id  timestamp session_date      code
+#> 1       3439 Project_7 0086cabebd15 1772661600   2026-03-05   Specify
+#> 2       3439 Project_7 0086cabebd15 1772661600   2026-03-05   Command
+#> 3       3439 Project_7 0086cabebd15 1772661600   2026-03-05   Specify
+#> 4       3440 Project_7 0086cabebd15 1772661600   2026-03-05 Interrupt
+#> 5       3442 Project_7 0086cabebd15 1772661600   2026-03-05    Verify
+#> 6       3444 Project_7 0086cabebd15 1772661600   2026-03-05   Specify
+#>         cluster code_order order_in_session
+#> 1     Directive          1                1
+#> 2     Directive          2                2
+#> 3     Directive          3                3
+#> 4 Metacognitive          1                4
+#> 5    Evaluative          1                7
+#> 6     Directive          1               10
 ```
 
 The dataset is in long format: `code` records what happened,
@@ -122,45 +116,45 @@ et al., 2025a).
 
 ``` r
 
-net_tna <- build_network(human_sub, method = "tna",
+net_tna <- build_network(human_long, method = "tna",
                          action = "code", actor = "session_id",
                          time = "timestamp")
 print(net_tna)
 #> Transition Network (relative probabilities) [directed]
-#>   Weights: [0.019, 0.577]  |  mean: 0.111
+#>   Weights: [0.018, 0.620]  |  mean: 0.111
 #> 
 #>   Weight matrix:
 #>             Command Correct Frustrate Inquire Interrupt Refine Request Specify
-#>   Command     0.209   0.091     0.040   0.067     0.037  0.047   0.158   0.295
-#>   Correct     0.099   0.109     0.134   0.054     0.059  0.109   0.124   0.282
-#>   Frustrate   0.078   0.150     0.204   0.083     0.019  0.209   0.107   0.117
-#>   Inquire     0.155   0.155     0.140   0.166     0.109  0.041   0.093   0.098
-#>   Interrupt   0.298   0.055     0.055   0.193     0.144  0.039   0.066   0.077
-#>   Refine      0.042   0.090     0.090   0.066     0.048  0.096   0.114   0.416
-#>   Request     0.102   0.019     0.070   0.074     0.051  0.033   0.033   0.577
-#>   Specify     0.291   0.069     0.076   0.067     0.176  0.052   0.064   0.162
-#>   Verify      0.230   0.100     0.110   0.100     0.050  0.140   0.080   0.110
+#>   Command     0.235   0.088     0.055   0.066     0.035  0.038   0.155   0.280
+#>   Correct     0.093   0.091     0.138   0.057     0.054  0.112   0.120   0.278
+#>   Frustrate   0.103   0.115     0.176   0.075     0.047  0.171   0.111   0.125
+#>   Inquire     0.196   0.126     0.098   0.188     0.094  0.062   0.084   0.106
+#>   Interrupt   0.259   0.081     0.094   0.123     0.102  0.080   0.069   0.122
+#>   Refine      0.058   0.075     0.072   0.047     0.042  0.086   0.146   0.457
+#>   Request     0.096   0.019     0.044   0.067     0.051  0.033   0.039   0.620
+#>   Specify     0.263   0.058     0.081   0.072     0.167  0.074   0.070   0.172
+#>   Verify      0.224   0.079     0.164   0.118     0.043  0.097   0.116   0.083
 #>             Verify
-#>   Command    0.056
-#>   Correct    0.030
-#>   Frustrate  0.034
-#>   Inquire    0.041
-#>   Interrupt  0.072
-#>   Refine     0.036
-#>   Request    0.042
+#>   Command    0.048
+#>   Correct    0.056
+#>   Frustrate  0.077
+#>   Inquire    0.044
+#>   Interrupt  0.069
+#>   Refine     0.018
+#>   Request    0.032
 #>   Specify    0.043
-#>   Verify     0.080 
+#>   Verify     0.077 
 #> 
 #>   Initial probabilities:
-#>   Specify       0.664  ████████████████████████████████████████
-#>   Command       0.216  █████████████
-#>   Request       0.048  ███
-#>   Correct       0.040  ██
-#>   Interrupt     0.016  █
-#>   Frustrate     0.008  
-#>   Refine        0.008  
-#>   Inquire       0.000  
-#>   Verify        0.000
+#>   Specify       0.679  ████████████████████████████████████████
+#>   Command       0.175  ██████████
+#>   Request       0.055  ███
+#>   Interrupt     0.030  ██
+#>   Correct       0.019  █
+#>   Refine        0.019  █
+#>   Frustrate     0.013  █
+#>   Inquire       0.008  
+#>   Verify        0.002
 ```
 
 #### Frequency Network (FTNA)
@@ -173,45 +167,45 @@ a rare state, even if the latter has a higher conditional probability.
 
 ``` r
 
-net_ftna <- build_network(human_sub, method = "ftna",
+net_ftna <- build_network(human_long, method = "ftna",
                           action = "code", actor = "session_id",
                           time = "timestamp")
 print(net_ftna)
 #> Transition Network (frequency counts) [directed]
-#>   Weights: [4.000, 169.000]  |  mean: 28.062
+#>   Weights: [14.000, 732.000]  |  mean: 126.790
 #> 
 #>   Weight matrix:
 #>             Command Correct Frustrate Inquire Interrupt Refine Request Specify
-#>   Command        90      39        17      29        16     20      68     127
-#>   Correct        20      22        27      11        12     22      25      57
-#>   Frustrate      16      31        42      17         4     43      22      24
-#>   Inquire        30      30        27      32        21      8      18      19
-#>   Interrupt      54      10        10      35        26      7      12      14
-#>   Refine          7      15        15      11         8     16      19      69
-#>   Request        22       4        15      16        11      7       7     124
-#>   Specify       169      40        44      39       102     30      37      94
-#>   Verify         23      10        11      10         5     14       8      11
+#>   Command       459     171       107     129        68     75     303     548
+#>   Correct        73      71       108      45        42     88      94     218
+#>   Frustrate      95     106       162      69        43    157     102     115
+#>   Inquire       160     103        80     154        77     51      69      87
+#>   Interrupt     191      60        69      91        75     59      51      90
+#>   Refine         45      59        56      37        33     67     114     357
+#>   Request        97      19        45      68        52     33      40     629
+#>   Specify       732     161       226     199       463    205     194     479
+#>   Verify        108      38        79      57        21     47      56      40
 #>             Verify
-#>   Command       24
-#>   Correct        6
-#>   Frustrate      7
-#>   Inquire        8
-#>   Interrupt     13
-#>   Refine         6
-#>   Request        9
-#>   Specify       25
-#>   Verify         8 
+#>   Command       94
+#>   Correct       44
+#>   Frustrate     71
+#>   Inquire       36
+#>   Interrupt     51
+#>   Refine        14
+#>   Request       32
+#>   Specify      120
+#>   Verify        37 
 #> 
 #>   Initial probabilities:
-#>   Specify       0.664  ████████████████████████████████████████
-#>   Command       0.216  █████████████
-#>   Request       0.048  ███
-#>   Correct       0.040  ██
-#>   Interrupt     0.016  █
-#>   Frustrate     0.008  
-#>   Refine        0.008  
-#>   Inquire       0.000  
-#>   Verify        0.000
+#>   Specify       0.679  ████████████████████████████████████████
+#>   Command       0.175  ██████████
+#>   Request       0.055  ███
+#>   Interrupt     0.030  ██
+#>   Correct       0.019  █
+#>   Refine        0.019  █
+#>   Frustrate     0.013  █
+#>   Inquire       0.008  
+#>   Verify        0.002
 ```
 
 #### Attention Network (ATNA)
@@ -224,45 +218,45 @@ indicative of the underlying dynamics than early ones.
 
 ``` r
 
-net_atna <- build_network(human_sub, method = "atna",
+net_atna <- build_network(human_long, method = "atna",
                           action = "code", actor = "session_id",
                           time = "timestamp")
 print(net_atna)
 #> Attention Network (decay-weighted transitions) [directed]
-#>   Weights: [2.719, 81.786]  |  mean: 15.834
+#>   Weights: [11.018, 357.662]  |  mean: 71.690
 #> 
 #>   Weight matrix:
-#>             Command Correct Frustrate Inquire Interrupt Refine Request Specify
-#>   Command    50.398  21.700    12.450  16.556    15.164 11.968  31.860  68.371
-#>   Correct    13.595  13.498    14.098   8.029     7.025 12.674  11.888  30.257
-#>   Frustrate  10.506  15.087    23.142   9.736     3.927 20.308  12.254  18.614
-#>   Inquire    16.073  17.002    13.903  16.691    11.297  4.845   9.755  14.765
-#>   Interrupt  25.913   6.000     5.844  17.104    17.124  3.850   6.353  12.338
-#>   Refine      6.765   9.389     9.894   6.244     4.124 10.875  10.187  33.191
-#>   Request    14.348   4.176     8.718  10.071    10.654  6.075   6.291  53.456
-#>   Specify    81.786  22.700    26.216  25.113    44.442 18.861  28.052  65.762
-#>   Verify     11.587   5.170     5.991   5.540     2.719  7.318   5.262   8.894
+#>             Command Correct Frustrate Inquire Interrupt  Refine Request Specify
+#>   Command   254.753  91.496    66.797  80.402    65.936  47.423 145.985 297.131
+#>   Correct    51.382  44.627    55.538  29.832    27.286  46.929  46.160 119.340
+#>   Frustrate  57.452  55.341    92.756  40.085    28.624  74.892  54.606  87.031
+#>   Inquire    85.134  56.787    43.046  81.061    38.782  29.220  40.091  69.990
+#>   Interrupt  94.228  31.160    36.365  46.634    48.698  30.005  28.457  67.398
+#>   Refine     36.306  37.008    37.761  24.197    21.236  51.087  58.478 167.226
+#>   Request    63.272  18.659    31.998  41.056    51.503  30.285  33.277 272.476
+#>   Specify   357.662  96.031   134.432 115.671   206.063 116.889 141.240 335.302
+#>   Verify     53.941  20.958    40.429  30.820    11.349  25.768  29.387  39.412
 #>             Verify
-#>   Command   13.721
-#>   Correct    3.554
-#>   Frustrate  3.574
-#>   Inquire    4.062
-#>   Interrupt  6.741
-#>   Refine     3.204
-#>   Request    5.989
-#>   Specify   15.915
-#>   Verify     3.943 
+#>   Command   53.492
+#>   Correct   22.847
+#>   Frustrate 32.765
+#>   Inquire   17.833
+#>   Interrupt 27.393
+#>   Refine    11.018
+#>   Request   21.781
+#>   Specify   76.312
+#>   Verify    23.444 
 #> 
 #>   Initial probabilities:
-#>   Specify       0.664  ████████████████████████████████████████
-#>   Command       0.216  █████████████
-#>   Request       0.048  ███
-#>   Correct       0.040  ██
-#>   Interrupt     0.016  █
-#>   Frustrate     0.008  
-#>   Refine        0.008  
-#>   Inquire       0.000  
-#>   Verify        0.000
+#>   Specify       0.679  ████████████████████████████████████████
+#>   Command       0.175  ██████████
+#>   Request       0.055  ███
+#>   Interrupt     0.030  ██
+#>   Correct       0.019  █
+#>   Refine        0.019  █
+#>   Frustrate     0.013  █
+#>   Inquire       0.008  
+#>   Verify        0.002
 ```
 
 #### Co-occurrence Network from Binary Data
@@ -390,10 +384,10 @@ driven by a small number of idiosyncratic sequences.
 
 network_reliability(net_tna)
 #> Split-Half Reliability (1000 iterations, split = 50%)
-#>   Mean Abs. Diff.     mean = 0.0361  sd = 0.0038
-#>   Median Abs. Diff.   mean = 0.0269  sd = 0.0038
-#>   Pearson             mean = 0.8642  sd = 0.0290
-#>   Max Abs. Diff.      mean = 0.1733  sd = 0.0391
+#>   Mean Abs. Diff.     mean = 0.0169  sd = 0.0017
+#>   Median Abs. Diff.   mean = 0.0129  sd = 0.0018
+#>   Pearson             mean = 0.9706  sd = 0.0062
+#>   Max Abs. Diff.      mean = 0.0748  sd = 0.0181
 ```
 
 #### Bootstrap Analysis
@@ -413,16 +407,16 @@ boot <- bootstrap_network(net_tna, iter = 100)
 boot
 #>   Edge                   Mean     95% CI          p
 #>   -----------------------------------------------
-#>   Request → Specify    0.578  [0.506, 0.661]  ** 
-#>   Refine → Specify     0.417  [0.320, 0.496]  *  
-#>   Command → Specify    0.294  [0.251, 0.331]  ** 
-#>   Specify → Command    0.290  [0.256, 0.327]  ** 
-#>   Correct → Specify    0.285  [0.234, 0.350]  *  
-#>   ... and 3 more significant edges
+#>   Request → Specify    0.619  [0.584, 0.655]  ** 
+#>   Refine → Specify     0.455  [0.413, 0.502]  ** 
+#>   Command → Specify    0.281  [0.256, 0.301]  ** 
+#>   Correct → Specify    0.280  [0.249, 0.309]  ** 
+#>   Specify → Command    0.263  [0.246, 0.279]  ** 
+#>   ... and 40 more significant edges
 #> 
 #> Bootstrap Network  [Transition Network (relative) | directed]
 #>   Iterations : 100  |  Nodes : 9
-#>   Edges      : 8 significant / 81 total
+#>   Edges      : 45 significant / 81 total
 #>   CI         : 95%  |  Inference: stability  |  CR [0.75, 1.25]
 ```
 
@@ -443,8 +437,8 @@ centrality_stability(net_tna, iter = 100)
 #> 
 #>   CS-coefficients:
 #>     InStrength       0.90
-#>     OutStrength      0.50
-#>     Betweenness      0.70
+#>     OutStrength      0.80
+#>     Betweenness      0.90
 ```
 
 ### Clustering
@@ -468,9 +462,9 @@ Clusters
 #> Group Networks (3 clusters via pam / hamming)
 #> 
 #>   Group      Nodes  Edges  Weights         N
-#>   Cluster 1  9      81     [0.010, 0.626]  89 (71.2%)
-#>   Cluster 2  9      80     [0.017, 0.506]  35 (28.0%)
-#>   Cluster 3  9      53     [0.043, 0.667]  1 ( 0.8%)
+#>   Cluster 1  9      81     [0.006, 0.538]  145 (27.6%)
+#>   Cluster 2  9      81     [0.003, 0.694]  299 (56.8%)
+#>   Cluster 3  9      81     [0.018, 0.588]  82 (15.6%)
 ```
 
 #### Permutation Test for Clusters
@@ -492,7 +486,7 @@ perm <- permutation(Clusters$`Cluster 1`, Clusters$`Cluster 2`,
 perm
 #> Permutation Test:Transition Network (relative probabilities) [directed]
 #>   Iterations: 100  |  Alpha: 0.05
-#>   Nodes: 9  |  Edges tested: 81  |  Significant: 8
+#>   Nodes: 9  |  Edges tested: 81  |  Significant: 9
 ```
 
 ### Post-hoc Covariate Analysis

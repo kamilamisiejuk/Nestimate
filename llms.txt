@@ -18,8 +18,8 @@ package has only 4 hard imports (ggplot2, glasso, data.table, cluster).
   Visualization](https://saqr.me/Nestimate/articles/cograph-tutorial-nestimate.html)
 - [Higher-Order & Simplicial
   Complexes](https://saqr.me/Nestimate/articles/cograph-tutorial-simplicial.html)
-- [Multi-Cluster Multi-Level
-  (MCML)](https://saqr.me/Nestimate/articles/cograph-tutorial-mcml.html)
+- [Model
+  Assessment](https://saqr.me/Nestimate/articles/tutorial_model_assessment.html)
 
 ### Quick guides
 
@@ -1163,14 +1163,5 @@ Full tutorials
 - [Higher-Order Network Analysis with Simplicial
   Complexes](https://saqr.me/Nestimate/articles/cograph-tutorial-simplicial.md):
 
-- [Multi-Cluster Multi-Level Visualization with plot_mcml: A Complete
-  Guide](https://saqr.me/Nestimate/articles/cograph-tutorial-mcml.md):
-
 - [Tutorial: Model assessment for transition
   networks](https://saqr.me/Nestimate/articles/tutorial_model_assessment.md):
-
-- [Tutorial: Testing the Markov order of coded
-  sequences](https://saqr.me/Nestimate/articles/tutorial_markov_order.md):
-
-- [Higher-Order Network
-  Analysis](https://saqr.me/Nestimate/articles/higher-order-networks.md):

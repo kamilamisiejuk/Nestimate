@@ -25,7 +25,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">Nestimate</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.9</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.11</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -146,27 +146,21 @@ description of the dataset and coding scheme, see <a href="https://saqr.me/blog/
 (2026)</a>.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/mohsaqr/Nestimate" class="external-link">Nestimate</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Subsample for vignette speed (CRAN build-time limit)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
-<span><span class="va">keep</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">human_long</span><span class="op">$</span><span class="va">session_id</span><span class="op">)</span>, <span class="fl">100</span><span class="op">)</span></span>
-<span><span class="va">human_sub</span> <span class="op">&lt;-</span> <span class="va">human_long</span><span class="op">[</span><span class="va">human_long</span><span class="op">$</span><span class="va">session_id</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="va">keep</span>, <span class="op">]</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">human_sub</span><span class="op">)</span></span>
-<span><span class="co">#&gt;     message_id   project   session_id  timestamp session_date      code</span></span>
-<span><span class="co">#&gt; 395       2902 Project_7 0605767ae57f 1772229600   2026-02-28   Specify</span></span>
-<span><span class="co">#&gt; 396       2902 Project_7 0605767ae57f 1772229600   2026-02-28   Command</span></span>
-<span><span class="co">#&gt; 397       2902 Project_7 0605767ae57f 1772229600   2026-02-28   Request</span></span>
-<span><span class="co">#&gt; 398       2902 Project_7 0605767ae57f 1772229600   2026-02-28   Specify</span></span>
-<span><span class="co">#&gt; 399       2903 Project_7 0605767ae57f 1772229600   2026-02-28 Interrupt</span></span>
-<span><span class="co">#&gt; 400       2905 Project_7 0605767ae57f 1772229600   2026-02-28   Command</span></span>
-<span><span class="co">#&gt;           cluster code_order order_in_session</span></span>
-<span><span class="co">#&gt; 395     Directive          1                1</span></span>
-<span><span class="co">#&gt; 396     Directive          2                2</span></span>
-<span><span class="co">#&gt; 397     Directive          3                3</span></span>
-<span><span class="co">#&gt; 398     Directive          4                4</span></span>
-<span><span class="co">#&gt; 399 Metacognitive          1                5</span></span>
-<span><span class="co">#&gt; 400     Directive          1                8</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">human_long</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   message_id   project   session_id  timestamp session_date      code</span></span>
+<span><span class="co">#&gt; 1       3439 Project_7 0086cabebd15 1772661600   2026-03-05   Specify</span></span>
+<span><span class="co">#&gt; 2       3439 Project_7 0086cabebd15 1772661600   2026-03-05   Command</span></span>
+<span><span class="co">#&gt; 3       3439 Project_7 0086cabebd15 1772661600   2026-03-05   Specify</span></span>
+<span><span class="co">#&gt; 4       3440 Project_7 0086cabebd15 1772661600   2026-03-05 Interrupt</span></span>
+<span><span class="co">#&gt; 5       3442 Project_7 0086cabebd15 1772661600   2026-03-05    Verify</span></span>
+<span><span class="co">#&gt; 6       3444 Project_7 0086cabebd15 1772661600   2026-03-05   Specify</span></span>
+<span><span class="co">#&gt;         cluster code_order order_in_session</span></span>
+<span><span class="co">#&gt; 1     Directive          1                1</span></span>
+<span><span class="co">#&gt; 2     Directive          2                2</span></span>
+<span><span class="co">#&gt; 3     Directive          3                3</span></span>
+<span><span class="co">#&gt; 4 Metacognitive          1                4</span></span>
+<span><span class="co">#&gt; 5    Evaluative          1                7</span></span>
+<span><span class="co">#&gt; 6     Directive          1               10</span></span></code></pre></div>
 <p>The dataset is in long format: <code>code</code> records what
 happened, <code>session_id</code> who did it, and <code>timestamp</code>
 when. Additional columns like <code>project</code> and
@@ -220,45 +214,45 @@ to
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>v</mi><mi>j</mi></msub><annotation encoding="application/x-tex">v_j</annotation></semantics></math>
 (Saqr et al., 2025a).</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">net_tna</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/build_network.html">build_network</a></span><span class="op">(</span><span class="va">human_sub</span>, method <span class="op">=</span> <span class="st">"tna"</span>,</span>
+<code class="sourceCode R"><span><span class="va">net_tna</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/build_network.html">build_network</a></span><span class="op">(</span><span class="va">human_long</span>, method <span class="op">=</span> <span class="st">"tna"</span>,</span>
 <span>                         action <span class="op">=</span> <span class="st">"code"</span>, actor <span class="op">=</span> <span class="st">"session_id"</span>,</span>
 <span>                         time <span class="op">=</span> <span class="st">"timestamp"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">net_tna</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Transition Network (relative probabilities) [directed]</span></span>
-<span><span class="co">#&gt;   Weights: [0.019, 0.577]  |  mean: 0.111</span></span>
+<span><span class="co">#&gt;   Weights: [0.018, 0.620]  |  mean: 0.111</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   Weight matrix:</span></span>
 <span><span class="co">#&gt;             Command Correct Frustrate Inquire Interrupt Refine Request Specify</span></span>
-<span><span class="co">#&gt;   Command     0.209   0.091     0.040   0.067     0.037  0.047   0.158   0.295</span></span>
-<span><span class="co">#&gt;   Correct     0.099   0.109     0.134   0.054     0.059  0.109   0.124   0.282</span></span>
-<span><span class="co">#&gt;   Frustrate   0.078   0.150     0.204   0.083     0.019  0.209   0.107   0.117</span></span>
-<span><span class="co">#&gt;   Inquire     0.155   0.155     0.140   0.166     0.109  0.041   0.093   0.098</span></span>
-<span><span class="co">#&gt;   Interrupt   0.298   0.055     0.055   0.193     0.144  0.039   0.066   0.077</span></span>
-<span><span class="co">#&gt;   Refine      0.042   0.090     0.090   0.066     0.048  0.096   0.114   0.416</span></span>
-<span><span class="co">#&gt;   Request     0.102   0.019     0.070   0.074     0.051  0.033   0.033   0.577</span></span>
-<span><span class="co">#&gt;   Specify     0.291   0.069     0.076   0.067     0.176  0.052   0.064   0.162</span></span>
-<span><span class="co">#&gt;   Verify      0.230   0.100     0.110   0.100     0.050  0.140   0.080   0.110</span></span>
+<span><span class="co">#&gt;   Command     0.235   0.088     0.055   0.066     0.035  0.038   0.155   0.280</span></span>
+<span><span class="co">#&gt;   Correct     0.093   0.091     0.138   0.057     0.054  0.112   0.120   0.278</span></span>
+<span><span class="co">#&gt;   Frustrate   0.103   0.115     0.176   0.075     0.047  0.171   0.111   0.125</span></span>
+<span><span class="co">#&gt;   Inquire     0.196   0.126     0.098   0.188     0.094  0.062   0.084   0.106</span></span>
+<span><span class="co">#&gt;   Interrupt   0.259   0.081     0.094   0.123     0.102  0.080   0.069   0.122</span></span>
+<span><span class="co">#&gt;   Refine      0.058   0.075     0.072   0.047     0.042  0.086   0.146   0.457</span></span>
+<span><span class="co">#&gt;   Request     0.096   0.019     0.044   0.067     0.051  0.033   0.039   0.620</span></span>
+<span><span class="co">#&gt;   Specify     0.263   0.058     0.081   0.072     0.167  0.074   0.070   0.172</span></span>
+<span><span class="co">#&gt;   Verify      0.224   0.079     0.164   0.118     0.043  0.097   0.116   0.083</span></span>
 <span><span class="co">#&gt;             Verify</span></span>
-<span><span class="co">#&gt;   Command    0.056</span></span>
-<span><span class="co">#&gt;   Correct    0.030</span></span>
-<span><span class="co">#&gt;   Frustrate  0.034</span></span>
-<span><span class="co">#&gt;   Inquire    0.041</span></span>
-<span><span class="co">#&gt;   Interrupt  0.072</span></span>
-<span><span class="co">#&gt;   Refine     0.036</span></span>
-<span><span class="co">#&gt;   Request    0.042</span></span>
+<span><span class="co">#&gt;   Command    0.048</span></span>
+<span><span class="co">#&gt;   Correct    0.056</span></span>
+<span><span class="co">#&gt;   Frustrate  0.077</span></span>
+<span><span class="co">#&gt;   Inquire    0.044</span></span>
+<span><span class="co">#&gt;   Interrupt  0.069</span></span>
+<span><span class="co">#&gt;   Refine     0.018</span></span>
+<span><span class="co">#&gt;   Request    0.032</span></span>
 <span><span class="co">#&gt;   Specify    0.043</span></span>
-<span><span class="co">#&gt;   Verify     0.080 </span></span>
+<span><span class="co">#&gt;   Verify     0.077 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   Initial probabilities:</span></span>
-<span><span class="co">#&gt;   Specify       0.664  ████████████████████████████████████████</span></span>
-<span><span class="co">#&gt;   Command       0.216  █████████████</span></span>
-<span><span class="co">#&gt;   Request       0.048  ███</span></span>
-<span><span class="co">#&gt;   Correct       0.040  ██</span></span>
-<span><span class="co">#&gt;   Interrupt     0.016  █</span></span>
-<span><span class="co">#&gt;   Frustrate     0.008  </span></span>
-<span><span class="co">#&gt;   Refine        0.008  </span></span>
-<span><span class="co">#&gt;   Inquire       0.000  </span></span>
-<span><span class="co">#&gt;   Verify        0.000</span></span></code></pre></div>
+<span><span class="co">#&gt;   Specify       0.679  ████████████████████████████████████████</span></span>
+<span><span class="co">#&gt;   Command       0.175  ██████████</span></span>
+<span><span class="co">#&gt;   Request       0.055  ███</span></span>
+<span><span class="co">#&gt;   Interrupt     0.030  ██</span></span>
+<span><span class="co">#&gt;   Correct       0.019  █</span></span>
+<span><span class="co">#&gt;   Refine        0.019  █</span></span>
+<span><span class="co">#&gt;   Frustrate     0.013  █</span></span>
+<span><span class="co">#&gt;   Inquire       0.008  </span></span>
+<span><span class="co">#&gt;   Verify        0.002</span></span></code></pre></div>
 </div>
 <div class="section level4">
 <h4 id="frequency-network-ftna">Frequency Network (FTNA)<a class="anchor" aria-label="anchor" href="#frequency-network-ftna"></a>
@@ -270,45 +264,45 @@ state may be more practically important than one occurring 5 times from
 a rare state, even if the latter has a higher conditional
 probability.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">net_ftna</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/build_network.html">build_network</a></span><span class="op">(</span><span class="va">human_sub</span>, method <span class="op">=</span> <span class="st">"ftna"</span>,</span>
+<code class="sourceCode R"><span><span class="va">net_ftna</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/build_network.html">build_network</a></span><span class="op">(</span><span class="va">human_long</span>, method <span class="op">=</span> <span class="st">"ftna"</span>,</span>
 <span>                          action <span class="op">=</span> <span class="st">"code"</span>, actor <span class="op">=</span> <span class="st">"session_id"</span>,</span>
 <span>                          time <span class="op">=</span> <span class="st">"timestamp"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">net_ftna</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Transition Network (frequency counts) [directed]</span></span>
-<span><span class="co">#&gt;   Weights: [4.000, 169.000]  |  mean: 28.062</span></span>
+<span><span class="co">#&gt;   Weights: [14.000, 732.000]  |  mean: 126.790</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   Weight matrix:</span></span>
 <span><span class="co">#&gt;             Command Correct Frustrate Inquire Interrupt Refine Request Specify</span></span>
-<span><span class="co">#&gt;   Command        90      39        17      29        16     20      68     127</span></span>
-<span><span class="co">#&gt;   Correct        20      22        27      11        12     22      25      57</span></span>
-<span><span class="co">#&gt;   Frustrate      16      31        42      17         4     43      22      24</span></span>
-<span><span class="co">#&gt;   Inquire        30      30        27      32        21      8      18      19</span></span>
-<span><span class="co">#&gt;   Interrupt      54      10        10      35        26      7      12      14</span></span>
-<span><span class="co">#&gt;   Refine          7      15        15      11         8     16      19      69</span></span>
-<span><span class="co">#&gt;   Request        22       4        15      16        11      7       7     124</span></span>
-<span><span class="co">#&gt;   Specify       169      40        44      39       102     30      37      94</span></span>
-<span><span class="co">#&gt;   Verify         23      10        11      10         5     14       8      11</span></span>
+<span><span class="co">#&gt;   Command       459     171       107     129        68     75     303     548</span></span>
+<span><span class="co">#&gt;   Correct        73      71       108      45        42     88      94     218</span></span>
+<span><span class="co">#&gt;   Frustrate      95     106       162      69        43    157     102     115</span></span>
+<span><span class="co">#&gt;   Inquire       160     103        80     154        77     51      69      87</span></span>
+<span><span class="co">#&gt;   Interrupt     191      60        69      91        75     59      51      90</span></span>
+<span><span class="co">#&gt;   Refine         45      59        56      37        33     67     114     357</span></span>
+<span><span class="co">#&gt;   Request        97      19        45      68        52     33      40     629</span></span>
+<span><span class="co">#&gt;   Specify       732     161       226     199       463    205     194     479</span></span>
+<span><span class="co">#&gt;   Verify        108      38        79      57        21     47      56      40</span></span>
 <span><span class="co">#&gt;             Verify</span></span>
-<span><span class="co">#&gt;   Command       24</span></span>
-<span><span class="co">#&gt;   Correct        6</span></span>
-<span><span class="co">#&gt;   Frustrate      7</span></span>
-<span><span class="co">#&gt;   Inquire        8</span></span>
-<span><span class="co">#&gt;   Interrupt     13</span></span>
-<span><span class="co">#&gt;   Refine         6</span></span>
-<span><span class="co">#&gt;   Request        9</span></span>
-<span><span class="co">#&gt;   Specify       25</span></span>
-<span><span class="co">#&gt;   Verify         8 </span></span>
+<span><span class="co">#&gt;   Command       94</span></span>
+<span><span class="co">#&gt;   Correct       44</span></span>
+<span><span class="co">#&gt;   Frustrate     71</span></span>
+<span><span class="co">#&gt;   Inquire       36</span></span>
+<span><span class="co">#&gt;   Interrupt     51</span></span>
+<span><span class="co">#&gt;   Refine        14</span></span>
+<span><span class="co">#&gt;   Request       32</span></span>
+<span><span class="co">#&gt;   Specify      120</span></span>
+<span><span class="co">#&gt;   Verify        37 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   Initial probabilities:</span></span>
-<span><span class="co">#&gt;   Specify       0.664  ████████████████████████████████████████</span></span>
-<span><span class="co">#&gt;   Command       0.216  █████████████</span></span>
-<span><span class="co">#&gt;   Request       0.048  ███</span></span>
-<span><span class="co">#&gt;   Correct       0.040  ██</span></span>
-<span><span class="co">#&gt;   Interrupt     0.016  █</span></span>
-<span><span class="co">#&gt;   Frustrate     0.008  </span></span>
-<span><span class="co">#&gt;   Refine        0.008  </span></span>
-<span><span class="co">#&gt;   Inquire       0.000  </span></span>
-<span><span class="co">#&gt;   Verify        0.000</span></span></code></pre></div>
+<span><span class="co">#&gt;   Specify       0.679  ████████████████████████████████████████</span></span>
+<span><span class="co">#&gt;   Command       0.175  ██████████</span></span>
+<span><span class="co">#&gt;   Request       0.055  ███</span></span>
+<span><span class="co">#&gt;   Interrupt     0.030  ██</span></span>
+<span><span class="co">#&gt;   Correct       0.019  █</span></span>
+<span><span class="co">#&gt;   Refine        0.019  █</span></span>
+<span><span class="co">#&gt;   Frustrate     0.013  █</span></span>
+<span><span class="co">#&gt;   Inquire       0.008  </span></span>
+<span><span class="co">#&gt;   Verify        0.002</span></span></code></pre></div>
 </div>
 <div class="section level4">
 <h4 id="attention-network-atna">Attention Network (ATNA)<a class="anchor" aria-label="anchor" href="#attention-network-atna"></a>
@@ -320,45 +314,45 @@ produce faster decay. This captures the idea that later events in a
 process may be more indicative of the underlying dynamics than early
 ones.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">net_atna</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/build_network.html">build_network</a></span><span class="op">(</span><span class="va">human_sub</span>, method <span class="op">=</span> <span class="st">"atna"</span>,</span>
+<code class="sourceCode R"><span><span class="va">net_atna</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/build_network.html">build_network</a></span><span class="op">(</span><span class="va">human_long</span>, method <span class="op">=</span> <span class="st">"atna"</span>,</span>
 <span>                          action <span class="op">=</span> <span class="st">"code"</span>, actor <span class="op">=</span> <span class="st">"session_id"</span>,</span>
 <span>                          time <span class="op">=</span> <span class="st">"timestamp"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">net_atna</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Attention Network (decay-weighted transitions) [directed]</span></span>
-<span><span class="co">#&gt;   Weights: [2.719, 81.786]  |  mean: 15.834</span></span>
+<span><span class="co">#&gt;   Weights: [11.018, 357.662]  |  mean: 71.690</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   Weight matrix:</span></span>
-<span><span class="co">#&gt;             Command Correct Frustrate Inquire Interrupt Refine Request Specify</span></span>
-<span><span class="co">#&gt;   Command    50.398  21.700    12.450  16.556    15.164 11.968  31.860  68.371</span></span>
-<span><span class="co">#&gt;   Correct    13.595  13.498    14.098   8.029     7.025 12.674  11.888  30.257</span></span>
-<span><span class="co">#&gt;   Frustrate  10.506  15.087    23.142   9.736     3.927 20.308  12.254  18.614</span></span>
-<span><span class="co">#&gt;   Inquire    16.073  17.002    13.903  16.691    11.297  4.845   9.755  14.765</span></span>
-<span><span class="co">#&gt;   Interrupt  25.913   6.000     5.844  17.104    17.124  3.850   6.353  12.338</span></span>
-<span><span class="co">#&gt;   Refine      6.765   9.389     9.894   6.244     4.124 10.875  10.187  33.191</span></span>
-<span><span class="co">#&gt;   Request    14.348   4.176     8.718  10.071    10.654  6.075   6.291  53.456</span></span>
-<span><span class="co">#&gt;   Specify    81.786  22.700    26.216  25.113    44.442 18.861  28.052  65.762</span></span>
-<span><span class="co">#&gt;   Verify     11.587   5.170     5.991   5.540     2.719  7.318   5.262   8.894</span></span>
+<span><span class="co">#&gt;             Command Correct Frustrate Inquire Interrupt  Refine Request Specify</span></span>
+<span><span class="co">#&gt;   Command   254.753  91.496    66.797  80.402    65.936  47.423 145.985 297.131</span></span>
+<span><span class="co">#&gt;   Correct    51.382  44.627    55.538  29.832    27.286  46.929  46.160 119.340</span></span>
+<span><span class="co">#&gt;   Frustrate  57.452  55.341    92.756  40.085    28.624  74.892  54.606  87.031</span></span>
+<span><span class="co">#&gt;   Inquire    85.134  56.787    43.046  81.061    38.782  29.220  40.091  69.990</span></span>
+<span><span class="co">#&gt;   Interrupt  94.228  31.160    36.365  46.634    48.698  30.005  28.457  67.398</span></span>
+<span><span class="co">#&gt;   Refine     36.306  37.008    37.761  24.197    21.236  51.087  58.478 167.226</span></span>
+<span><span class="co">#&gt;   Request    63.272  18.659    31.998  41.056    51.503  30.285  33.277 272.476</span></span>
+<span><span class="co">#&gt;   Specify   357.662  96.031   134.432 115.671   206.063 116.889 141.240 335.302</span></span>
+<span><span class="co">#&gt;   Verify     53.941  20.958    40.429  30.820    11.349  25.768  29.387  39.412</span></span>
 <span><span class="co">#&gt;             Verify</span></span>
-<span><span class="co">#&gt;   Command   13.721</span></span>
-<span><span class="co">#&gt;   Correct    3.554</span></span>
-<span><span class="co">#&gt;   Frustrate  3.574</span></span>
-<span><span class="co">#&gt;   Inquire    4.062</span></span>
-<span><span class="co">#&gt;   Interrupt  6.741</span></span>
-<span><span class="co">#&gt;   Refine     3.204</span></span>
-<span><span class="co">#&gt;   Request    5.989</span></span>
-<span><span class="co">#&gt;   Specify   15.915</span></span>
-<span><span class="co">#&gt;   Verify     3.943 </span></span>
+<span><span class="co">#&gt;   Command   53.492</span></span>
+<span><span class="co">#&gt;   Correct   22.847</span></span>
+<span><span class="co">#&gt;   Frustrate 32.765</span></span>
+<span><span class="co">#&gt;   Inquire   17.833</span></span>
+<span><span class="co">#&gt;   Interrupt 27.393</span></span>
+<span><span class="co">#&gt;   Refine    11.018</span></span>
+<span><span class="co">#&gt;   Request   21.781</span></span>
+<span><span class="co">#&gt;   Specify   76.312</span></span>
+<span><span class="co">#&gt;   Verify    23.444 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   Initial probabilities:</span></span>
-<span><span class="co">#&gt;   Specify       0.664  ████████████████████████████████████████</span></span>
-<span><span class="co">#&gt;   Command       0.216  █████████████</span></span>
-<span><span class="co">#&gt;   Request       0.048  ███</span></span>
-<span><span class="co">#&gt;   Correct       0.040  ██</span></span>
-<span><span class="co">#&gt;   Interrupt     0.016  █</span></span>
-<span><span class="co">#&gt;   Frustrate     0.008  </span></span>
-<span><span class="co">#&gt;   Refine        0.008  </span></span>
-<span><span class="co">#&gt;   Inquire       0.000  </span></span>
-<span><span class="co">#&gt;   Verify        0.000</span></span></code></pre></div>
+<span><span class="co">#&gt;   Specify       0.679  ████████████████████████████████████████</span></span>
+<span><span class="co">#&gt;   Command       0.175  ██████████</span></span>
+<span><span class="co">#&gt;   Request       0.055  ███</span></span>
+<span><span class="co">#&gt;   Interrupt     0.030  ██</span></span>
+<span><span class="co">#&gt;   Correct       0.019  █</span></span>
+<span><span class="co">#&gt;   Refine        0.019  █</span></span>
+<span><span class="co">#&gt;   Frustrate     0.013  █</span></span>
+<span><span class="co">#&gt;   Inquire       0.008  </span></span>
+<span><span class="co">#&gt;   Verify        0.002</span></span></code></pre></div>
 </div>
 <div class="section level4">
 <h4 id="co-occurrence-network-from-binary-data">Co-occurrence Network from Binary Data<a class="anchor" aria-label="anchor" href="#co-occurrence-network-from-binary-data"></a>
@@ -483,10 +477,10 @@ data, not driven by a small number of idiosyncratic sequences.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/network_reliability.html">network_reliability</a></span><span class="op">(</span><span class="va">net_tna</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Split-Half Reliability (1000 iterations, split = 50%)</span></span>
-<span><span class="co">#&gt;   Mean Abs. Diff.     mean = 0.0361  sd = 0.0038</span></span>
-<span><span class="co">#&gt;   Median Abs. Diff.   mean = 0.0269  sd = 0.0038</span></span>
-<span><span class="co">#&gt;   Pearson             mean = 0.8642  sd = 0.0290</span></span>
-<span><span class="co">#&gt;   Max Abs. Diff.      mean = 0.1733  sd = 0.0391</span></span></code></pre></div>
+<span><span class="co">#&gt;   Mean Abs. Diff.     mean = 0.0169  sd = 0.0017</span></span>
+<span><span class="co">#&gt;   Median Abs. Diff.   mean = 0.0129  sd = 0.0018</span></span>
+<span><span class="co">#&gt;   Pearson             mean = 0.9706  sd = 0.0062</span></span>
+<span><span class="co">#&gt;   Max Abs. Diff.      mean = 0.0748  sd = 0.0181</span></span></code></pre></div>
 </div>
 <div class="section level4">
 <h4 id="bootstrap-analysis">Bootstrap Analysis<a class="anchor" aria-label="anchor" href="#bootstrap-analysis"></a>
@@ -504,16 +498,16 @@ in the network.</p>
 <span><span class="va">boot</span></span>
 <span><span class="co">#&gt;   Edge                   Mean     95% CI          p</span></span>
 <span><span class="co">#&gt;   -----------------------------------------------</span></span>
-<span><span class="co">#&gt;   Request → Specify    0.578  [0.506, 0.661]  ** </span></span>
-<span><span class="co">#&gt;   Refine → Specify     0.417  [0.320, 0.496]  *  </span></span>
-<span><span class="co">#&gt;   Command → Specify    0.294  [0.251, 0.331]  ** </span></span>
-<span><span class="co">#&gt;   Specify → Command    0.290  [0.256, 0.327]  ** </span></span>
-<span><span class="co">#&gt;   Correct → Specify    0.285  [0.234, 0.350]  *  </span></span>
-<span><span class="co">#&gt;   ... and 3 more significant edges</span></span>
+<span><span class="co">#&gt;   Request → Specify    0.619  [0.584, 0.655]  ** </span></span>
+<span><span class="co">#&gt;   Refine → Specify     0.455  [0.413, 0.502]  ** </span></span>
+<span><span class="co">#&gt;   Command → Specify    0.281  [0.256, 0.301]  ** </span></span>
+<span><span class="co">#&gt;   Correct → Specify    0.280  [0.249, 0.309]  ** </span></span>
+<span><span class="co">#&gt;   Specify → Command    0.263  [0.246, 0.279]  ** </span></span>
+<span><span class="co">#&gt;   ... and 40 more significant edges</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Bootstrap Network  [Transition Network (relative) | directed]</span></span>
 <span><span class="co">#&gt;   Iterations : 100  |  Nodes : 9</span></span>
-<span><span class="co">#&gt;   Edges      : 8 significant / 81 total</span></span>
+<span><span class="co">#&gt;   Edges      : 45 significant / 81 total</span></span>
 <span><span class="co">#&gt;   CI         : 95%  |  Inference: stability  |  CR [0.75, 1.25]</span></span></code></pre></div>
 </div>
 <div class="section level4">
@@ -533,8 +527,8 @@ instability.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   CS-coefficients:</span></span>
 <span><span class="co">#&gt;     InStrength       0.90</span></span>
-<span><span class="co">#&gt;     OutStrength      0.50</span></span>
-<span><span class="co">#&gt;     Betweenness      0.70</span></span></code></pre></div>
+<span><span class="co">#&gt;     OutStrength      0.80</span></span>
+<span><span class="co">#&gt;     Betweenness      0.90</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level3">
@@ -556,9 +550,9 @@ separate network for each cluster (López-Pernas et al., 2025).</p>
 <span><span class="co">#&gt; Group Networks (3 clusters via pam / hamming)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   Group      Nodes  Edges  Weights         N</span></span>
-<span><span class="co">#&gt;   Cluster 1  9      81     [0.010, 0.626]  89 (71.2%)</span></span>
-<span><span class="co">#&gt;   Cluster 2  9      80     [0.017, 0.506]  35 (28.0%)</span></span>
-<span><span class="co">#&gt;   Cluster 3  9      53     [0.043, 0.667]  1 ( 0.8%)</span></span></code></pre></div>
+<span><span class="co">#&gt;   Cluster 1  9      81     [0.006, 0.538]  145 (27.6%)</span></span>
+<span><span class="co">#&gt;   Cluster 2  9      81     [0.003, 0.694]  299 (56.8%)</span></span>
+<span><span class="co">#&gt;   Cluster 3  9      81     [0.018, 0.588]  82 (15.6%)</span></span></code></pre></div>
 <div class="section level4">
 <h4 id="permutation-test-for-clusters">Permutation Test for Clusters<a class="anchor" aria-label="anchor" href="#permutation-test-for-clusters"></a>
 </h4>
@@ -577,7 +571,7 @@ divergence rather than algorithmic artifacts.</p>
 <span><span class="va">perm</span></span>
 <span><span class="co">#&gt; Permutation Test:Transition Network (relative probabilities) [directed]</span></span>
 <span><span class="co">#&gt;   Iterations: 100  |  Alpha: 0.05</span></span>
-<span><span class="co">#&gt;   Nodes: 9  |  Edges tested: 81  |  Significant: 8</span></span></code></pre></div>
+<span><span class="co">#&gt;   Nodes: 9  |  Edges tested: 81  |  Significant: 9</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level3">
@@ -765,7 +759,7 @@ survey responses. <em>Computers in Human Behavior</em>, 173, 108769. <a href="ht
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by <a href="https://saqr.me" class="external-link">Mohammed Saqr</a>, <a href="https://sonsoles.me" class="external-link">Sonsoles López-Pernas</a>.</p>
+  <p>Developed by <a href="https://saqr.me" class="external-link">Mohammed Saqr</a>, <a href="https://sonsoles.me" class="external-link">Sonsoles López-Pernas</a>, Kamila Misiejuk.</p>
 </div>
 
 <div class="pkgdown-footer-right">

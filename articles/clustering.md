@@ -20,34 +20,33 @@ label.
 
 ``` r
 
+library(cograph)
 library(Nestimate)
+#> Registered S3 methods overwritten by 'Nestimate':
+#>   method             from   
+#>   plot.net_stability cograph
+#>   print.mcml         cograph
+#> 
+#> Attaching package: 'Nestimate'
+#> The following objects are masked from 'package:cograph':
+#> 
+#>     as_tna, build_mcml, cluster_network, cluster_summary
 data("human_long")
-
-# Subsample for vignette speed (CRAN build-time limit). Keep only
-# sessions of at least 5 turns -- some metrics are undefined on very
-# short sequences and downstream sequence_plot row-ordering uses an
-# LCS-distance hclust that needs >= 2 observed turns per row.
-set.seed(1)
-session_lengths <- table(human_long$session_id)
-long_enough     <- names(session_lengths)[session_lengths >= 5]
-keep            <- sample(long_enough, 80)
-human_sub       <- human_long[human_long$session_id %in% keep, ]
-
-head(human_sub)
-#>     message_id   project   session_id  timestamp session_date      code
-#> 395       2902 Project_7 0605767ae57f 1772229600   2026-02-28   Specify
-#> 396       2902 Project_7 0605767ae57f 1772229600   2026-02-28   Command
-#> 397       2902 Project_7 0605767ae57f 1772229600   2026-02-28   Request
-#> 398       2902 Project_7 0605767ae57f 1772229600   2026-02-28   Specify
-#> 399       2903 Project_7 0605767ae57f 1772229600   2026-02-28 Interrupt
-#> 400       2905 Project_7 0605767ae57f 1772229600   2026-02-28   Command
-#>           cluster code_order order_in_session
-#> 395     Directive          1                1
-#> 396     Directive          2                2
-#> 397     Directive          3                3
-#> 398     Directive          4                4
-#> 399 Metacognitive          1                5
-#> 400     Directive          1                8
+head(human_long)
+#>   message_id   project   session_id  timestamp session_date      code
+#> 1       3439 Project_7 0086cabebd15 1772661600   2026-03-05   Specify
+#> 2       3439 Project_7 0086cabebd15 1772661600   2026-03-05   Command
+#> 3       3439 Project_7 0086cabebd15 1772661600   2026-03-05   Specify
+#> 4       3440 Project_7 0086cabebd15 1772661600   2026-03-05 Interrupt
+#> 5       3442 Project_7 0086cabebd15 1772661600   2026-03-05    Verify
+#> 6       3444 Project_7 0086cabebd15 1772661600   2026-03-05   Specify
+#>         cluster code_order order_in_session
+#> 1     Directive          1                1
+#> 2     Directive          2                2
+#> 3     Directive          3                3
+#> 4 Metacognitive          1                4
+#> 5    Evaluative          1                7
+#> 6     Directive          1               10
 ```
 
 We can build a transition network using this dataset using
@@ -59,12 +58,12 @@ perform clustering.
 
 ``` r
 
-net <- build_network(human_sub,
+net <- build_network(human_long,
                      method = "tna",
                      action = "cluster",
                      actor  = "session_id",
                      time   = "timestamp")
-#> Metadata aggregated per session: ties resolved by first occurrence in 'code' (23 sessions)
+#> Metadata aggregated per session: ties resolved by first occurrence in 'code' (99 sessions)
 ```
 
 ## Dissimilarity-based Clustering
@@ -88,14 +87,14 @@ clust <- build_clusters(net, k = 3)
 
 clust
 #> Sequence Clustering [pam]
-#>   Sequences: 96  |  Clusters: 3
+#>   Sequences: 526  |  Clusters: 3
 #>   Dissimilarity: hamming
-#>   Quality: silhouette = 0.289
+#>   Quality: silhouette = 0.280
 #> 
-#>   Cluster  N           Mean within-dist  Medoid
-#>   1        43 (44.8%)  7.378             15
-#>   2        39 (40.6%)  18.088            52
-#>   3        14 (14.6%)  42.484            42
+#>   Cluster  N            Mean within-dist  Medoid
+#>   1        260 (49.4%)  6.892             195
+#>   2        94 (17.9%)   50.083            335
+#>   3        172 (32.7%)  15.359            316
 ```
 
 The default clustering mechanism uses **Hamming distance** (number of
@@ -111,16 +110,16 @@ separation between clusters), among other useful information.
 
 # Cluster assignments (first 20 sessions)
 head(clust$assignments, 20)
-#>  [1] 1 1 2 2 2 1 1 1 2 1 2 1 1 2 1 2 1 2 1 2
+#>  [1] 1 1 2 2 1 3 1 2 1 1 1 3 2 1 1 1 1 3 3 3
 
 # Cluster sizes
 clust$sizes
-#>  1  2  3 
-#> 43 39 14
+#>   1   2   3 
+#> 260  94 172
 
 # Silhouette score (clustering quality: higher is better)
 clust$silhouette
-#> [1] 0.2892913
+#> [1] 0.2799245
 ```
 
 ### Visualizing Clusters
@@ -185,12 +184,12 @@ We can specify which distance metric we want to use through the
 # Levenshtein distance (allows insertions/deletions)
 clust_lv <- build_clusters(net, k = 3, dissimilarity = "lv")
 clust_lv$silhouette
-#> [1] 0.2284073
+#> [1] 0.2689417
 
 # Longest common subsequence
 clust_lcs <- build_clusters(net, k = 3, dissimilarity = "lcs")
 clust_lcs$silhouette
-#> [1] 0.2526863
+#> [1] 0.1836091
 ```
 
 Some distance metrics may take additional arguments. For example, the
@@ -206,7 +205,7 @@ clust_weighted <- build_clusters(net,
                                weighted = TRUE,
                                lambda = 0.5)
 clust_weighted$silhouette
-#> [1] 0.2653452
+#> [1] 0.2337931
 ```
 
 ### Clustering Methods
@@ -248,12 +247,12 @@ To use any of these methods instead of PAM, we need to provide the
 # Ward's method (minimizes within-cluster variance)
 clust_ward <- build_clusters(net, k = 3, method = "ward.D2")
 clust_ward$silhouette
-#> [1] 0.3132877
+#> [1] 0.5694224
 
 # Complete linkage
 clust_complete <- build_clusters(net, k = 3, method = "complete")
 clust_complete$silhouette
-#> [1] 0.55901
+#> [1] 0.8019662
 ```
 
 ### Choosing k, dissimilarity, and method
@@ -272,19 +271,19 @@ ch <- cluster_choice(net, k = 2:4,
 ch
 #> Cluster Choice (sweep: k x method)
 #> 
-#>  k method   silhouette within_dist sizes    ratio  best    
-#>  2 pam      0.459      19.321      [27, 69]  2.556         
-#>  3 pam      0.289      16.848      [14, 43]  3.071         
-#>  4 pam      0.273      15.941      [9, 43]   4.778         
-#>  2 ward.D2  0.600      19.937      [11, 85]  7.727         
-#>  3 ward.D2  0.313      16.770      [11, 46]  4.182         
-#>  4 ward.D2  0.323      16.028      [3, 46]  15.333         
-#>  2 complete 0.666      22.034      [3, 93]  31.000 <-- best
-#>  3 complete 0.559      19.194      [3, 85]  28.333         
-#>  4 complete 0.555      18.652      [1, 85]  85.000         
-#>  2 average  0.666      22.034      [3, 93]  31.000         
-#>  3 average  0.642      21.493      [1, 93]  93.000         
-#>  4 average  0.555      18.652      [1, 85]  85.000
+#>  k method   silhouette within_dist sizes      ratio   best    
+#>  2 pam      0.558      19.500      [108, 418]   3.870         
+#>  3 pam      0.280      17.379      [94, 260]    2.766         
+#>  4 pam      0.158      16.538      [94, 158]    1.681         
+#>  2 ward.D2  0.588      19.650      [91, 435]    4.780         
+#>  3 ward.D2  0.569      18.389      [8, 435]    54.375         
+#>  4 ward.D2  0.513      17.601      [8, 435]    54.375         
+#>  2 complete 0.810      22.609      [8, 518]    64.750         
+#>  3 complete 0.802      22.360      [1, 518]   518.000         
+#>  4 complete 0.781      22.265      [1, 518]   518.000         
+#>  2 average  0.824      23.400      [4, 522]   130.500 <-- best
+#>  3 average  0.816      23.153      [1, 522]   522.000         
+#>  4 average  0.763      21.879      [1, 515]   515.000
 ```
 
 [`plot()`](https://rdrr.io/r/graphics/plot.default.html) accepts an
@@ -315,10 +314,10 @@ ch_d <- cluster_choice(net, k = 2,
 ch_d
 #> Cluster Choice (sweep: dissimilarity)
 #> 
-#>  dissimilarity silhouette within_dist sizes    ratio  best    
-#>  hamming       0.600      19.937      [11, 85]  7.727         
-#>  lv            0.621      15.793      [11, 85]  7.727 <-- best
-#>  lcs           0.620      19.112      [6, 90]  15.000
+#>  dissimilarity silhouette within_dist sizes      ratio best    
+#>  hamming       0.588      19.650      [91, 435]  4.780 <-- best
+#>  lv            0.584      15.375      [110, 416] 3.782         
+#>  lcs           0.514      17.544      [126, 400] 3.175
 ```
 
 ``` r
@@ -353,15 +352,15 @@ summary(clust)
 #> Sequence Clustering Summary
 #>   Method:        ward.D2 
 #>   Dissimilarity: hamming 
-#>   Silhouette:    0.6003 
+#>   Silhouette:    0.5877 
 #> 
 #> Per-cluster statistics:
 #>  cluster size mean_within_dist
-#>        1   85         16.92829
-#>        2   11         43.18182
+#>        1  435         13.14836
+#>        2   91         50.72747
 #>   cluster size mean_within_dist
-#> 1       1   85         16.92829
-#> 2       2   11         43.18182
+#> 1       1  435         13.14836
+#> 2       2   91         50.72747
 ```
 
 ### Validating the choice with `cluster_diagnostics()`
@@ -379,12 +378,12 @@ share, and per-cluster classification error for MMM fits.
 diag <- cluster_diagnostics(clust)
 diag
 #> Cluster Diagnostics (distance) [ward.D2 / hamming]
-#>   Sequences: 96  |  Clusters: 2
-#>   Quality: silhouette = 0.600
+#>   Sequences: 526  |  Clusters: 2
+#>   Quality: silhouette = 0.588
 #> 
-#>   Cluster  N           Mean within-dist  Silhouette
-#>   1        85 (88.5%)  16.928            0.661
-#>   2        11 (11.5%)  43.182            0.133
+#>   Cluster  N            Mean within-dist  Silhouette
+#>   1        435 (82.7%)  13.148            0.727
+#>   2        91 (17.3%)   50.727            -0.076
 ```
 
 ``` r
@@ -414,28 +413,28 @@ returns a `net_mmm` object with full model details:
 mmm_fit <- build_mmm(net, k = 2)
 summary(mmm_fit)
 #> Mixed Markov Model
-#>   Sequences: 96  |  Clusters: 2  |  States: 3
-#>   ICs: LL = -1912.188  |  BIC = 3901.969  |  AIC = 3858.375  |  ICL = 3935.706
-#>   Quality: AvePP = 0.852  |  Entropy = 0.475  |  Class.Err = 0.0%
+#>   Sequences: 526  |  Clusters: 2  |  States: 3
+#>   ICs: LL = -10074.921  |  BIC = 20256.351  |  AIC = 20183.841  |  ICL = 20536.530
+#>   Quality: AvePP = 0.782  |  Entropy = 0.642  |  Class.Err = 0.0%
 #> 
-#>   Cluster  N           Mix%   AvePP
-#>   1        22 (22.9%)  29.1%  0.813
-#>   2        74 (77.1%)  70.9%  0.863
+#>   Cluster  N            Mix%   AvePP
+#>   1        334 (63.5%)  55.7%  0.766
+#>   2        192 (36.5%)  44.3%  0.808
 #> 
-#> --- Cluster 1 (29.1%, n=22) ---
+#> --- Cluster 1 (55.7%, n=334) ---
 #>               Directive Evaluative Metacognitive
-#> Directive         0.672      0.114         0.214
-#> Evaluative        0.484      0.244         0.272
-#> Metacognitive     0.314      0.195         0.491
+#> Directive         0.647      0.144         0.208
+#> Evaluative        0.549      0.269         0.181
+#> Metacognitive     0.429      0.257         0.314
 #> 
-#> --- Cluster 2 (70.9%, n=74) ---
+#> --- Cluster 2 (44.3%, n=192) ---
 #>               Directive Evaluative Metacognitive
-#> Directive         0.614      0.242         0.145
-#> Evaluative        0.421      0.473         0.106
-#> Metacognitive     0.511      0.333         0.156
+#> Directive         0.565      0.301         0.134
+#> Evaluative        0.447      0.462         0.090
+#> Metacognitive     0.398      0.435         0.166
 #>   component     prior n_assigned mean_posterior     avepp
-#> 1         1 0.2913827         22      0.8126370 0.8126370
-#> 2         2 0.7086173         74      0.8634383 0.8634383
+#> 1         1 0.5566955        334      0.7663911 0.7663911
+#> 2         2 0.4433045        192      0.8080450 0.8080450
 ```
 
 The `net_mmm` object contains posterior probabilities, model fit
@@ -450,13 +449,13 @@ posterior probability, per-cluster classification error):
 diag_mmm <- cluster_diagnostics(mmm_fit)
 diag_mmm
 #> Cluster Diagnostics (mmm) [k = 2]
-#>   Sequences: 96  |  Clusters: 2  |  States: 3
-#>   Quality: AvePP = 0.852  |  Entropy = 0.475  |  Class.Err = 0.0%
-#>   ICs: LL = -1912.188  |  BIC = 3901.969  |  AIC = 3858.375  |  ICL = 3935.706
+#>   Sequences: 526  |  Clusters: 2  |  States: 3
+#>   Quality: AvePP = 0.782  |  Entropy = 0.642  |  Class.Err = 0.0%
+#>   ICs: LL = -10074.921  |  BIC = 20256.351  |  AIC = 20183.841  |  ICL = 20536.530
 #> 
-#>   Cluster  N           Mix%   AvePP  Class.Err%
-#>   1        22 (22.9%)  29.1%  0.813   0.0%
-#>   2        74 (77.1%)  70.9%  0.863   0.0%
+#>   Cluster  N            Mix%   AvePP  Class.Err%
+#>   1        334 (63.5%)  55.7%  0.766   0.0%
+#>   2        192 (36.5%)  44.3%  0.808   0.0%
 ```
 
 The `posterior` plot type shows the distribution of each sequence’s max
@@ -474,40 +473,107 @@ cluster](clustering_files/figure-html/mmm-diagnostics-plot-1.png)
 
 ## Building Networks per Cluster
 
-Nestimate provides two consistent functions for clustering + network
-building that both return `netobject_group`:
+Once sequences are grouped, the goal is usually to compare *how
+transitions behave within each group*. A single transition network
+estimated on all sequences averages across the groups and hides the
+contrast. Estimating one network per cluster preserves each group’s
+distinct dynamics — same nodes, different edge weights.
+
+The result is a `netobject_group`: a list of `netobject`s sharing the
+same node set, one per cluster. Every group network supports the same
+downstream operations as a single `netobject` — plotting via
+[`plot()`](https://rdrr.io/r/graphics/plot.default.html), resampling via
+[`bootstrap_network()`](https://saqr.me/Nestimate/reference/bootstrap_network.md),
+group-level edge comparison via
+[`permutation()`](https://saqr.me/Nestimate/reference/permutation.md).
+
+Two paths produce the same `netobject_group`:
+
+1.  **Manual** — fit clustering with
+    [`build_clusters()`](https://saqr.me/Nestimate/reference/build_clusters.md),
+    then pass the result to
+    [`build_network()`](https://saqr.me/Nestimate/reference/build_network.md)
+    to build one network per cluster.
+2.  **Shortcut** —
+    [`cluster_network()`](https://saqr.me/Nestimate/reference/cluster_network.md)
+    and
+    [`cluster_mmm()`](https://saqr.me/Nestimate/reference/cluster_mmm.md)
+    collapse both steps into one call.
+
+The distance-based shortcut
+([`cluster_network()`](https://saqr.me/Nestimate/reference/cluster_network.md))
+groups sessions by sequence similarity. The model-based shortcut
+([`cluster_mmm()`](https://saqr.me/Nestimate/reference/cluster_mmm.md))
+groups them by which Markov model best explains each sequence’s
+transitions.
 
 | Function | Clustering method | Returns |
 |----|----|----|
 | [`cluster_network()`](https://saqr.me/Nestimate/reference/cluster_network.md) | Distance-based (Hamming, LCS, etc.) | `netobject_group` |
 | [`cluster_mmm()`](https://saqr.me/Nestimate/reference/cluster_mmm.md) | Model-based (MMM) | `netobject_group` |
 
-### Using `cluster_network()` (distance-based)
+### From `build_clusters()` to per-cluster networks
+
+[`build_clusters()`](https://saqr.me/Nestimate/reference/build_clusters.md)
+returns clustering only; pass it to
+[`build_network()`](https://saqr.me/Nestimate/reference/build_network.md)
+to get one network per cluster as a `netobject_group` (group networks).
+The shortcut
+[`cluster_network()`](https://saqr.me/Nestimate/reference/cluster_network.md)
+(below) does both steps in one call.
 
 ``` r
 
-# One-shot: cluster + build networks
+clust <- build_clusters(net, k = 2, method = "ward.D2")
+cluster_net <- build_network(clust)
+cluster_net
+#> Group Networks (2 clusters via ward.D2 / hamming)
+#> 
+#>   Group      Nodes  Edges  Weights         N
+#>   Cluster 1  3      9      [0.127, 0.634]  435 (82.7%)
+#>   Cluster 2  3      9      [0.109, 0.571]  91 (17.3%)
+```
+
+``` r
+
+plot(cluster_net)
+```
+
+![Per-cluster transition
+networks](clustering_files/figure-html/cluster-networks-plot-1.png)
+
+### Shortcut: `cluster_network()` (distance-based)
+
+Combines
+[`build_clusters()`](https://saqr.me/Nestimate/reference/build_clusters.md) +
+[`build_network()`](https://saqr.me/Nestimate/reference/build_network.md)
+into one call.
+
+``` r
+
 grp_dist <- cluster_network(net, k = 2, cluster_by = "ward.D2")
 grp_dist
 #> Group Networks (2 clusters via ward.D2 / hamming)
 #> 
 #>   Group      Nodes  Edges  Weights         N
-#>   Cluster 1  3      9      [0.143, 0.631]  85 (88.5%)
-#>   Cluster 2  3      9      [0.108, 0.627]  11 (11.5%)
+#>   Cluster 1  3      9      [0.127, 0.634]  435 (82.7%)
+#>   Cluster 2  3      9      [0.109, 0.571]  91 (17.3%)
 ```
 
-### Using `cluster_mmm()` (model-based)
+### Shortcut: `cluster_mmm()` (model-based)
+
+Model-based equivalent: fits a mixture of Markov models and returns
+per-cluster networks.
 
 ``` r
 
-# One-shot: MMM cluster + networks
 grp_mmm <- cluster_mmm(net, k = 2)
 grp_mmm
 #> Group Networks (2 clusters from MMM)
 #> 
 #>   Group      Nodes  Edges  Weights         N
-#>   Cluster 1  3      9      [0.114, 0.672]  22 (22.9%)
-#>   Cluster 2  3      9      [0.106, 0.614]  74 (77.1%)
+#>   Cluster 1  3      9      [0.090, 0.565]  192 (36.5%)
+#>   Cluster 2  3      9      [0.144, 0.647]  334 (63.5%)
 ```
 
 Both return a `netobject_group` — a list of `netobject`s with clustering
@@ -517,54 +583,16 @@ info accessible via `attr(, "clustering")`:
 
 # Access cluster assignments
 attr(grp_dist, "clustering")$assignments[1:10]
-#>  [1] 1 1 1 1 1 1 1 1 1 1
+#>  [1] 1 1 2 2 1 1 1 2 1 1
 attr(grp_mmm, "clustering")$assignments[1:10]
-#>  [1] 2 2 1 2 1 2 2 2 2 2
+#>  [1] 1 2 1 2 2 2 1 1 2 2
 
 # Access individual cluster networks
 grp_dist[[1]]$weights[1:3, 1:3]
 #>               Directive Evaluative Metacognitive
-#> Directive     0.6310811  0.1918919     0.1770270
-#> Evaluative    0.4129213  0.4438202     0.1432584
-#> Metacognitive 0.4142259  0.2510460     0.3347280
-```
-
-### Visualizing Clustered Sequences
-
-Both `netobject_group` results can be passed directly to
-[`sequence_plot()`](https://saqr.me/Nestimate/reference/sequence_plot.md)
-for visualization:
-
-``` r
-
-sequence_plot(grp_dist, type = "index", main = "Distance-based clusters")
-```
-
-![Sequence plot by
-cluster](clustering_files/figure-html/cluster-seqplot-1.png)
-
-``` r
-
-sequence_plot(grp_mmm, type = "index", main = "MMM clusters")
-```
-
-![Sequence plot by MMM
-cluster](clustering_files/figure-html/cluster-seqplot-mmm-1.png)
-
-### Converting `build_clusters()` to networks
-
-If you used
-[`build_clusters()`](https://saqr.me/Nestimate/reference/build_clusters.md)
-directly, you can convert to `netobject_group` via
-[`build_network()`](https://saqr.me/Nestimate/reference/build_network.md):
-
-``` r
-
-# build_clusters() returns clustering only (no networks)
-clust <- build_clusters(net, k = 2, method = "ward.D2")
-
-# Convert to netobject_group
-cluster_net <- build_network(clust)
+#> Directive     0.6339144  0.1806656     0.1854200
+#> Evaluative    0.4807407  0.3925926     0.1266667
+#> Metacognitive 0.4261294  0.3406593     0.2332112
 ```
 
 ### Comparing Clusters

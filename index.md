@@ -18,8 +18,8 @@ package has only 4 hard imports (ggplot2, glasso, data.table, cluster).
   Visualization](https://saqr.me/Nestimate/articles/cograph-tutorial-nestimate.html)
 - [Higher-Order & Simplicial
   Complexes](https://saqr.me/Nestimate/articles/cograph-tutorial-simplicial.html)
-- [Multi-Cluster Multi-Level
-  (MCML)](https://saqr.me/Nestimate/articles/cograph-tutorial-mcml.html)
+- [Model
+  Assessment](https://saqr.me/Nestimate/articles/tutorial_model_assessment.html)
 
 ### Quick guides
 
