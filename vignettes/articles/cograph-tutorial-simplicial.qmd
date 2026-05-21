@@ -115,7 +115,7 @@ Each row is a second-order pathway. The `from` column is the two-state context, 
 
 ```{r mogen-transitions-simplicial, fig.width=11, fig.height=11}
 plot_simplicial(net, pathways = mt, max_pathways = 6,
-                title = "Top 6 second-order pathways")
+                title = "Top 6 second-order pathways") #Kamila6: Error in grDevices::chull(all_x, all_y) : finite coordinates are needed
 ```
 
 To zoom in on the single most frequent pathway, set `max_pathways = 1` and let the data.frame drive the selection. Because `mogen_transitions()` returns rows already sorted by count, `max_pathways = N` always picks the top `N`:
@@ -430,7 +430,7 @@ The key progression:
 ## References
 
 - Atkin, R. H. (1974). *Mathematical Structure in Human Affairs*. Heinemann Educational.
-- Battiston, F., et al. (2020). Networks beyond pairwise interactions: Structure and dynamics. *Physics Reports*, 874, 1--92.
-- LaRock, T., Scholtes, I., & Eliassi-Rad, T. (2020). HYPA: Efficient detection of path anomalies in time series data on networks. *EPJ Data Science*, 9(1), 15.
-- Scholtes, I. (2017). When is a network a network? Multi-order graphical model selection in pathways and temporal networks. *Proceedings of the 23rd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining*, 1037--1046.
-- Xu, J., Wickramarathne, T. L., & Chawla, N. V. (2016). Representing higher-order dependencies in networks. *Science Advances*, 2(5), e1600028.
+- Battiston, F., Cencetti, G., Iacopini, I., Latora, V., Lucas, M., Patania, A., Young, J.-G., & Petri, G. (2020). Networks beyond pairwise interactions: Structure and dynamics. *Physics Reports*, 874, 1--92.
+- LaRock, T., Nanumyan, V., Scholtes, I., Casiraghi, G., Eliassi-Rad, T., & Schweitzer, F. (2020). Hypa: Efficient detection of path anomalies in time series data on networks. In *Proceedings of the 2020 SIAM International Conference on Data Mining* (pp. 460-468). 
+- Scholtes, I. (2017). When is a network a network? Multi-order graphical model selection in pathways and temporal networks. In *Proceedings of the 23rd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining* (pp. 1037--1046).
+- Xu, J., Wickramarathne, T. L., & Chawla, N. V. (2016). Representing higher-order dependencies in networks. *Science Advances*, *2*(5), e1600028.
