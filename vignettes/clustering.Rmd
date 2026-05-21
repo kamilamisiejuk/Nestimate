@@ -33,7 +33,7 @@ Clusters represent subgroups within the data that share similar patterns. Such p
 
 ## Data
 
-To illustrate clustering, we will use the `human_long` dataset, which contains 10,796 coded human interactions from 429 human-AI pair programming sessions across 34 projects. Each row represents a single interaction event with a timestamp, session identifier, and action label.
+To illustrate clustering, we will use the `human_long` dataset, which contains **10,796 coded interactions across 429 human-AI pair programming sessions and 34 projects**. Each row represents a single coded action: `code` captures what kind of action occurred, taking one of 9 values (`Specify`, `Command`, `Interrupt`, `Verify`, `Frustrate`, `Inquire`, `Correct`, `Request`, `Refine`), while `cluster` further groups these codes into three broad behavioural categories: `Directive`, `Metacognitive`, and `Evaluative`. `session_id` groups rows into distinct sessions, with each unique value defining one actor's sequence, and `timestamp` records when each action occurred, ordering events chronologically within each session.
 
 ```{r data}
 library(cograph)
@@ -226,7 +226,7 @@ plot(diag, type = "silhouette")
 Instead of clustering sequences based on how similar they are to one another, we can cluster them together based on their transition dynamics. Mixture Markov models (MMM) fit separate Markov models, and sequences are assigned to the cluster whose transition structure best matches their observed behavior.
 
 To implement MMM, we can use `build_mmm()`, which returns a `net_mmm` object with full model details:
-```{r}
+```{r build_mmm}
 mmm_fit <- build_mmm(net, k = 2)
 summary(mmm_fit)
 ```
@@ -295,7 +295,7 @@ plot(cluster_net)
 Combines `build_clusters()` + `build_network()` into one call.
 
 ```{r cluster-network-shortcut}
-grp_dist <- cluster_network(net, k = 2, cluster_by = "ward.D2")
+grp_dist <- cluster_network(net, k = 2, cluster_by = "ward.D2") #Kamila4: Error in cluster_network(net, k = 2, cluster_by = "ward.D2") : unused arguments (k = 2, cluster_by = "ward.D2")
 grp_dist
 ```
 
@@ -308,7 +308,7 @@ grp_mmm <- cluster_mmm(net, k = 2)
 grp_mmm
 ```
 
-Both return a `netobject_group` — a list of `netobject`s with clustering info accessible via `attr(, "clustering")`:
+Both return a `netobject_group` — a list of `netobject`s with clustering info accessible via `attr(grp_mmm, "clustering")`:
 
 ```{r}
 # Access cluster assignments
@@ -340,7 +340,7 @@ net <- build_network(human_long, method = "tna",
 # 2. Sweep the parameter space
 ch <- cluster_choice(net, k = 2:5,
                      dissimilarity = c("hamming", "lcs", "cosine"),
-                     method = c("pam", "ward.D2"))
+                     method = c("pam", "ward.D2")) #Kamila5: Error in cluster::pam(dist_mat, diss = TRUE, k = k) : NA values in the dissimilarity matrix not allowed.
 plot(ch, type = "facet", abbrev = TRUE)
 
 # 3. Pick a configuration and fit
