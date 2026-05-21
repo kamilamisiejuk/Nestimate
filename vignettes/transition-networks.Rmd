@@ -257,8 +257,8 @@ Saqr, M., Beck, E., & López-Pernas, S. (2024). Psychological Networks: A Modern
 
 Saqr, M., López-Pernas, S., & Tikka, S. (2025a). Mapping Relational Dynamics with Transition Network Analysis: A Primer and Tutorial. In M. Saqr & S. López-Pernas (Eds.), *Advanced Learning Analytics Methods: AI, Precision and Complexity*. Springer Nature Switzerland. <https://lamethods.org/book2/chapters/ch15-tna/ch15-tna.html>
 
-Saqr, M., López-Pernas, S., Törmänen, T., Kaliisa, R., Misiejuk, K., & Tikka, S. (2025b). Transition network analysis: A novel framework for modeling, visualizing, and identifying the temporal patterns of learners and learning processes. *Proceedings of the 15th International Learning Analytics and Knowledge Conference (LAK25)*. ACM. <https://doi.org/10.1145/3706468.3706513>
+Saqr, M., López-Pernas, S., Törmänen, T., Kaliisa, R., Misiejuk, K., & Tikka, S. (2025b). Transition Network Analysis: A Novel Framework for Modeling, Visualizing, and Identifying the Temporal Patterns of Learners and Learning Processes. *Proceedings of the 15th International Learning Analytics and Knowledge Conference (LAK25)*. ACM. <https://doi.org/10.1145/3706468.3706513>
 
 López-Pernas, S., Tikka, S., & Saqr, M. (2025). Mining Patterns and Clusters with Transition Network Analysis: A Heterogeneity Approach. In M. Saqr & S. López-Pernas (Eds.), *Advanced Learning Analytics Methods: AI, Precision and Complexity*. Springer Nature Switzerland. <https://lamethods.org/book2/chapters/ch17-tna-clusters/ch17-tna-clusters.html>
 
-Vogelsmeier, L.V.D.E., Oliveira, E., Misiejuk, K., López-Pernas, S., & Saqr, M. (2025). Delving into the psychology of Machines: Exploring the structure of self-regulated learning via LLM-generated survey responses. *Computers in Human Behavior*, 173, 108769. <https://doi.org/10.1016/j.chb.2025.108769>
+Vogelsmeier, L.V.D.E., Oliveira, E., Misiejuk, K., López-Pernas, S., & Saqr, M. (2025). Delving into the Psychology of Machines: Exploring the Structure of Self-Regulated Learning via LLM-generated Survey Responses. *Computers in Human Behavior*, 173, 108769. <https://doi.org/10.1016/j.chb.2025.108769>
