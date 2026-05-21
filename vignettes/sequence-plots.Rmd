@@ -30,9 +30,7 @@ library(Nestimate)
 
 ## The dataset
 
-`trajectories` ships with Nestimate: 138 student sequences × 15 weeks,
-three states (`Active`, `Average`, `Disengaged`) plus `NA` for missed
-weeks.
+`trajectories` is an example dataset included in `Nestimate` containing 138 student sequences observed weekly over 15 weeks. Each sequence is coded into one of three engagement states (`Active`, `Average`, `Disengaged`), with `NA` indicating weeks where no activity was recorded.
 
 ```{r data}
 data(trajectories)
@@ -53,6 +51,8 @@ Defaults: `legend = "right"`, `frame = FALSE`.
 
 ## 1. `type = "heatmap"` — clustered carpet
 
+Each row is a student sequence and each column is a week, with cells colored by engagement state. Rows are reordered by a dendrogram to group similar trajectories together.
+
 ### 1.1 Default — LCS distance, ward.D2 dendrogram
 
 ```{r h-default}
@@ -60,6 +60,8 @@ sequence_plot(trajectories)
 ```
 
 ### 1.2 Switch the sort strategy
+
+The `sort` argument controls how rows are ordered. Available options are `lcs` (default), `frequency`, `start`, and `end`, as well as any distance metric supported by `build_clusters()`: `hamming`, `osa`, `lv`, `dl`, `qgram`, `cosine`, `jaccard`, and `jw`.
 
 ```{r h-freq}
 sequence_plot(trajectories, sort = "frequency",
@@ -75,10 +77,6 @@ sequence_plot(trajectories, sort = "hamming",
 sequence_plot(trajectories, sort = "start",
               main = "sort = 'start' (no dendrogram)")
 ```
-
-Available sorts: `lcs` (default), `frequency`, `start`, `end`, plus any
-`build_clusters()` distance — `hamming`, `osa`, `lv`, `dl`, `qgram`,
-`cosine`, `jaccard`, `jw`.
 
 ### 1.3 Cluster separators with `k`
 
@@ -99,6 +97,8 @@ sequence_plot(trajectories, k = 5,
 
 ### 1.4 Legend position, custom palette, title
 
+The `legend` argument controls where the legend is placed (`"right"`, `"bottom"`, `"left"`), `legend_title` sets its label, and `state_colors` accepts a vector of hex codes to override the default palette.
+
 ```{r h-legend}
 sequence_plot(trajectories,
               legend = "bottom",
@@ -109,6 +109,8 @@ sequence_plot(trajectories,
 
 ### 1.5 Cell borders + `tick` thinning
 
+`cell_border` draws gridlines between cells using a specified color, making individual state assignments easier to read. `tick` controls how frequently x-axis labels are shown, so setting `tick = 3` displays every third time point rather than every one.
+
 ```{r h-borders}
 sequence_plot(trajectories,
               cell_border = "grey60", tick = 3,
@@ -117,6 +119,8 @@ sequence_plot(trajectories,
 
 ### 1.6 `frame = TRUE` brings back the outer box
 
+By default the plot has no outer box. Setting `frame = TRUE` draws a border around the plot area.
+
 ```{r h-frame}
 sequence_plot(trajectories, frame = TRUE,
               main = "frame = TRUE")
@@ -124,11 +128,11 @@ sequence_plot(trajectories, frame = TRUE,
 
 ## 2. `type = "index"` — gap-ready carpet with facets
 
-No dendrogram. Rows are sorted within each panel by `sort`. Supports
-`group` (vector or auto from a `net_clustering`) plus `ncol` / `nrow`
-facet grids.
+Unlike the heatmap, `type = "index"` draws individual sequence rows separated by thin gaps and does not include a dendrogram. Rows are sorted within each panel by the `sort` argument. This type supports grouping via `group` (a vector or a `net_clustering` object) and faceting into a grid using `ncol` and `nrow`.
 
 ### 2.1 Single panel
+
+With no grouping specified, all sequences are displayed in a single panel, sorted by the default `sort` argument.
 
 ```{r i-default}
 sequence_plot(trajectories, type = "index",
@@ -137,12 +141,16 @@ sequence_plot(trajectories, type = "index",
 
 ### 2.2 Visible row gaps
 
+`row_gap` adds vertical spacing between rows, making individual trajectories easier to distinguish. Larger values increase the spacing.
+
 ```{r i-gap}
 sequence_plot(trajectories, type = "index", row_gap = 0.25,
               main = "index with row_gap = 0.25")
 ```
 
 ### 2.3 Faceted by `net_clustering` (auto 2×2 for k = 3)
+
+Passing a `build_clusters()` object directly to `sequence_plot()` automatically facets the plot by cluster membership. Here, `k = 3` produces three panels arranged into a 2×2 grid.
 
 ```{r i-cluster}
 cl <- build_clusters(trajectories, k = 3L,
@@ -153,6 +161,8 @@ sequence_plot(cl, type = "index",
 
 ### 2.4 Force a 1×3 row
 
+`ncol` and `nrow` override the default facet grid arrangement. Here, setting `ncol = 3` and `nrow = 1` displays all three clusters side by side in a single row.
+
 ```{r i-row, fig.width=9, fig.height=4}
 sequence_plot(cl, type = "index", ncol = 3, nrow = 1,
               main = "index — ncol = 3, nrow = 1")
@@ -160,9 +170,11 @@ sequence_plot(cl, type = "index", ncol = 3, nrow = 1,
 
 ## 3. `type = "distribution"` — state proportions over time
 
-Stacked area or bar chart of state frequencies per time column.
+`type = "distribution"` summarises how the composition of states shifts across time points, rendering either a stacked area chart or a stacked bar chart of state frequencies.
 
 ### 3.1 Default stacked area
+
+By default, state proportions are displayed as a smooth stacked area chart, making it easy to track gradual shifts in engagement over time.
 
 ```{r d-area}
 sequence_plot(trajectories, type = "distribution",
@@ -171,6 +183,8 @@ sequence_plot(trajectories, type = "distribution",
 
 ### 3.2 Stacked bars, count scale
 
+Setting `geom = "bar"` switches to a bar chart, and `scale = "count"` replaces proportions with raw counts, showing how many sequences are in each state at each time point.
+
 ```{r d-bar-count}
 sequence_plot(trajectories, type = "distribution",
               geom = "bar", scale = "count",
@@ -178,6 +192,8 @@ sequence_plot(trajectories, type = "distribution",
 ```
 
 ### 3.3 NA band on/off
+
+The `na` argument controls whether missing values are shown as a separate band. Setting `na = TRUE` makes gaps in the data visible, while `na = FALSE` excludes them from the plot entirely.
 
 ```{r d-na-true}
 sequence_plot(trajectories, type = "distribution", na = TRUE,
@@ -191,6 +207,8 @@ sequence_plot(trajectories, type = "distribution", na = FALSE,
 
 ### 3.4 Faceted by cluster
 
+Passing a `build_clusters()` object produces a separate distribution panel for each cluster, allowing direct comparison of how state proportions evolve across groups.
+
 ```{r d-cluster}
 sequence_plot(cl, type = "distribution",
               main = "distribution by cluster (k = 3)")
@@ -198,21 +216,31 @@ sequence_plot(cl, type = "distribution",
 
 ## Cheat sheet
 
-```{r cheatsheet}
-# Always explore first with the default:
-sequence_plot(trajectories)
+Always explore first with the default:
 
-# Zoom in on cluster structure:
+```{r cheatsheet}
+sequence_plot(trajectories)
+```
+
+Zoom in on cluster structure by specifying `k`:
+
+```{r}
 sequence_plot(trajectories, k = 3)
 sequence_plot(trajectories, sort = "hamming", k = 4)
+```
 
-# Compare cluster compositions:
+Compare cluster compositions across plot types:
+
+```{r}
 cl <- build_clusters(trajectories, k = 3,
-                   dissimilarity = "hamming", method = "ward.D2")
+                     dissimilarity = "hamming", method = "ward.D2")
 sequence_plot(cl, type = "index")
 sequence_plot(cl, type = "distribution")
+```
 
-# Polish for a paper:
+Polish for publication with custom colors, legend, and cell borders:
+
+```{r}
 sequence_plot(trajectories, k = 3,
               state_colors = c("#2a9d8f", "#e9c46a", "#e76f51"),
               legend_title = "Engagement",
