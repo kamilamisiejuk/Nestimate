@@ -35,7 +35,7 @@ three states (`Active`, `Average`, `Disengaged`) plus `NA` for missed
 weeks.
 
 ```{r data}
-data(trajectories)
+data(trajectories) #Kamila3: Warning :internal error 1 in R_decompress1 with libdeflate, an error with trajectories dataset; Error: lazy-load database '/Library/Frameworks/R.framework/Versions/4.5-arm64/Resources/library/Nestimate/data/Rdata.rdb' is corrupt
 dim(trajectories)
 head(trajectories[, 1:8])
 sort(unique(as.vector(trajectories)), na.last = NA)
