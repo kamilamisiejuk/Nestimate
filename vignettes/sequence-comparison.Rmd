@@ -40,7 +40,7 @@ set.seed(20260413)
 
 ## 1. The dataset
 
-`human_ai_long` is a bundled dataset in `Nestimate` containing coded action sequences from **429 human-AI coding sessions across 34 projects**. Every row is a single action taken during a session with a `cluster` label grouping actions into six broad types: `Action`, `Communication`, `Directive`, `Evaluative`, `Metacognitive`, `Repair`.
+`human_long` is a bundled example dataset in `Nestimate` containing coded action sequences from **429 human-AI coding sessions across 34 projects**. It uses long format, where each row represents a single coded action: `code` captures what kind of action occurred, taking one of 9 values (`Specify`, `Command`, `Interrupt`, `Verify`, `Frustrate`, `Inquire`, `Correct`, `Request`, `Refine`) that become the network nodes, `session_id` identifies who did it (defining the separate sequences for each actor), and `timestamp` records when (used to order actions chronologically within each session). `cluster` further groups these codes into three broad behavioural categories: `Directive`, `Metacognitive`, and `Evaluative`. 
 
 ```{r load}
 data(human_long, package = "Nestimate")
