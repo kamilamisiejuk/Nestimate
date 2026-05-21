@@ -481,7 +481,7 @@ Each dispatcher respects all standard `splot()` arguments (`layout`, `node_fill`
 
 # References
 
-Epskamp, S., Borsboom, D., & Fried, E. I. (2018). Estimating psychological networks and their accuracy: A tutorial paper. *Behavior Research Methods*, 50(1), 195--212.
+Epskamp, S., Borsboom, D., & Fried, E. I. (2018). Estimating psychological networks and their accuracy: A tutorial paper. *Behavior Research Methods*, *50*(1), 195--212.
 
 ---
 
