@@ -30,7 +30,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-`Nestimate` is a unified framework for estimating, validating, and comparing networks from sequential and cross-sectional data. It implements two complementary paradigms: **Transition Network Analysis (TNA)**, which models the relational dynamics of temporal processes as weighted directed networks using stochastic Markov models; and **Psychological Network Analysis (PNA)**, which estimates the conditional dependency structure among variables using regularized partial correlations and graphical models. Both paradigms share the same `build_network()` interface, the same validation engine (bootstrap, permutation, centrality stability), and the same output format --- enabling researchers to apply a consistent analytic workflow across fundamentally different data types.
+`Nestimate` is a unified framework for estimating, validating, and comparing networks from sequential and cross-sectional data. It implements two complementary paradigms: **Transition Network Analysis (TNA)**, which models the relational dynamics of temporal processes as weighted directed networks using stochastic Markov models (Saqr et al., 2025a); and **Psychological Network Analysis (PNA)**, which estimates the conditional dependency structure among variables using regularized partial correlations and graphical models (Saqr et al., 2024). Both paradigms share the same `build_network()` interface, the same validation engine (bootstrap, permutation, centrality stability), and the same output format --- enabling researchers to apply a consistent analytic workflow across fundamentally different data types.
 
 This vignette demonstrates both paradigms, covering network estimation, statistical validation, data-driven clustering, and group comparison.
 
@@ -53,7 +53,7 @@ library(Nestimate)
 head(human_long)
 ```
 
-The dataset is in long format: `code` records what happened, `session_id` who did it, and `timestamp` when. Additional columns like `project` and `cluster` are automatically preserved as metadata for downstream covariate analysis.
+The dataset uses long format: each row is a single coded action, where `code` captures what kind of action occurred (drawn from the 9 behavioural categories that become the network nodes), `session_id` identifies who did it (defining the separate sequences for each actor), and `timestamp` records when (used to order actions chronologically within each session). Additional columns like `project` and `cluster` are automatically preserved as metadata for downstream covariate analysis.
 
 ## Building Networks
 
@@ -107,10 +107,9 @@ When the data is binary (0/1) --- as is common in learning analytics where activ
 
 ```{r onehot}
 data(learning_activities)
-net <- build_network(learning_activities, method = "cna", actor = "student")
+net <- build_network(learning_activities, method = "cna", actor = "student") #Kamila1: Warning :internal error 3 in R_decompress1 with libdeflate; I cannot load the learning_activities dataset
 print(net)
 ```
-
 
 ### Window-based TNA (WTNA)
 
@@ -122,12 +121,12 @@ The `wtna()` function computes networks from one-hot encoded (binary) data using
 
 ```{r wtna-freq}
 net_wtna <- wtna(learning_activities, actor = "student",
-                 method = "transition", type = "frequency")
+                 method = "transition", type = "frequency") #Kamila2: Error in .wtna_auto_detect_codes(check_df) : No one-hot columns found.; problem with the learning_activities dataset
 print(net_wtna)
 ```
 
 ```{r wtna-relative}
-net_wtna_rel <- wtna(learning_activities, method = "transition", type = "relative")
+net_wtna_rel <- wtna(learning_activities, method = "transition", type = "relative") 
 print(net_wtna_rel)
 ```
 
